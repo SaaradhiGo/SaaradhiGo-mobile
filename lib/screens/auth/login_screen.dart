@@ -40,10 +40,9 @@ class _LoginScreenState extends State<LoginScreen> {
     if (!mounted) return;
 
     if (response != null && response['status'] == 'success') {
-      final otp = response['data']?['otp'];
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text('OTP is: $otp')));
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('OTP sent. Check your messages.')),
+      );
       await _safePushToOtp(formattedPhone);
       return;
     }
