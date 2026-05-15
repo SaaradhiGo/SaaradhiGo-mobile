@@ -6,6 +6,7 @@ import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../../providers/map_provider.dart';
 import '../../utils/geometry_utils.dart';
+import '../components/map_attribution.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 
 class PrecisePickupScreen extends StatefulWidget {
@@ -122,6 +123,7 @@ class _PrecisePickupScreenState extends State<PrecisePickupScreen> {
                         ),
                       ],
                     ),
+                  const MapAttribution(),
                 ],
               );
             },
