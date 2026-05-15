@@ -153,8 +153,11 @@ class ApiService implements AuthApiClient {
         body: jsonEncode({'phone_number': phoneNumber, 'role': role}),
       );
 
+      // The OTP request body would historically have echoed the OTP back
+      // in `response.body`. The backend no longer does that, but logging
+      // the full body verbatim is still a foot-gun (any future field that
+      // carries a token or PII shows up in logs). Log only the status.
       debugPrint('OTP Request Status: ${response.statusCode}');
-      debugPrint('OTP Request Body: ${response.body}');
 
       if (response.statusCode == 200 || response.statusCode == 201) {
         final data = jsonDecode(response.body);

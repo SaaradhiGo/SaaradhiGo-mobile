@@ -11,6 +11,7 @@ import 'package:flutter_svg/flutter_svg.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../../providers/map_provider.dart';
 import '../components/coming_soon_overlay.dart';
+import '../components/map_attribution.dart';
 
 class RouteMapScreen extends StatefulWidget {
   const RouteMapScreen({super.key});
@@ -422,6 +423,7 @@ class _RouteMapScreenState extends State<RouteMapScreen> {
                               PolylineLayer(polylines: polylines),
                             if (markers.isNotEmpty)
                               MarkerLayer(markers: markers),
+                            const MapAttribution(),
 
                             // Remove empty marker layer that was causing hit testing errors
                             // Instead, we'll ensure the map has a proper interactive area
