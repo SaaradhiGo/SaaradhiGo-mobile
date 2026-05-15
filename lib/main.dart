@@ -44,6 +44,7 @@ import 'screens/components/payment_pending_banner.dart';
 
 import 'services/push_notification_service.dart';
 import 'services/ongoing_ride_notification_service.dart';
+import 'services/ride_foreground_link.dart';
 
 @pragma('vm:entry-point')
 Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
@@ -259,6 +260,13 @@ class VahanGoApp extends StatelessWidget {
           builder: (context, child) {
             return riverpod.Consumer(
               builder: (context, ref, _) {
+                // Wire the foreground-service notification into ride
+                // lifecycle. Listener is attached once per Consumer
+                // build and persists for the app's lifetime — without
+                // it the rider's app gets killed mid-trip on Xiaomi /
+                // Vivo / Oppo / Realme.
+                wireRideForegroundService(ref);
+
                 final rideState = ref.watch(rideNotifierProvider);
                 return Stack(
                   children: [
