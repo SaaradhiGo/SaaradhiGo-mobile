@@ -7,6 +7,7 @@ class AppConfig {
   // API Endpoints
   static const String authOtp = '/auth/otp/';
   static const String authLogin = '/auth/login/';
+  static const String authRefresh = '/auth/refresh/';
   static const String authUpdate = '/auth/update/';
   static const String authProfile = '/auth/profile/';
   
