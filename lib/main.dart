@@ -12,6 +12,7 @@ import 'providers/map_provider.dart';
 import 'providers/history_provider.dart';
 import 'providers/wallet_provider.dart';
 import 'providers/notification_provider.dart';
+import 'providers/remote_config_provider.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart' as riverpod;
@@ -85,6 +86,14 @@ void main() async {
           ChangeNotifierProvider(create: (_) => HistoryProvider()),
           ChangeNotifierProvider(create: (_) => WalletProvider()),
           ChangeNotifierProvider(create: (_) => NotificationProvider()),
+          // Pulls server-controlled feature flags (e.g. whether wallet
+          // top-ups are enabled). Fires off the fetch immediately so
+          // the wallet screen has the right posture by the time the
+          // user navigates to it; safe defaults are used until the
+          // response lands.
+          ChangeNotifierProvider(
+            create: (_) => RemoteConfigProvider()..fetch(),
+          ),
         ],
         child: VahanGoApp(isFirstLaunch: isFirstLaunch, isLoggedIn: isLoggedIn),
       ),
