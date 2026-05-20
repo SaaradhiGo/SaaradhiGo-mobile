@@ -5,6 +5,7 @@ import 'package:provider/provider.dart';
 import 'package:intl/intl.dart';
 import '../../providers/wallet_provider.dart';
 import '../../providers/notification_provider.dart';
+import '../../providers/remote_config_provider.dart';
 import '../../services/models/wallet_model.dart';
 
 class WalletScreen extends StatefulWidget {
@@ -43,7 +44,7 @@ class _WalletScreenState extends State<WalletScreen> {
 
   List<Transaction> _getFilteredTransactions(List<Transaction> transactions) {
     if (_selectedFilter == 'All') return transactions;
-    if (_selectedFilter == 'Recharges') {
+    if (_selectedFilter == 'Credits' || _selectedFilter == 'Recharges') {
       return transactions.where((t) => t.isCredit).toList();
     }
     if (_selectedFilter == 'Payments') {
@@ -75,19 +76,48 @@ class _WalletScreenState extends State<WalletScreen> {
               children: [
                 const _WalletHeader(),
                 const SizedBox(height: 24),
-                const Text(
-                  'Wallet',
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontSize: 42,
-                    fontWeight: FontWeight.w600,
-                    height: 1.05,
-                  ),
+                Consumer<RemoteConfigProvider>(
+                  builder: (context, cfg, _) {
+                    final title = cfg.walletCreditsOnly
+                        ? 'VahanGo Credits'
+                        : 'Wallet';
+                    return Text(
+                      title,
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 42,
+                        fontWeight: FontWeight.w600,
+                        height: 1.05,
+                      ),
+                    );
+                  },
                 ),
                 const SizedBox(height: 24),
-                _WalletBalanceCard(
-                  balance: provider.balance,
-                  isLoading: provider.isLoading,
+                Consumer<RemoteConfigProvider>(
+                  builder: (context, cfg, _) => _WalletBalanceCard(
+                    balance: provider.balance,
+                    isLoading: provider.isLoading,
+                    topupsEnabled: cfg.walletTopupsEnabled,
+                    creditsOnly: cfg.walletCreditsOnly,
+                  ),
+                ),
+                Consumer<RemoteConfigProvider>(
+                  builder: (context, cfg, _) {
+                    if (!cfg.walletCreditsOnly) return const SizedBox.shrink();
+                    return Padding(
+                      padding: const EdgeInsets.only(top: 12),
+                      child: Text(
+                        'Earned from refunds, promos, and customer support credits. '
+                        'Apply at checkout on your next ride.',
+                        style: GoogleFonts.inter(
+                          color: const Color(0xFF94A3B8),
+                          fontSize: 12,
+                          fontWeight: FontWeight.w500,
+                          height: 1.4,
+                        ),
+                      ),
+                    );
+                  },
                 ),
                 const SizedBox(height: 28),
                 _buildFilterChips(),
@@ -174,38 +204,45 @@ class _WalletScreenState extends State<WalletScreen> {
   }
 
   Widget _buildFilterChips() {
-    return SingleChildScrollView(
-      scrollDirection: Axis.horizontal,
-      child: Row(
-        children: [
-          _FilterChip(
-            label: 'All',
-            isSelected: _selectedFilter == 'All',
-            onTap: () => setState(() {
-              _selectedFilter = 'All';
-              _currentPage = 1;
-            }),
+    return Consumer<RemoteConfigProvider>(
+      builder: (context, cfg, _) {
+        final creditsLabel = cfg.walletCreditsOnly ? 'Credits' : 'Recharges';
+        return SingleChildScrollView(
+          scrollDirection: Axis.horizontal,
+          child: Row(
+            children: [
+              _FilterChip(
+                label: 'All',
+                isSelected: _selectedFilter == 'All',
+                onTap: () => setState(() {
+                  _selectedFilter = 'All';
+                  _currentPage = 1;
+                }),
+              ),
+              const SizedBox(width: 8),
+              _FilterChip(
+                label: creditsLabel,
+                isSelected: _selectedFilter == creditsLabel ||
+                    _selectedFilter == 'Recharges' ||
+                    _selectedFilter == 'Credits',
+                onTap: () => setState(() {
+                  _selectedFilter = creditsLabel;
+                  _currentPage = 1;
+                }),
+              ),
+              const SizedBox(width: 8),
+              _FilterChip(
+                label: 'Payments',
+                isSelected: _selectedFilter == 'Payments',
+                onTap: () => setState(() {
+                  _selectedFilter = 'Payments';
+                  _currentPage = 1;
+                }),
+              ),
+            ],
           ),
-          const SizedBox(width: 8),
-          _FilterChip(
-            label: 'Recharges',
-            isSelected: _selectedFilter == 'Recharges',
-            onTap: () => setState(() {
-              _selectedFilter = 'Recharges';
-              _currentPage = 1;
-            }),
-          ),
-          const SizedBox(width: 8),
-          _FilterChip(
-            label: 'Payments',
-            isSelected: _selectedFilter == 'Payments',
-            onTap: () => setState(() {
-              _selectedFilter = 'Payments';
-              _currentPage = 1;
-            }),
-          ),
-        ],
-      ),
+        );
+      },
     );
   }
 }
@@ -285,9 +322,16 @@ class _WalletHeader extends StatelessWidget {
 }
 
 class _WalletBalanceCard extends StatelessWidget {
-  const _WalletBalanceCard({required this.balance, required this.isLoading});
+  const _WalletBalanceCard({
+    required this.balance,
+    required this.isLoading,
+    required this.topupsEnabled,
+    required this.creditsOnly,
+  });
   final double balance;
   final bool isLoading;
+  final bool topupsEnabled;
+  final bool creditsOnly;
 
   @override
   Widget build(BuildContext context) {
@@ -318,7 +362,7 @@ class _WalletBalanceCard extends StatelessWidget {
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               Text(
-                'Current Balance',
+                creditsOnly ? 'Credit Balance' : 'Current Balance',
                 style: GoogleFonts.inter(
                   color: Colors.black.withValues(alpha: 0.7),
                   fontSize: 14,
@@ -353,20 +397,22 @@ class _WalletBalanceCard extends StatelessWidget {
                     letterSpacing: -0.5,
                   ),
                 ),
-          const SizedBox(height: 24),
-          Row(
-            children: [
-              Expanded(
-                child: _WalletActionButton(
-                  icon: Icons.add_rounded,
-                  label: 'Add Money',
-                  onTap: () {
-                    context.push('/add-money');
-                  },
+          if (topupsEnabled) ...[
+            const SizedBox(height: 24),
+            Row(
+              children: [
+                Expanded(
+                  child: _WalletActionButton(
+                    icon: Icons.add_rounded,
+                    label: 'Add Money',
+                    onTap: () {
+                      context.push('/add-money');
+                    },
+                  ),
                 ),
-              ),
-            ],
-          ),
+              ],
+            ),
+          ],
         ],
       ),
     );
