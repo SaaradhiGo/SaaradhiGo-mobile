@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 import '../../providers/map_provider.dart';
 import '../../providers/wallet_provider.dart';
@@ -393,7 +394,51 @@ class _DriverFoundScreenState extends State<DriverFoundScreen> {
                           const SizedBox(width: 12),
                           _ActionButton(
                             icon: Icons.phone_outlined,
-                            onTap: () {},
+                            // Privacy posture (Phase-0): we launch the
+                            // OS dialer with a tel: deep link but never
+                            // display the driver's number on screen.
+                            // When we wire a phone-masking proxy
+                            // (Exotel / Knowlarity, Phase-1), the
+                            // backend will return a proxy number here
+                            // and the UX is unchanged for the rider.
+                            onTap: () async {
+                              final raw = (driverInfo?['phone'] ??
+                                      rideData?['driver_phone'] ??
+                                      '')
+                                  .toString();
+                              if (raw.isEmpty) {
+                                if (context.mounted) {
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    const SnackBar(
+                                      content: Text(
+                                          'Driver phone unavailable. Use in-app chat instead.'),
+                                    ),
+                                  );
+                                }
+                                return;
+                              }
+                              final uri = Uri(scheme: 'tel', path: raw);
+                              try {
+                                final ok = await launchUrl(uri);
+                                if (!ok && context.mounted) {
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    const SnackBar(
+                                      content: Text(
+                                          'Could not open dialer on this device.'),
+                                    ),
+                                  );
+                                }
+                              } catch (_) {
+                                if (context.mounted) {
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    const SnackBar(
+                                      content: Text(
+                                          'Could not start a call.'),
+                                    ),
+                                  );
+                                }
+                              }
+                            },
                           ),
                         ],
                       ),
