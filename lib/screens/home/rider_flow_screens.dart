@@ -7,6 +7,8 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
 import 'package:url_launcher/url_launcher.dart';
 
+import 'trip_chat_screen.dart';
+
 import '../../providers/map_provider.dart';
 import '../../providers/wallet_provider.dart';
 import 'package:flutter_map/flutter_map.dart';
@@ -389,7 +391,25 @@ class _DriverFoundScreenState extends State<DriverFoundScreen> {
                         children: [
                           _ActionButton(
                             icon: Icons.chat_bubble_outline,
-                            onTap: () {},
+                            onTap: () {
+                              // Open in-trip chat. tripId is whatever
+                              // the rideData payload exposed; fall back
+                              // to 0 (skip) when not present.
+                              final tripIdRaw = rideData?['trip_id'] ??
+                                  rideData?['id'];
+                              final tripId = tripIdRaw is int
+                                  ? tripIdRaw
+                                  : int.tryParse('$tripIdRaw') ?? 0;
+                              if (tripId <= 0) return;
+                              Navigator.of(context).push(
+                                MaterialPageRoute(
+                                  builder: (_) => TripChatScreen(
+                                    tripId: tripId,
+                                    myRole: 'rider',
+                                  ),
+                                ),
+                              );
+                            },
                           ),
                           const SizedBox(width: 12),
                           _ActionButton(
