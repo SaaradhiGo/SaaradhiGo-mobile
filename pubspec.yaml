@@ -44,6 +44,11 @@ dependencies:
   cached_network_image_ce: ^4.6.4
   flutter_cashfree_pg_sdk: ^2.3.4+51
   js: ^0.6.7
+  # Used to launch tel: links so the driver phone number opens in the
+  # OS dialer without ever being displayed in our UI. Privacy posture:
+  # the raw phone number stays out of the widget tree; the only thing
+  # that touches it is launchUrl(Uri.parse('tel:$number')).
+  url_launcher: ^6.3.0
 
 dev_dependencies:
   flutter_test:
