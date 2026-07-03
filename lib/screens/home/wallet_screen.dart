@@ -353,67 +353,12 @@ class _WalletBalanceCard extends StatelessWidget {
                     letterSpacing: -0.5,
                   ),
                 ),
-          const SizedBox(height: 24),
-          Row(
-            children: [
-              Expanded(
-                child: _WalletActionButton(
-                  icon: Icons.add_rounded,
-                  label: 'Add Money',
-                  onTap: () {
-                    context.push('/add-money');
-                  },
-                ),
-              ),
-            ],
-          ),
         ],
       ),
     );
   }
 }
 
-class _WalletActionButton extends StatelessWidget {
-  const _WalletActionButton({
-    required this.icon,
-    required this.label,
-    required this.onTap,
-  });
-
-  final IconData icon;
-  final String label;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    return Material(
-      color: Colors.black.withValues(alpha: 0.1),
-      borderRadius: BorderRadius.circular(14),
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(14),
-        child: Padding(
-          padding: const EdgeInsets.symmetric(vertical: 12),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Icon(icon, color: Colors.black, size: 18),
-              const SizedBox(width: 8),
-              Text(
-                label,
-                style: GoogleFonts.inter(
-                  color: Colors.black,
-                  fontSize: 13,
-                  fontWeight: FontWeight.w700,
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-}
 
 class _WalletMonthLabel extends StatelessWidget {
   const _WalletMonthLabel({required this.label});

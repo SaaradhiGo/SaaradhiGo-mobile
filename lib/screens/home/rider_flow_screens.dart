@@ -132,6 +132,7 @@ class _SearchingDriverScreenState extends State<SearchingDriverScreen> {
       },
       child: _DarkMapScaffold(
         title: 'Finding your ride...',
+        backIcon: Icons.close,
         bottom: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
@@ -313,6 +314,7 @@ class _DriverFoundScreenState extends State<DriverFoundScreen> {
           },
           child: _DarkMapScaffold(
             title: 'Your Driver is Arriving',
+            backIcon: Icons.close,
             onBack: () async {
               if (mounted && context.mounted) {
                 Navigator.of(context).maybePop();
@@ -632,6 +634,7 @@ class FullMapTrackingScreen extends StatefulWidget {
 }
 
 class _FullMapTrackingScreenState extends State<FullMapTrackingScreen> {
+  bool _canPop = false;
   bool _isNavigated = false;
   MapProvider? _mapProvider;
 
@@ -683,15 +686,69 @@ class _FullMapTrackingScreenState extends State<FullMapTrackingScreen> {
     }
   }
 
+  Future<bool> _showCancelConfirmation(BuildContext context) async {
+    return await showDialog<bool>(
+          context: context,
+          builder: (context) => AlertDialog(
+            backgroundColor: const Color(0xFF1E1C18),
+            title: Text(
+              'Cancel Ride?',
+              style: GoogleFonts.inter(
+                color: Colors.white,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+            content: Text(
+              'Are you sure you want to cancel your ongoing ride?',
+              style: GoogleFonts.inter(color: Colors.white70),
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(context, false),
+                child: Text(
+                  'Continue Ride',
+                  style: GoogleFonts.inter(color: const Color(0xFFEEBD2B)),
+                ),
+              ),
+              TextButton(
+                onPressed: () => Navigator.pop(context, true),
+                child: Text(
+                  'Cancel Ride',
+                  style: GoogleFonts.inter(color: Colors.red),
+                ),
+              ),
+            ],
+          ),
+        ) ??
+        false;
+  }
+
   @override
   Widget build(BuildContext context) {
     return Consumer<MapProvider>(
       builder: (context, mapProvider, child) {
-        return _DarkMapScaffold(
-          title: 'Ride in Progress',
-          forceInProgress: true,
-          bottom: Row(
-            children: [
+        return PopScope(
+          canPop: _canPop,
+          onPopInvokedWithResult: (didPop, result) async {
+            if (didPop) return;
+            final shouldPop = await _showCancelConfirmation(context);
+            if (shouldPop && mounted && context.mounted) {
+              context.read<MapProvider>().cancelRideRequest();
+              setState(() => _canPop = true);
+              Navigator.of(context).pop();
+            }
+          },
+          child: _DarkMapScaffold(
+            title: 'Ride in Progress',
+            backIcon: Icons.close,
+            onBack: () async {
+              if (mounted && context.mounted) {
+                Navigator.of(context).maybePop();
+              }
+            },
+            forceInProgress: true,
+            bottom: Row(
+              children: [
               Expanded(
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
@@ -1395,6 +1452,7 @@ class _DarkMapScaffold extends StatefulWidget {
     required this.bottom,
     this.action,
     this.onBack,
+    this.backIcon,
     this.forceInProgress = false,
   });
 
@@ -1402,6 +1460,7 @@ class _DarkMapScaffold extends StatefulWidget {
   final Widget bottom;
   final Widget? action;
   final VoidCallback? onBack;
+  final IconData? backIcon;
   final bool forceInProgress;
 
   @override
@@ -1675,10 +1734,10 @@ class _DarkMapScaffoldState extends State<_DarkMapScaffold>
                     children: [
                       IconButton(
                         onPressed: widget.onBack ?? () => context.pop(),
-                        icon: const CircleAvatar(
+                        icon: CircleAvatar(
                           radius: 20,
-                          backgroundColor: Color(0x77000000),
-                          child: Icon(Icons.arrow_back, color: Colors.white),
+                          backgroundColor: const Color(0x77000000),
+                          child: Icon(widget.backIcon ?? Icons.arrow_back, color: Colors.white),
                         ),
                       ),
                       Expanded(

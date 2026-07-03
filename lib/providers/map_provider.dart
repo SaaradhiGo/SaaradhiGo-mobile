@@ -598,7 +598,20 @@ class MapProvider extends ChangeNotifier {
         );
   }
 
-  void cancelRideRequest() {
+  Future<void> cancelRideRequest() async {
+    final currentTripId = tripId;
+    if (currentTripId != null) {
+      try {
+        final prefs = await SharedPreferences.getInstance();
+        final token = prefs.getString('access_token') ?? '';
+        if (token.isNotEmpty) {
+          await _rideService.cancelTrip(token, currentTripId);
+        }
+      } catch (e) {
+        debugPrint('Error cancelling trip on backend: $e');
+      }
+    }
+    
     container?.read(rideNotifierProvider.notifier).clearState();
     container?.read(webSocketServiceProvider).disconnectAll();
     notifyListeners();

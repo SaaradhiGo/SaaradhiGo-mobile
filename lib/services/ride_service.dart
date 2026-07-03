@@ -250,4 +250,28 @@ class RideService {
       return false;
     }
   }
+
+  Future<bool> cancelTrip(String token, String tripId) async {
+    final url = '${AppConfig.baseUrl}/ride/trip/$tripId/cancel/';
+    try {
+      final response = await http.post(
+        Uri.parse(url),
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer $token',
+        },
+        body: jsonEncode({
+          'reason': 'user_cancelled',
+        }),
+      );
+      if (response.statusCode == 200 || response.statusCode == 201) {
+        return true;
+      }
+      debugPrint('Cancel Trip failed: ${response.statusCode} ${response.body}');
+      return false;
+    } catch (e) {
+      debugPrint('Cancel Trip error: $e');
+      return false;
+    }
+  }
 }
