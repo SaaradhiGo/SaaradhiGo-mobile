@@ -5,11 +5,15 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
+import 'package:url_launcher/url_launcher.dart';
+
+import 'trip_chat_screen.dart';
 
 import '../../providers/map_provider.dart';
 import '../../providers/wallet_provider.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:flutter_map_cancellable_tile_provider/flutter_map_cancellable_tile_provider.dart';
+import '../components/map_attribution.dart';
 import 'package:latlong2/latlong.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import '../../services/ride_service.dart';
@@ -389,12 +393,74 @@ class _DriverFoundScreenState extends State<DriverFoundScreen> {
                         children: [
                           _ActionButton(
                             icon: Icons.chat_bubble_outline,
-                            onTap: () {},
+                            onTap: () {
+                              // Open in-trip chat. tripId is whatever
+                              // the rideData payload exposed; fall back
+                              // to 0 (skip) when not present.
+                              final tripIdRaw = rideData?['trip_id'] ??
+                                  rideData?['id'];
+                              final tripId = tripIdRaw is int
+                                  ? tripIdRaw
+                                  : int.tryParse('$tripIdRaw') ?? 0;
+                              if (tripId <= 0) return;
+                              Navigator.of(context).push(
+                                MaterialPageRoute(
+                                  builder: (_) => TripChatScreen(
+                                    tripId: tripId,
+                                    myRole: 'rider',
+                                  ),
+                                ),
+                              );
+                            },
                           ),
                           const SizedBox(width: 12),
                           _ActionButton(
                             icon: Icons.phone_outlined,
-                            onTap: () {},
+                            // Privacy posture (Phase-0): we launch the
+                            // OS dialer with a tel: deep link but never
+                            // display the driver's number on screen.
+                            // When we wire a phone-masking proxy
+                            // (Exotel / Knowlarity, Phase-1), the
+                            // backend will return a proxy number here
+                            // and the UX is unchanged for the rider.
+                            onTap: () async {
+                              final raw = (driverInfo?['phone'] ??
+                                      rideData?['driver_phone'] ??
+                                      '')
+                                  .toString();
+                              if (raw.isEmpty) {
+                                if (context.mounted) {
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    const SnackBar(
+                                      content: Text(
+                                          'Driver phone unavailable. Use in-app chat instead.'),
+                                    ),
+                                  );
+                                }
+                                return;
+                              }
+                              final uri = Uri(scheme: 'tel', path: raw);
+                              try {
+                                final ok = await launchUrl(uri);
+                                if (!ok && context.mounted) {
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    const SnackBar(
+                                      content: Text(
+                                          'Could not open dialer on this device.'),
+                                    ),
+                                  );
+                                }
+                              } catch (_) {
+                                if (context.mounted) {
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    const SnackBar(
+                                      content: Text(
+                                          'Could not start a call.'),
+                                    ),
+                                  );
+                                }
+                              }
+                            },
                           ),
                         ],
                       ),
@@ -1726,6 +1792,7 @@ class _DarkMapScaffoldState extends State<_DarkMapScaffold>
                   ),
                   PolylineLayer(polylines: polylines),
                   MarkerLayer(markers: markers),
+                  const MapAttribution(),
                 ],
               ),
               SafeArea(

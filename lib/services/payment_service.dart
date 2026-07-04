@@ -9,6 +9,7 @@ import 'package:flutter_cashfree_pg_sdk/api/cfpayment/cfdropcheckoutpayment.dart
 import 'package:flutter_cashfree_pg_sdk/utils/cfenums.dart';
 import 'package:flutter_cashfree_pg_sdk/api/cferrorresponse/cferrorresponse.dart';
 import '../core/app_config.dart';
+import 'dart:io' show Platform;
 import 'package:google_fonts/google_fonts.dart';
 
 import 'web_payment_stub.dart' if (dart.library.html) 'web_payment_helper.dart';
@@ -82,6 +83,11 @@ class PaymentService {
         final response = await WebPaymentHelper.launchCashfree(options);
         overlayEntry?.remove();
         return response;
+      }
+
+      if (!kIsWeb && (Platform.isLinux || Platform.isWindows || Platform.isMacOS)) {
+        overlayEntry?.remove();
+        throw Exception('Online payments via Cashfree are not supported on Desktop platforms. Please use a mobile device, web browser, or Wallet payment.');
       }
 
       CFEnvironment environment = AppConfig.cashfreeEnvironment.toLowerCase() == 'production' 

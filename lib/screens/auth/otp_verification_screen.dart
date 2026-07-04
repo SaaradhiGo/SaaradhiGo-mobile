@@ -72,13 +72,12 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen> {
     final response = await authProvider.requestOtp(widget.phoneNumber);
 
     if (response != null && response['status'] == 'success') {
-      final otp = response['data']?['otp'];
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
+          const SnackBar(
             content: Text(
-              'New OTP is: $otp',
-              style: const TextStyle(color: Colors.white),
+              'New OTP sent. Check your messages.',
+              style: TextStyle(color: Colors.white),
             ),
             backgroundColor: Colors.green,
           ),

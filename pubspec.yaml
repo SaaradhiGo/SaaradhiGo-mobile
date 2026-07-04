@@ -20,6 +20,11 @@ dependencies:
   image_picker: ^1.2.0
   provider: ^6.1.5+1
   shared_preferences: ^2.5.4
+  # Keychain (iOS) / Keystore (Android) for auth tokens. flutter_secure_storage
+  # replaces the plain-text shared_preferences storage we used to keep
+  # access/refresh tokens in; SharedPreferences is still used for non-secret
+  # state and as a dual-write fallback until every reader migrates.
+  flutter_secure_storage: ^9.2.2
   uuid: ^4.5.3
   firebase_core: ^3.15.2
   firebase_messaging: ^15.2.10
@@ -39,6 +44,11 @@ dependencies:
   cached_network_image_ce: ^4.6.4
   flutter_cashfree_pg_sdk: ^2.3.4+51
   js: ^0.6.7
+  # Used to launch tel: links so the driver phone number opens in the
+  # OS dialer without ever being displayed in our UI. Privacy posture:
+  # the raw phone number stays out of the widget tree; the only thing
+  # that touches it is launchUrl(Uri.parse('tel:$number')).
+  url_launcher: ^6.3.0
 
 dev_dependencies:
   flutter_test:
