@@ -855,6 +855,7 @@ class _FullMapTrackingScreenState extends State<FullMapTrackingScreen> {
                   child: const Text('View Summary'),
                 )
               : null,
+          ),
         );
       },
     );
