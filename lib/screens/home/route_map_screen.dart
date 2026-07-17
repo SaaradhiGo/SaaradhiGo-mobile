@@ -648,7 +648,9 @@ class _RouteMapScreenState extends State<RouteMapScreen> {
                             child: Text(
                               subtitle,
                               style: TextStyle(
-                                color: const Color(0xFFEEBD2C).withValues(alpha: 0.8),
+                                color: const Color(
+                                  0xFFEEBD2C,
+                                ).withValues(alpha: 0.8),
                                 fontSize: 12,
                                 fontWeight: FontWeight.w500,
                               ),
@@ -876,7 +878,6 @@ class _RouteMapScreenState extends State<RouteMapScreen> {
     }
     return '₹...';
   }
-
 
   Future<bool> _showCancelConfirmation(BuildContext context) async {
     return await showDialog<bool>(

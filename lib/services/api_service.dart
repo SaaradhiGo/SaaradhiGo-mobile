@@ -77,13 +77,17 @@ class ApiService implements AuthApiClient {
       final decoded = jsonDecode(response.body);
       final data = decoded is Map<String, dynamic> ? decoded['data'] : null;
       final newAccess = (data is Map<String, dynamic>) ? data['token'] : null;
-      final newRefresh = (data is Map<String, dynamic>) ? data['refresh_token'] : null;
+      final newRefresh = (data is Map<String, dynamic>)
+          ? data['refresh_token']
+          : null;
       if (newAccess is! String || newAccess.isEmpty) {
         throw Exception('refresh response missing token');
       }
       await TokenStore.writeTokens(
         accessToken: newAccess,
-        refreshToken: newRefresh is String && newRefresh.isNotEmpty ? newRefresh : refresh,
+        refreshToken: newRefresh is String && newRefresh.isNotEmpty
+            ? newRefresh
+            : refresh,
       );
       _accessToken = newAccess;
       return newAccess;
@@ -145,7 +149,9 @@ class ApiService implements AuthApiClient {
   // Request OTP
   @override
   Future<Map<String, dynamic>?> requestOtp(
-      String phoneNumber, String role) async {
+    String phoneNumber,
+    String role,
+  ) async {
     try {
       final response = await http.post(
         Uri.parse('$baseUrl${AppConfig.authOtp}'),
@@ -233,13 +239,13 @@ class ApiService implements AuthApiClient {
 
     try {
       final uri = Uri.parse('$baseUrl${AppConfig.authUpdate}');
-      
+
       http.Response response;
 
       if (profilePicPath != null && profilePicPath.isNotEmpty) {
         var request = http.MultipartRequest('PATCH', uri);
         request.headers['Authorization'] = 'Bearer $_accessToken';
-        
+
         request.fields['is_updated'] = 'true';
         request.fields['full_name'] = fullName;
         request.fields['email'] = email;
@@ -250,14 +256,16 @@ class ApiService implements AuthApiClient {
         request.fields['street'] = street;
         request.fields['city'] = city;
         request.fields['zip_code'] = zipCode;
-        
+
         final xFile = XFile(profilePicPath);
         final bytes = await xFile.readAsBytes();
-        request.files.add(http.MultipartFile.fromBytes(
-          'avatar',
-          bytes,
-          filename: xFile.name.isNotEmpty ? xFile.name : 'avatar.jpg',
-        ));
+        request.files.add(
+          http.MultipartFile.fromBytes(
+            'avatar',
+            bytes,
+            filename: xFile.name.isNotEmpty ? xFile.name : 'avatar.jpg',
+          ),
+        );
 
         final streamedResponse = await request.send();
         response = await http.Response.fromStream(streamedResponse);
@@ -300,10 +308,12 @@ class ApiService implements AuthApiClient {
   // that the UI used to interpret as "logged out".
   @override
   Future<Map<String, dynamic>?> getProfile() async {
-    final response = await authedRequest((headers) => http.get(
-          Uri.parse('$baseUrl${AppConfig.authProfile}'),
-          headers: headers,
-        ));
+    final response = await authedRequest(
+      (headers) => http.get(
+        Uri.parse('$baseUrl${AppConfig.authProfile}'),
+        headers: headers,
+      ),
+    );
     if (response == null || response.statusCode != 200) {
       return null;
     }

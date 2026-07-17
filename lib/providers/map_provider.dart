@@ -611,7 +611,7 @@ class MapProvider extends ChangeNotifier {
         debugPrint('Error cancelling trip on backend: $e');
       }
     }
-    
+
     container?.read(rideNotifierProvider.notifier).clearState();
     container?.read(webSocketServiceProvider).disconnectAll();
     notifyListeners();

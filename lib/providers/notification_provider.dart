@@ -5,9 +5,9 @@ import '../services/models/notification_model.dart';
 
 class NotificationProvider extends ChangeNotifier {
   final NotificationService _notificationService;
-  
+
   NotificationProvider({NotificationService? notificationService})
-      : _notificationService = notificationService ?? NotificationService();
+    : _notificationService = notificationService ?? NotificationService();
 
   List<NotificationModel> _notifications = [];
   bool _isLoading = false;
@@ -35,14 +35,15 @@ class NotificationProvider extends ChangeNotifier {
     try {
       final prefs = await SharedPreferences.getInstance();
       final token = prefs.getString('access_token') ?? '';
-      
+
       if (token.isNotEmpty) {
         final result = await _notificationService.fetchNotifications(
-          token, 
-          page: _currentPage
+          token,
+          page: _currentPage,
         );
-        
-        final List<NotificationModel> newNotifications = result['notifications'];
+
+        final List<NotificationModel> newNotifications =
+            result['notifications'];
         _hasNextPage = result['hasNext'];
 
         if (isRefresh) {
@@ -51,7 +52,7 @@ class NotificationProvider extends ChangeNotifier {
           _notifications.addAll(newNotifications);
           _currentPage++;
         }
-        
+
         _updateUnreadCount();
       }
     } catch (e) {
@@ -70,12 +71,17 @@ class NotificationProvider extends ChangeNotifier {
     try {
       final prefs = await SharedPreferences.getInstance();
       final token = prefs.getString('access_token') ?? '';
-      
+
       if (token.isNotEmpty) {
-        final success = await _notificationService.markAsRead(token, notificationId);
+        final success = await _notificationService.markAsRead(
+          token,
+          notificationId,
+        );
         if (success) {
           // Update local state for immediate feedback
-          final index = _notifications.indexWhere((n) => n.id == notificationId);
+          final index = _notifications.indexWhere(
+            (n) => n.id == notificationId,
+          );
           if (index != -1) {
             final n = _notifications[index];
             _notifications[index] = NotificationModel(
@@ -99,18 +105,22 @@ class NotificationProvider extends ChangeNotifier {
     try {
       final prefs = await SharedPreferences.getInstance();
       final token = prefs.getString('access_token') ?? '';
-      
+
       if (token.isNotEmpty) {
         final success = await _notificationService.markAllAsRead(token);
         if (success) {
           // Update local state
-          _notifications = _notifications.map((n) => NotificationModel(
-            id: n.id,
-            title: n.title,
-            message: n.message,
-            isRead: true,
-            createdAt: n.createdAt,
-          )).toList();
+          _notifications = _notifications
+              .map(
+                (n) => NotificationModel(
+                  id: n.id,
+                  title: n.title,
+                  message: n.message,
+                  isRead: true,
+                  createdAt: n.createdAt,
+                ),
+              )
+              .toList();
           _unreadCount = 0;
           notifyListeners();
         }

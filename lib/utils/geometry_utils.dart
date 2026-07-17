@@ -3,7 +3,10 @@ import 'package:latlong2/latlong.dart';
 
 class GeometryUtils {
   /// Finds the point on the polyline nearest to the given [point].
-  static LatLng findNearestPointOnPolyline(LatLng point, List<LatLng> polyline) {
+  static LatLng findNearestPointOnPolyline(
+    LatLng point,
+    List<LatLng> polyline,
+  ) {
     if (polyline.isEmpty) return point;
     if (polyline.length == 1) return polyline.first;
 

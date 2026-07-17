@@ -18,7 +18,7 @@ class GatewaySuccessResponse {
   final String orderId;
   final String paymentId;
   final String signature;
-  
+
   GatewaySuccessResponse(this.orderId, this.paymentId, this.signature);
 }
 
@@ -41,7 +41,9 @@ class PaymentService {
   }
 
   void onError(CFErrorResponse errorResponse, String orderId) {
-    debugPrint('PaymentService: Payment Error - ${errorResponse.getMessage()} : $orderId');
+    debugPrint(
+      'PaymentService: Payment Error - ${errorResponse.getMessage()} : $orderId',
+    );
     if (_paymentCompleter != null && !_paymentCompleter!.isCompleted) {
       _paymentCompleter!.complete(null);
     }
@@ -85,13 +87,17 @@ class PaymentService {
         return response;
       }
 
-      if (!kIsWeb && (Platform.isLinux || Platform.isWindows || Platform.isMacOS)) {
+      if (!kIsWeb &&
+          (Platform.isLinux || Platform.isWindows || Platform.isMacOS)) {
         overlayEntry?.remove();
-        throw Exception('Online payments via Cashfree are not supported on Desktop platforms. Please use a mobile device, web browser, or Wallet payment.');
+        throw Exception(
+          'Online payments via Cashfree are not supported on Desktop platforms. Please use a mobile device, web browser, or Wallet payment.',
+        );
       }
 
-      CFEnvironment environment = AppConfig.cashfreeEnvironment.toLowerCase() == 'production' 
-          ? CFEnvironment.PRODUCTION 
+      CFEnvironment environment =
+          AppConfig.cashfreeEnvironment.toLowerCase() == 'production'
+          ? CFEnvironment.PRODUCTION
           : CFEnvironment.SANDBOX;
 
       CFSessionBuilder sessionBuilder = CFSessionBuilder()
@@ -111,14 +117,15 @@ class PaymentService {
 
       CFTheme theme = themeBuilder.build();
 
-      CFDropCheckoutPaymentBuilder dropCheckoutBuilder = CFDropCheckoutPaymentBuilder()
-        ..setSession(session)
-        ..setTheme(theme);
+      CFDropCheckoutPaymentBuilder dropCheckoutBuilder =
+          CFDropCheckoutPaymentBuilder()
+            ..setSession(session)
+            ..setTheme(theme);
 
       CFDropCheckoutPayment dropCheckoutPayment = dropCheckoutBuilder.build();
 
       _cashfreeService.doPayment(dropCheckoutPayment);
-      
+
       final result = await _paymentCompleter!.future.timeout(
         timeout,
         onTimeout: () {
@@ -129,7 +136,7 @@ class PaymentService {
           return null;
         },
       );
-      
+
       overlayEntry?.remove();
       return result;
     } catch (e) {

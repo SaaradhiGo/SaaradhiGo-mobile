@@ -12,12 +12,14 @@ class DriverService {
   }) async {
     final prefs = await SharedPreferences.getInstance();
     final token = prefs.getString('access_token');
-    
-    final url = Uri.parse('${AppConfig.baseUrl}/rider/nearby/?lat=$lat&lng=$lng&radius=$radius');
-    
+
+    final url = Uri.parse(
+      '${AppConfig.baseUrl}/rider/nearby/?lat=$lat&lng=$lng&radius=$radius',
+    );
+
     try {
       final response = await http.get(
-        url, 
+        url,
         headers: {
           'User-Agent': 'SaaradhiGo/1.0',
           if (token != null) 'Authorization': 'Bearer $token',

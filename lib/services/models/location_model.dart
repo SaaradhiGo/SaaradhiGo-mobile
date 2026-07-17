@@ -19,11 +19,15 @@ class PlaceSuggestion {
       final displayName = json['display_name'] as String? ?? '';
       final parts = displayName.split(',');
       final mainText = parts.isNotEmpty ? parts[0].trim() : '';
-      final secondaryText = parts.length > 1 ? parts.skip(1).join(',').trim() : '';
-      
+      final secondaryText = parts.length > 1
+          ? parts.skip(1).join(',').trim()
+          : '';
+
       final lat = json['lat'];
       final lon = json['lon'];
-      final pId = (lat != null && lon != null) ? '$lat,$lon' : json['place_id'].toString();
+      final pId = (lat != null && lon != null)
+          ? '$lat,$lon'
+          : json['place_id'].toString();
 
       return PlaceSuggestion(
         placeId: pId,
@@ -64,8 +68,10 @@ class PlaceDetails {
   factory PlaceDetails.fromJson(Map<String, dynamic> json) {
     final result = json['result'] ?? json;
     final geometry = result['geometry'];
-    final location = geometry != null ? geometry['location'] : (json['geometry'] != null ? json['geometry']['location'] : null);
-    
+    final location = geometry != null
+        ? geometry['location']
+        : (json['geometry'] != null ? json['geometry']['location'] : null);
+
     return PlaceDetails(
       placeId: result['place_id'] ?? '',
       name: result['name'] ?? '',

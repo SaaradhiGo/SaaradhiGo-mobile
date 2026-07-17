@@ -84,10 +84,9 @@ class ChatService {
     required String token,
   }) async {
     final uri = Uri.parse('${AppConfig.baseUrl}/ride/trip/$tripId/chat/');
-    final resp = await http.get(
-      uri,
-      headers: {'Authorization': 'Bearer $token'},
-    ).timeout(const Duration(seconds: 6));
+    final resp = await http
+        .get(uri, headers: {'Authorization': 'Bearer $token'})
+        .timeout(const Duration(seconds: 6));
     if (resp.statusCode != 200) return const [];
     final body = jsonDecode(resp.body) as Map<String, dynamic>;
     final raw = body['results'] ?? body['data'] ?? [];

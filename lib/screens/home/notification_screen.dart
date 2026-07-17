@@ -32,7 +32,8 @@ class _NotificationScreenState extends State<NotificationScreen> {
   }
 
   void _onScroll() {
-    if (_scrollController.position.pixels >= _scrollController.position.maxScrollExtent - 200) {
+    if (_scrollController.position.pixels >=
+        _scrollController.position.maxScrollExtent - 200) {
       final provider = context.read<NotificationProvider>();
       if (provider.hasNextPage && !provider.isFetchingMore) {
         provider.fetchNotifications(isRefresh: false);
@@ -73,7 +74,9 @@ class _NotificationScreenState extends State<NotificationScreen> {
       body: Consumer<NotificationProvider>(
         builder: (context, provider, child) {
           if (provider.isLoading && provider.notifications.isEmpty) {
-            return const Center(child: CircularProgressIndicator(color: Color(0xFFEEBD2B)));
+            return const Center(
+              child: CircularProgressIndicator(color: Color(0xFFEEBD2B)),
+            );
           }
 
           if (provider.notifications.isEmpty) {
@@ -86,7 +89,9 @@ class _NotificationScreenState extends State<NotificationScreen> {
             child: ListView.builder(
               controller: _scrollController,
               padding: const EdgeInsets.all(16),
-              itemCount: provider.notifications.length + (provider.hasNextPage ? 1 : 0),
+              itemCount:
+                  provider.notifications.length +
+                  (provider.hasNextPage ? 1 : 0),
               itemBuilder: (context, index) {
                 if (index == provider.notifications.length) {
                   return const Padding(
@@ -122,7 +127,11 @@ class _NotificationScreenState extends State<NotificationScreen> {
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Icon(Icons.notifications_none, size: 80, color: Colors.white.withValues(alpha: 0.1)),
+          Icon(
+            Icons.notifications_none,
+            size: 80,
+            color: Colors.white.withValues(alpha: 0.1),
+          ),
           const SizedBox(height: 16),
           Text(
             'No notifications yet',
@@ -138,20 +147,21 @@ class _NotificationTile extends StatelessWidget {
   final NotificationModel notification;
   final VoidCallback onTap;
 
-  const _NotificationTile({
-    required this.notification,
-    required this.onTap,
-  });
+  const _NotificationTile({required this.notification, required this.onTap});
 
   @override
   Widget build(BuildContext context) {
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
       decoration: BoxDecoration(
-        color: notification.isRead ? Colors.white.withValues(alpha: 0.05) : Colors.white.withValues(alpha: 0.08),
+        color: notification.isRead
+            ? Colors.white.withValues(alpha: 0.05)
+            : Colors.white.withValues(alpha: 0.08),
         borderRadius: BorderRadius.circular(16),
         border: Border.all(
-          color: notification.isRead ? Colors.transparent : const Color(0xFFEEBD2B).withValues(alpha: 0.3),
+          color: notification.isRead
+              ? Colors.transparent
+              : const Color(0xFFEEBD2B).withValues(alpha: 0.3),
           width: 1,
         ),
       ),
@@ -166,12 +176,18 @@ class _NotificationTile extends StatelessWidget {
               Container(
                 padding: const EdgeInsets.all(10),
                 decoration: BoxDecoration(
-                  color: notification.isRead ? Colors.white.withValues(alpha: 0.05) : const Color(0xFFEEBD2B).withValues(alpha: 0.1),
+                  color: notification.isRead
+                      ? Colors.white.withValues(alpha: 0.05)
+                      : const Color(0xFFEEBD2B).withValues(alpha: 0.1),
                   shape: BoxShape.circle,
                 ),
                 child: Icon(
-                  notification.isRead ? Icons.notifications_none : Icons.notifications_active,
-                  color: notification.isRead ? Colors.white38 : const Color(0xFFEEBD2B),
+                  notification.isRead
+                      ? Icons.notifications_none
+                      : Icons.notifications_active,
+                  color: notification.isRead
+                      ? Colors.white38
+                      : const Color(0xFFEEBD2B),
                   size: 20,
                 ),
               ),
@@ -188,7 +204,9 @@ class _NotificationTile extends StatelessWidget {
                             notification.title,
                             style: GoogleFonts.inter(
                               color: Colors.white,
-                              fontWeight: notification.isRead ? FontWeight.w500 : FontWeight.bold,
+                              fontWeight: notification.isRead
+                                  ? FontWeight.w500
+                                  : FontWeight.bold,
                               fontSize: 15,
                             ),
                           ),
@@ -206,7 +224,9 @@ class _NotificationTile extends StatelessWidget {
                     Text(
                       notification.message,
                       style: GoogleFonts.inter(
-                        color: notification.isRead ? Colors.white38 : Colors.white70,
+                        color: notification.isRead
+                            ? Colors.white38
+                            : Colors.white70,
                         fontSize: 14,
                         height: 1.4,
                       ),

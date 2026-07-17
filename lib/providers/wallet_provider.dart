@@ -68,9 +68,10 @@ class WalletProvider extends ChangeNotifier {
           orderData?['data']?['gateway_order_id']?.toString() ??
           orderData?['data']?['id']?.toString();
 
-      final sessionId = 
+      final sessionId =
           orderData?['cashfree_payment_session_id']?.toString() ??
-          orderData?['data']?['cashfree_payment_session_id']?.toString() ?? '';
+          orderData?['data']?['cashfree_payment_session_id']?.toString() ??
+          '';
 
       if (orderId == null || orderId.isEmpty) {
         final backendError = orderData?['error'];

@@ -222,7 +222,8 @@ class _WalletScreenState extends State<WalletScreen> {
               const SizedBox(width: 8),
               _FilterChip(
                 label: creditsLabel,
-                isSelected: _selectedFilter == creditsLabel ||
+                isSelected:
+                    _selectedFilter == creditsLabel ||
                     _selectedFilter == 'Recharges' ||
                     _selectedFilter == 'Credits',
                 onTap: () => setState(() {
@@ -418,7 +419,6 @@ class _WalletBalanceCard extends StatelessWidget {
     );
   }
 }
-
 
 class _WalletMonthLabel extends StatelessWidget {
   const _WalletMonthLabel({required this.label});
@@ -679,6 +679,51 @@ class _FilterChip extends StatelessWidget {
             fontSize: 14,
             fontWeight: FontWeight.w600,
           ),
+        ),
+      ),
+    );
+  }
+}
+
+class _WalletActionButton extends StatelessWidget {
+  const _WalletActionButton({
+    required this.icon,
+    required this.label,
+    required this.onTap,
+  });
+
+  final IconData icon;
+  final String label;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(12),
+      child: Container(
+        padding: const EdgeInsets.symmetric(vertical: 12),
+        decoration: BoxDecoration(
+          color: const Color(0xFF1E1C18),
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(
+            color: const Color(0xFFEEBD2B).withOpacity(0.3),
+          ),
+        ),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(icon, color: const Color(0xFFEEBD2B), size: 20),
+            const SizedBox(width: 8),
+            Text(
+              label,
+              style: GoogleFonts.inter(
+                color: const Color(0xFFEEBD2B),
+                fontSize: 14,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ],
         ),
       ),
     );

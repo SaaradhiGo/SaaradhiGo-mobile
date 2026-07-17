@@ -50,8 +50,8 @@ class RemoteConfigProvider extends ChangeNotifier {
       _walletCreditsOnly =
           wallet['credits_only'] == true || !_walletTopupsEnabled;
       _walletBalanceCap = (wallet['balance_cap'] ?? '2000.00').toString();
-      _walletDisplayName =
-          (wallet['display_name'] ?? 'VahanGo Credits').toString();
+      _walletDisplayName = (wallet['display_name'] ?? 'VahanGo Credits')
+          .toString();
       final modes = wallet['refund_modes'];
       if (modes is List) {
         _refundModes = modes.map((e) => e.toString()).toList();

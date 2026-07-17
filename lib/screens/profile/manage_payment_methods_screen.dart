@@ -41,8 +41,11 @@ class ManagePaymentMethodsScreen extends StatelessWidget {
       ),
       body: Consumer<WalletProvider>(
         builder: (context, provider, child) {
-          final formatter = NumberFormat.currency(symbol: '₹', decimalDigits: 2);
-          
+          final formatter = NumberFormat.currency(
+            symbol: '₹',
+            decimalDigits: 2,
+          );
+
           return ListView(
             padding: const EdgeInsets.all(24),
             children: [
@@ -73,8 +76,12 @@ class ManagePaymentMethodsScreen extends StatelessWidget {
                 style: OutlinedButton.styleFrom(
                   padding: const EdgeInsets.symmetric(vertical: 20),
                   foregroundColor: const Color(0xFFEEBD2B),
-                  side: BorderSide(color: const Color(0xFF8B6508).withValues(alpha: 0.4)),
-                  backgroundColor: const Color(0xFF8B6508).withValues(alpha: 0.1),
+                  side: BorderSide(
+                    color: const Color(0xFF8B6508).withValues(alpha: 0.4),
+                  ),
+                  backgroundColor: const Color(
+                    0xFF8B6508,
+                  ).withValues(alpha: 0.1),
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(16),
                   ),
@@ -127,7 +134,7 @@ class _PaymentTile extends StatelessWidget {
           color: isWallet ? null : const Color(0xFF22201C),
           borderRadius: BorderRadius.circular(16),
           border: Border.all(
-            color: isWallet 
+            color: isWallet
                 ? const Color(0xFF8B6508).withValues(alpha: 0.3)
                 : Colors.transparent,
           ),
@@ -145,14 +152,16 @@ class _PaymentTile extends StatelessWidget {
               width: 40,
               height: 40,
               decoration: BoxDecoration(
-                color: isWallet 
+                color: isWallet
                     ? const Color(0xFF8B6508).withValues(alpha: 0.3)
                     : Colors.white.withValues(alpha: 0.05),
                 shape: BoxShape.circle,
               ),
               child: Icon(
                 icon,
-                color: isWallet ? const Color(0xFFEEBD2B) : const Color(0xFF94A3B8),
+                color: isWallet
+                    ? const Color(0xFFEEBD2B)
+                    : const Color(0xFF94A3B8),
                 size: 20,
               ),
             ),
@@ -195,11 +204,7 @@ class _PaymentTile extends StatelessWidget {
                 ],
               ),
             ),
-            const Icon(
-              Icons.chevron_right,
-              color: Color(0xFFEEBD2B),
-              size: 20,
-            ),
+            const Icon(Icons.chevron_right, color: Color(0xFFEEBD2B), size: 20),
           ],
         ),
       ),

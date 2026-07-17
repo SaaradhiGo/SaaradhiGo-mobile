@@ -7,9 +7,12 @@ import '../core/app_config.dart';
 class NotificationService {
   static final String _baseUrl = AppConfig.baseUrl;
 
-  Future<Map<String, dynamic>> fetchNotifications(String token, {int page = 1}) async {
+  Future<Map<String, dynamic>> fetchNotifications(
+    String token, {
+    int page = 1,
+  }) async {
     final String url = '$_baseUrl${AppConfig.riderNotifications}?page=$page';
-    
+
     try {
       final response = await http.get(
         Uri.parse(url),
@@ -21,7 +24,7 @@ class NotificationService {
 
       if (response.statusCode == 200) {
         final dynamic data = jsonDecode(response.body);
-        
+
         List<dynamic> results = [];
         bool hasNext = false;
 
@@ -30,11 +33,12 @@ class NotificationService {
           if (data['results'] != null) {
             results = data['results'];
             hasNext = data['next'] != null;
-          } 
+          }
           // Handle custom wrapped response if it exists
           else if (data['status'] == 'success' && data['data'] != null) {
             final innerData = data['data'];
-            if (innerData is Map<String, dynamic> && innerData['results'] != null) {
+            if (innerData is Map<String, dynamic> &&
+                innerData['results'] != null) {
               results = innerData['results'];
               hasNext = innerData['next'] != null;
             }
@@ -43,9 +47,11 @@ class NotificationService {
           results = data;
           hasNext = false;
         }
-        
+
         return {
-          'notifications': results.map((json) => NotificationModel.fromJson(json)).toList(),
+          'notifications': results
+              .map((json) => NotificationModel.fromJson(json))
+              .toList(),
           'hasNext': hasNext,
         };
       }
@@ -58,7 +64,7 @@ class NotificationService {
 
   Future<bool> markAsRead(String token, int notificationId) async {
     final String url = '$_baseUrl/rider/notifications/$notificationId/read/';
-    
+
     try {
       final response = await http.patch(
         Uri.parse(url),
@@ -77,7 +83,7 @@ class NotificationService {
 
   Future<bool> markAllAsRead(String token) async {
     final String url = '$_baseUrl/rider/notifications/read-all/';
-    
+
     try {
       final response = await http.post(
         Uri.parse(url),

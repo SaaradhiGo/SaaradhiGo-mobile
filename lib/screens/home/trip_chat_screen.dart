@@ -117,7 +117,10 @@ class _TripChatScreenState extends State<TripChatScreen> {
         backgroundColor: const Color(0xFF15140F),
         title: Text(
           'Trip chat',
-          style: GoogleFonts.inter(color: Colors.white, fontWeight: FontWeight.w600),
+          style: GoogleFonts.inter(
+            color: Colors.white,
+            fontWeight: FontWeight.w600,
+          ),
         ),
         iconTheme: const IconThemeData(color: Colors.white),
       ),
@@ -125,15 +128,22 @@ class _TripChatScreenState extends State<TripChatScreen> {
         children: [
           Expanded(
             child: _loading
-                ? const Center(child: CircularProgressIndicator(color: Color(0xFFEEBD2B)))
+                ? const Center(
+                    child: CircularProgressIndicator(color: Color(0xFFEEBD2B)),
+                  )
                 : ListView.builder(
                     controller: _scroll,
-                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 12,
+                      vertical: 8,
+                    ),
                     itemCount: _messages.length,
                     itemBuilder: (_, i) {
                       final m = _messages[i];
                       final isMine = m['sender_role'] == widget.myRole;
-                      final isSystem = m['is_system'] == true || m['sender_role'] == 'system';
+                      final isSystem =
+                          m['is_system'] == true ||
+                          m['sender_role'] == 'system';
                       return _Bubble(
                         body: (m['body'] ?? '').toString(),
                         isMine: isMine,
@@ -165,7 +175,10 @@ class _TripChatScreenState extends State<TripChatScreen> {
                           borderRadius: BorderRadius.circular(20),
                           borderSide: BorderSide.none,
                         ),
-                        contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                        contentPadding: const EdgeInsets.symmetric(
+                          horizontal: 14,
+                          vertical: 10,
+                        ),
                       ),
                     ),
                   ),
@@ -221,7 +234,9 @@ class _Bubble extends StatelessWidget {
       child: Container(
         margin: const EdgeInsets.symmetric(vertical: 4),
         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-        constraints: BoxConstraints(maxWidth: MediaQuery.of(context).size.width * 0.75),
+        constraints: BoxConstraints(
+          maxWidth: MediaQuery.of(context).size.width * 0.75,
+        ),
         decoration: BoxDecoration(
           color: bg,
           borderRadius: BorderRadius.circular(14),

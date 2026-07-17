@@ -19,10 +19,7 @@ class MapAttribution extends StatelessWidget {
           'OpenStreetMap contributors',
           prependCopyright: true,
         ),
-        TextSourceAttribution(
-          'CARTO',
-          prependCopyright: false,
-        ),
+        TextSourceAttribution('CARTO', prependCopyright: false),
       ],
     );
   }

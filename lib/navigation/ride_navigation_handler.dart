@@ -30,7 +30,7 @@ class RideNavigationHandler extends ConsumerWidget {
   /// by the decision service (based on FLUTTER_STATE_RECOVERY.md)
   static String? _convertToDecisionServiceStatus(RideStatus? rideStatus) {
     if (rideStatus == null) return null;
-    
+
     switch (rideStatus) {
       case RideStatus.searchingDriver:
         return StateRecoveryDecisionService.tripStatusRequested;
@@ -59,7 +59,7 @@ class RideNavigationHandler extends ConsumerWidget {
   /// In a real implementation, this would come from backend or RideState
   static String _getPaymentStatus(RideStatus? rideStatus) {
     if (rideStatus == null) return 'unpaid';
-    
+
     switch (rideStatus) {
       case RideStatus.paymentPending:
         return StateRecoveryDecisionService.paymentStatusPending;
@@ -82,21 +82,25 @@ class RideNavigationHandler extends ConsumerWidget {
     return StateRecoveryDecisionService.paymentMethodOnline;
   }
 
-  void _handleNavigation(BuildContext context, WidgetRef ref, RideState rideState) {
+  void _handleNavigation(
+    BuildContext context,
+    WidgetRef ref,
+    RideState rideState,
+  ) {
     // Extract trip information from ride state
     final tripStatus = rideState.status;
     final tripId = rideState.tripId;
-    
+
     // Determine if there's an active trip
     final hasActiveTrip = rideState.isActiveRide;
-    
+
     // Convert RideStatus to decision service compatible status
     final decisionServiceStatus = _convertToDecisionServiceStatus(tripStatus);
-    
+
     // Get payment information
     final paymentStatus = _getPaymentStatus(tripStatus);
     final paymentMethod = _getPaymentMethod(rideState);
-    
+
     // Determine the appropriate screen using the decision service (static method)
     final screenType = StateRecoveryDecisionService.determineScreen(
       tripStatus: decisionServiceStatus,
@@ -104,44 +108,49 @@ class RideNavigationHandler extends ConsumerWidget {
       paymentMethod: paymentMethod,
       hasActiveTrip: hasActiveTrip,
     );
-    
+
     // Check if we should show banner instead of navigating for active rides
     if (hasActiveTrip &&
-        (decisionServiceStatus == StateRecoveryDecisionService.tripStatusRequested ||
-         decisionServiceStatus == StateRecoveryDecisionService.tripStatusAccepted ||
-         decisionServiceStatus == StateRecoveryDecisionService.tripStatusReached ||
-         decisionServiceStatus == StateRecoveryDecisionService.tripStatusInProgress)) {
+        (decisionServiceStatus ==
+                StateRecoveryDecisionService.tripStatusRequested ||
+            decisionServiceStatus ==
+                StateRecoveryDecisionService.tripStatusAccepted ||
+            decisionServiceStatus ==
+                StateRecoveryDecisionService.tripStatusReached ||
+            decisionServiceStatus ==
+                StateRecoveryDecisionService.tripStatusInProgress)) {
       // For active rides, stay on home screen and show banner
       // The banner will be shown by the UI layer (main.dart) based on ride state
       // We need to ensure we're on the home screen
       if (!_isOnHomeScreen(context)) {
         context.go('/home');
       }
-      
+
       // Start WebSocket listening for the active trip
       if (tripId != null && tripId.isNotEmpty) {
         _startWebSocketListening(ref, tripId);
       }
-      
+
       return; // Don't navigate to ride screens
     }
-    
+
     // Get the route path for the screen type
     final routePath = StateRecoveryDecisionService.getRoutePath(
       screenType,
       tripId: tripId,
       tripStatus: decisionServiceStatus,
     );
-    
+
     // Navigate to the determined route
     if (routePath != null && routePath.isNotEmpty) {
       // Use go() to clear the navigation stack and start fresh
       // This ensures clean backstack on app resume
       context.go(routePath);
-      
+
       // Start WebSocket listening if required for this screen
       if (StateRecoveryDecisionService.requiresWebSocket(screenType) &&
-          tripId != null && tripId.isNotEmpty) {
+          tripId != null &&
+          tripId.isNotEmpty) {
         _startWebSocketListening(ref, tripId);
       }
     } else {
@@ -149,13 +158,13 @@ class RideNavigationHandler extends ConsumerWidget {
       _fallbackNavigation(context, rideState);
     }
   }
-  
+
   /// Checks if the current route is the home screen
   bool _isOnHomeScreen(BuildContext context) {
     final route = GoRouterState.of(context).uri.path;
     return route == '/home' || route == '/';
   }
-  
+
   /// Starts WebSocket listening for a trip
   void _startWebSocketListening(WidgetRef ref, String tripId) {
     try {
@@ -175,7 +184,7 @@ class RideNavigationHandler extends ConsumerWidget {
       debugPrint('Error starting WebSocket listening: $e');
     }
   }
-  
+
   void _fallbackNavigation(BuildContext context, RideState rideState) {
     // Original navigation logic as fallback
     switch (rideState.status) {

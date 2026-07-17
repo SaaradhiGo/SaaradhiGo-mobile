@@ -5,7 +5,7 @@ import '../services/models/trip_model.dart';
 
 class HistoryProvider extends ChangeNotifier {
   final RideService _rideService = RideService();
-  
+
   List<Trip> _trips = [];
   bool _isLoading = false;
   String? _errorMessage;
@@ -22,7 +22,7 @@ class HistoryProvider extends ChangeNotifier {
     try {
       final prefs = await SharedPreferences.getInstance();
       final token = prefs.getString('access_token');
-      
+
       if (token == null) {
         _errorMessage = 'Authentication token not found. Please log in again.';
         _isLoading = false;

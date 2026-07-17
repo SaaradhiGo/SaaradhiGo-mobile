@@ -397,8 +397,8 @@ class _DriverFoundScreenState extends State<DriverFoundScreen> {
                               // Open in-trip chat. tripId is whatever
                               // the rideData payload exposed; fall back
                               // to 0 (skip) when not present.
-                              final tripIdRaw = rideData?['trip_id'] ??
-                                  rideData?['id'];
+                              final tripIdRaw =
+                                  rideData?['trip_id'] ?? rideData?['id'];
                               final tripId = tripIdRaw is int
                                   ? tripIdRaw
                                   : int.tryParse('$tripIdRaw') ?? 0;
@@ -424,16 +424,18 @@ class _DriverFoundScreenState extends State<DriverFoundScreen> {
                             // backend will return a proxy number here
                             // and the UX is unchanged for the rider.
                             onTap: () async {
-                              final raw = (driverInfo?['phone'] ??
-                                      rideData?['driver_phone'] ??
-                                      '')
-                                  .toString();
+                              final raw =
+                                  (driverInfo?['phone'] ??
+                                          rideData?['driver_phone'] ??
+                                          '')
+                                      .toString();
                               if (raw.isEmpty) {
                                 if (context.mounted) {
                                   ScaffoldMessenger.of(context).showSnackBar(
                                     const SnackBar(
                                       content: Text(
-                                          'Driver phone unavailable. Use in-app chat instead.'),
+                                        'Driver phone unavailable. Use in-app chat instead.',
+                                      ),
                                     ),
                                   );
                                 }
@@ -446,7 +448,8 @@ class _DriverFoundScreenState extends State<DriverFoundScreen> {
                                   ScaffoldMessenger.of(context).showSnackBar(
                                     const SnackBar(
                                       content: Text(
-                                          'Could not open dialer on this device.'),
+                                        'Could not open dialer on this device.',
+                                      ),
                                     ),
                                   );
                                 }
@@ -454,8 +457,7 @@ class _DriverFoundScreenState extends State<DriverFoundScreen> {
                                 if (context.mounted) {
                                   ScaffoldMessenger.of(context).showSnackBar(
                                     const SnackBar(
-                                      content: Text(
-                                          'Could not start a call.'),
+                                      content: Text('Could not start a call.'),
                                     ),
                                   );
                                 }
@@ -476,7 +478,9 @@ class _DriverFoundScreenState extends State<DriverFoundScreen> {
                   decoration: BoxDecoration(
                     color: Colors.white.withValues(alpha: 0.05),
                     borderRadius: BorderRadius.circular(16),
-                    border: Border.all(color: Colors.white.withValues(alpha: 0.1)),
+                    border: Border.all(
+                      color: Colors.white.withValues(alpha: 0.1),
+                    ),
                   ),
                   child: Row(
                     children: [
@@ -815,112 +819,112 @@ class _FullMapTrackingScreenState extends State<FullMapTrackingScreen> {
             forceInProgress: true,
             bottom: Row(
               children: [
-              Expanded(
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      mapProvider.duration ?? '-- min',
-                      style: GoogleFonts.inter(
-                        fontSize: 32,
-                        fontWeight: FontWeight.w800,
-                        color: Colors.white,
-                      ),
-                    ),
-                    Text(
-                      mapProvider.distance ?? '-- km',
-                      style: GoogleFonts.inter(
-                        color: Colors.white70,
-                        fontSize: 13,
-                        fontWeight: FontWeight.w500,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              GestureDetector(
-                onTap: () {
-                  showDialog(
-                    context: context,
-                    builder: (context) => AlertDialog(
-                      backgroundColor: const Color(0xFF1E1C18),
-                      title: const Text(
-                        'SOS Emergency',
-                        style: TextStyle(
+                Expanded(
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        mapProvider.duration ?? '-- min',
+                        style: GoogleFonts.inter(
+                          fontSize: 32,
+                          fontWeight: FontWeight.w800,
                           color: Colors.white,
-                          fontWeight: FontWeight.bold,
                         ),
                       ),
-                      content: const Text(
-                        'Are you in danger? This will alert the nearest authorities and our support team.',
-                        style: TextStyle(color: Colors.white70),
-                      ),
-                      actions: [
-                        TextButton(
-                          onPressed: () => Navigator.pop(context),
-                          child: const Text(
-                            'I\'m Safe',
-                            style: TextStyle(color: Colors.white54),
-                          ),
+                      Text(
+                        mapProvider.distance ?? '-- km',
+                        style: GoogleFonts.inter(
+                          color: Colors.white70,
+                          fontSize: 13,
+                          fontWeight: FontWeight.w500,
                         ),
-                        ElevatedButton(
-                          onPressed: () {
-                            Navigator.pop(context);
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(
-                                backgroundColor: Colors.red,
-                                content: Text(
-                                  'Emergency Alert Sent! Support is on the way.',
-                                ),
-                              ),
-                            );
-                          },
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: Colors.red,
-                          ),
-                          child: const Text(
-                            'YES, CALL FOR HELP',
-                            style: TextStyle(color: Colors.white),
-                          ),
-                        ),
-                      ],
-                    ),
-                  );
-                },
-                child: Container(
-                  height: 58,
-                  width: 58,
-                  decoration: BoxDecoration(
-                    color: Colors.red.withValues(alpha: 0.9),
-                    shape: BoxShape.circle,
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.red.withValues(alpha: 0.4),
-                        blurRadius: 12,
-                        spreadRadius: 2,
                       ),
                     ],
                   ),
-                  alignment: Alignment.center,
-                  child: const Text(
-                    'SOS',
-                    style: TextStyle(
-                      fontWeight: FontWeight.w900,
-                      color: Colors.white,
-                      fontSize: 14,
+                ),
+                GestureDetector(
+                  onTap: () {
+                    showDialog(
+                      context: context,
+                      builder: (context) => AlertDialog(
+                        backgroundColor: const Color(0xFF1E1C18),
+                        title: const Text(
+                          'SOS Emergency',
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                        content: const Text(
+                          'Are you in danger? This will alert the nearest authorities and our support team.',
+                          style: TextStyle(color: Colors.white70),
+                        ),
+                        actions: [
+                          TextButton(
+                            onPressed: () => Navigator.pop(context),
+                            child: const Text(
+                              'I\'m Safe',
+                              style: TextStyle(color: Colors.white54),
+                            ),
+                          ),
+                          ElevatedButton(
+                            onPressed: () {
+                              Navigator.pop(context);
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                const SnackBar(
+                                  backgroundColor: Colors.red,
+                                  content: Text(
+                                    'Emergency Alert Sent! Support is on the way.',
+                                  ),
+                                ),
+                              );
+                            },
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: Colors.red,
+                            ),
+                            child: const Text(
+                              'YES, CALL FOR HELP',
+                              style: TextStyle(color: Colors.white),
+                            ),
+                          ),
+                        ],
+                      ),
+                    );
+                  },
+                  child: Container(
+                    height: 58,
+                    width: 58,
+                    decoration: BoxDecoration(
+                      color: Colors.red.withValues(alpha: 0.9),
+                      shape: BoxShape.circle,
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.red.withValues(alpha: 0.4),
+                          blurRadius: 12,
+                          spreadRadius: 2,
+                        ),
+                      ],
+                    ),
+                    alignment: Alignment.center,
+                    child: const Text(
+                      'SOS',
+                      style: TextStyle(
+                        fontWeight: FontWeight.w900,
+                        color: Colors.white,
+                        fontSize: 14,
+                      ),
                     ),
                   ),
                 ),
-              ),
-            ],
-          ),
-          action: mapProvider.rideRequestResponse?['status'] == 'complete'
-              ? ElevatedButton(
-                  onPressed: () => context.push('/ride-summary'),
-                  child: const Text('View Summary'),
-                )
-              : null,
+              ],
+            ),
+            action: mapProvider.rideRequestResponse?['status'] == 'complete'
+                ? ElevatedButton(
+                    onPressed: () => context.push('/ride-summary'),
+                    child: const Text('View Summary'),
+                  )
+                : null,
           ),
         );
       },
@@ -1122,7 +1126,8 @@ class _RidePaymentSummaryScreenState extends State<RidePaymentSummaryScreen> {
 
         final sessionId =
             orderData?['cashfree_payment_session_id']?.toString() ??
-            orderData?['data']?['cashfree_payment_session_id']?.toString() ?? '';
+            orderData?['data']?['cashfree_payment_session_id']?.toString() ??
+            '';
 
         if (orderId == null || orderId.isEmpty) {
           setState(() => _isProcessing = false);
@@ -1805,7 +1810,10 @@ class _DarkMapScaffoldState extends State<_DarkMapScaffold>
                         icon: CircleAvatar(
                           radius: 20,
                           backgroundColor: const Color(0x77000000),
-                          child: Icon(widget.backIcon ?? Icons.arrow_back, color: Colors.white),
+                          child: Icon(
+                            widget.backIcon ?? Icons.arrow_back,
+                            color: Colors.white,
+                          ),
                         ),
                       ),
                       Expanded(

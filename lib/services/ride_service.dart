@@ -8,13 +8,13 @@ import '../core/app_config.dart';
 class RideService {
   WebSocketChannel? _rideRequestChannel;
   WebSocketChannel? _tripChannel;
-  
+
   Stream<dynamic>? get rideUpdates => _rideRequestChannel?.stream;
   Stream<dynamic>? get tripUpdates => _tripChannel?.stream;
 
   Future<List<Trip>> fetchRideHistory(String token) async {
     String url = '${AppConfig.baseUrl}${AppConfig.rideHistory}';
-    
+
     try {
       final response = await http.get(
         Uri.parse(url),
@@ -26,17 +26,19 @@ class RideService {
 
       if (response.statusCode == 200) {
         final dynamic data = jsonDecode(response.body);
-        
+
         // Handle both wrapped and unwrapped paginated responses
         List<dynamic>? results;
         if (data is Map<String, dynamic>) {
           if (data['results'] != null) {
             results = data['results'];
-          } else if (data['status'] == 'success' && data['data'] != null && data['data']['results'] != null) {
+          } else if (data['status'] == 'success' &&
+              data['data'] != null &&
+              data['data']['results'] != null) {
             results = data['data']['results'];
           }
         }
-        
+
         if (results != null) {
           return results.map((json) => Trip.fromJson(json)).toList();
         }
@@ -62,13 +64,13 @@ class RideService {
     required String paymentMethod,
   }) async {
     final wsUrl = '${AppConfig.rideRequestWs}?token=$token';
-    
+
     try {
       debugPrint('Connecting to Ride Request WebSocket...');
       // Close existing connection if any
       _rideRequestChannel?.sink.close();
       _rideRequestChannel = WebSocketChannel.connect(Uri.parse(wsUrl));
-      
+
       final requestPayload = {
         'type': 'ride_request',
         'pickup_lat': pickupLat,
@@ -93,7 +95,7 @@ class RideService {
 
   Future<void> connectToTrip(String token, int tripId) async {
     final wsUrl = '${AppConfig.tripWs(tripId)}?token=$token';
-    
+
     try {
       debugPrint('Connecting to Trip WebSocket: $tripId');
       // Close existing connection if any
@@ -113,7 +115,10 @@ class RideService {
     debugPrint('All WebSocket connections closed');
   }
 
-  Future<Map<String, dynamic>?> createTripPaymentOrder(String token, int tripId) async {
+  Future<Map<String, dynamic>?> createTripPaymentOrder(
+    String token,
+    int tripId,
+  ) async {
     try {
       final response = await http.post(
         Uri.parse('${AppConfig.baseUrl}/payments/create-order/'),
@@ -121,21 +126,23 @@ class RideService {
           'Content-Type': 'application/json',
           'Authorization': 'Bearer $token',
         },
-        body: jsonEncode({
-          'trip_id': tripId,
-        }),
+        body: jsonEncode({'trip_id': tripId}),
       );
       debugPrint(response.body);
       if (response.statusCode == 201 || response.statusCode == 200) {
         return jsonDecode(response.body);
       }
-      
+
       try {
         final errorData = jsonDecode(response.body);
-        debugPrint('Create Trip Payment Order API Error: ${response.statusCode} - $errorData');
+        debugPrint(
+          'Create Trip Payment Order API Error: ${response.statusCode} - $errorData',
+        );
         return errorData; // Return error data so UI can show message
       } catch (_) {
-        debugPrint('Create Trip Payment Order Error: ${response.statusCode} - ${response.body}');
+        debugPrint(
+          'Create Trip Payment Order Error: ${response.statusCode} - ${response.body}',
+        );
       }
       return null;
     } catch (e) {
@@ -174,7 +181,10 @@ class RideService {
     }
   }
 
-  Future<Map<String, dynamic>?> getTripStatus(String token, String tripId) async {
+  Future<Map<String, dynamic>?> getTripStatus(
+    String token,
+    String tripId,
+  ) async {
     try {
       final response = await http.get(
         Uri.parse('${AppConfig.baseUrl}/ride/trip/$tripId/'),
@@ -194,7 +204,10 @@ class RideService {
     }
   }
 
-  Future<Map<String, dynamic>?> getTripDetails(String token, String tripId) async {
+  Future<Map<String, dynamic>?> getTripDetails(
+    String token,
+    String tripId,
+  ) async {
     try {
       final response = await http.get(
         Uri.parse('${AppConfig.baseUrl}/ride/trip/$tripId/details/'),
@@ -251,18 +264,29 @@ class RideService {
     }
   }
 
-  Future<bool> cancelTrip(String token, String tripId) async {
+  Future<bool> cancelTrip(
+    String token,
+    String tripId, {
+    String? reason,
+    String? note,
+  }) async {
     final url = '${AppConfig.baseUrl}/ride/trip/$tripId/cancel/';
     try {
+      final Map<String, dynamic> requestBody = {};
+      if (reason != null) {
+        requestBody['reason'] = reason;
+      }
+      if (note != null) {
+        requestBody['note'] = note;
+      }
+
       final response = await http.post(
         Uri.parse(url),
         headers: {
           'Content-Type': 'application/json',
           'Authorization': 'Bearer $token',
         },
-        body: jsonEncode({
-          'reason': 'user_cancelled',
-        }),
+        body: jsonEncode(requestBody),
       );
       if (response.statusCode == 200 || response.statusCode == 201) {
         return true;

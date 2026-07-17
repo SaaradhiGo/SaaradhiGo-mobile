@@ -53,8 +53,7 @@ class PromoApplyResult {
       code: (data['code'] ?? '').toString(),
       discountAmount:
           double.tryParse((data['discount_amount'] ?? '0').toString()) ?? 0,
-      finalFare:
-          double.tryParse((data['final_fare'] ?? '0').toString()) ?? 0,
+      finalFare: double.tryParse((data['final_fare'] ?? '0').toString()) ?? 0,
       reason: (data['reason'] ?? '').toString(),
       description: (data['description'] ?? '').toString(),
     );
@@ -107,8 +106,8 @@ class _PromoCodeFieldState extends State<PromoCodeField> {
       _status = res.ok
           ? 'Saved Rs.${res.discountAmount.toStringAsFixed(2)}.'
           : (res.description.isNotEmpty
-              ? res.description
-              : 'That code did not work.');
+                ? res.description
+                : 'That code did not work.');
     });
     widget.onApplied(res);
   }
@@ -140,7 +139,10 @@ class _PromoCodeFieldState extends State<PromoCodeField> {
                     borderRadius: BorderRadius.circular(12),
                     borderSide: BorderSide.none,
                   ),
-                  contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                  contentPadding: const EdgeInsets.symmetric(
+                    horizontal: 14,
+                    vertical: 10,
+                  ),
                 ),
               ),
             ),
@@ -150,16 +152,27 @@ class _PromoCodeFieldState extends State<PromoCodeField> {
               style: ElevatedButton.styleFrom(
                 backgroundColor: const Color(0xFFEEBD2B),
                 foregroundColor: Colors.black,
-                padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 12),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 18,
+                  vertical: 12,
+                ),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
               ),
               child: _busy
                   ? const SizedBox(
                       width: 16,
                       height: 16,
-                      child: CircularProgressIndicator(strokeWidth: 2, color: Colors.black),
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2,
+                        color: Colors.black,
+                      ),
                     )
-                  : const Text('Apply', style: TextStyle(fontWeight: FontWeight.w700)),
+                  : const Text(
+                      'Apply',
+                      style: TextStyle(fontWeight: FontWeight.w700),
+                    ),
             ),
           ],
         ),
@@ -168,7 +181,9 @@ class _PromoCodeFieldState extends State<PromoCodeField> {
           Text(
             _status!,
             style: GoogleFonts.inter(
-              color: _success ? const Color(0xFF10B981) : const Color(0xFFEF4444),
+              color: _success
+                  ? const Color(0xFF10B981)
+                  : const Color(0xFFEF4444),
               fontSize: 12,
               fontWeight: FontWeight.w500,
             ),

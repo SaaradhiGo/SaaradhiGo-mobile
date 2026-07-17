@@ -13,8 +13,9 @@ class WebSocketService {
   WebSocketChannel? _rideChannel;
   WebSocketChannel? _tripChannel;
   StreamSubscription? _tripSubscription;
-  
-  final _rideEventController = StreamController<Map<String, dynamic>>.broadcast();
+
+  final _rideEventController =
+      StreamController<Map<String, dynamic>>.broadcast();
   Stream<Map<String, dynamic>> get eventStream => _rideEventController.stream;
 
   Map<String, dynamic>? _lastRideRequestPayload;
@@ -47,16 +48,18 @@ class WebSocketService {
     debugPrint("WebSocketService: requestRide invoked.");
     _isIntentionalDisconnect = false;
     final wsUrl = '${AppConfig.rideRequestWs}?token=$token';
-    
+
     // Prevent redundant connection attempts to the SAME URL
     // Also check if we are ALREADY scheduled to reconnect to this URL
     if (_activeRideWsUrl == wsUrl) {
       if (_rideChannel != null || _isConnectingRide) {
-        debugPrint("WebSocketService: Already connected or connecting to ride request WS. Skipping duplicate request.");
+        debugPrint(
+          "WebSocketService: Already connected or connecting to ride request WS. Skipping duplicate request.",
+        );
         return;
       }
     }
-    
+
     _lastRideRequestPayload = {
       'action': 'request',
       'type': 'ride_request',
@@ -72,7 +75,9 @@ class WebSocketService {
       'payment_method': paymentMethod,
     };
 
-    debugPrint("WebSocketService: Payload prepared. Connecting to WS URL: $wsUrl");
+    debugPrint(
+      "WebSocketService: Payload prepared. Connecting to WS URL: $wsUrl",
+    );
     _activeRideWsUrl = wsUrl;
     _connectRideChannel(wsUrl);
   }
@@ -81,22 +86,27 @@ class WebSocketService {
     _isIntentionalDisconnect = false;
     _tripActive = true;
     final wsUrl = '${AppConfig.tripWs(tripId)}?token=$token';
-    
+
     // Prevent redundant connection attempts to the SAME URL
     // Also check if we are ALREADY scheduled to reconnect to this URL
     if (_activeTripWsUrl == wsUrl) {
       if (_tripChannel != null || _isConnectingTrip) {
-        debugPrint("WebSocketService: Already connected or connecting to trip WS: $tripId");
+        debugPrint(
+          "WebSocketService: Already connected or connecting to trip WS: $tripId",
+        );
         return;
       }
       if (_tripReconnectTimer != null && _tripReconnectTimer!.isActive) {
-        debugPrint("WebSocketService: Reconnection already scheduled for trip WS: $tripId. Respecting backoff.");
+        debugPrint(
+          "WebSocketService: Reconnection already scheduled for trip WS: $tripId. Respecting backoff.",
+        );
         return;
       }
     }
 
-    debugPrint("WebSocketService: connectToTrip invoked for trip: $tripId. URL: $wsUrl");
-
+    debugPrint(
+      "WebSocketService: connectToTrip invoked for trip: $tripId. URL: $wsUrl",
+    );
 
     // Close the ride request channel since we have a trip now
     _rideReconnectTimer?.cancel();
@@ -125,7 +135,7 @@ class WebSocketService {
             final Map<String, dynamic> decoded = jsonDecode(data);
             _rideEventController.add(decoded);
           } catch (e) {
-             debugPrint("Error parsing ride WS data: $e");
+            debugPrint("Error parsing ride WS data: $e");
           }
         },
         onDone: () {
@@ -138,14 +148,16 @@ class WebSocketService {
         },
       );
 
-      _rideChannel!.ready.then((_) {
-        debugPrint("Ride WS Ready, sending payload");
-        if (_lastRideRequestPayload != null) {
-          _rideChannel!.sink.add(jsonEncode(_lastRideRequestPayload));
-        }
-      }).catchError((error) {
-         debugPrint("Ride WS failed to be ready: $error");
-      });
+      _rideChannel!.ready
+          .then((_) {
+            debugPrint("Ride WS Ready, sending payload");
+            if (_lastRideRequestPayload != null) {
+              _rideChannel!.sink.add(jsonEncode(_lastRideRequestPayload));
+            }
+          })
+          .catchError((error) {
+            debugPrint("Ride WS failed to be ready: $error");
+          });
     } catch (e) {
       debugPrint("Ride request WS connect error: $e");
       _isConnectingRide = false;
@@ -179,54 +191,61 @@ class WebSocketService {
           // On first successful message, we consider it "connected"
           _isConnectingTrip = false;
           _tripReconnectAttempts = 0; // Reset backoff on success
-          
+
           try {
             final Map<String, dynamic> decoded = jsonDecode(data);
             _rideEventController.add(decoded);
           } catch (e) {
-             debugPrint("Error parsing trip WS data: $e");
+            debugPrint("Error parsing trip WS data: $e");
           }
         },
         onDone: () {
-          debugPrint("Trip WS closed. URL: $wsUrl, Code: ${_tripChannel?.closeCode}, Reason: ${_tripChannel?.closeReason}");
+          debugPrint(
+            "Trip WS closed. URL: $wsUrl, Code: ${_tripChannel?.closeCode}, Reason: ${_tripChannel?.closeReason}",
+          );
           _isConnectingTrip = false;
           // Note: we KEEP _activeTripWsUrl to track what we are reconnecting to
           _scheduleTripReconnect(wsUrl);
         },
         onError: (err) {
-          debugPrint("Trip WS error: $err, Code: ${_tripChannel?.closeCode}, Reason: ${_tripChannel?.closeReason}");
+          debugPrint(
+            "Trip WS error: $err, Code: ${_tripChannel?.closeCode}, Reason: ${_tripChannel?.closeReason}",
+          );
           _isConnectingTrip = false;
           _scheduleTripReconnect(wsUrl);
         },
       );
 
-      _tripChannel!.ready.then((_) {
-        debugPrint("Trip WS Ready for $wsUrl");
-        _isConnectingTrip = false;
-        _tripReconnectAttempts = 0;
-      }).catchError((error) {
-         debugPrint("Trip WS failed to be ready: $error");
-         // onDone/onError will handle reconnection
-      });
-
+      _tripChannel!.ready
+          .then((_) {
+            debugPrint("Trip WS Ready for $wsUrl");
+            _isConnectingTrip = false;
+            _tripReconnectAttempts = 0;
+          })
+          .catchError((error) {
+            debugPrint("Trip WS failed to be ready: $error");
+            // onDone/onError will handle reconnection
+          });
     } catch (e) {
-       debugPrint("Trip WS connect error: $e");
-       _isConnectingTrip = false;
-       _scheduleTripReconnect(wsUrl);
+      debugPrint("Trip WS connect error: $e");
+      _isConnectingTrip = false;
+      _scheduleTripReconnect(wsUrl);
     }
   }
 
   void _scheduleTripReconnect(String wsUrl) {
     if (_isIntentionalDisconnect) return;
-    
+
     _tripReconnectTimer?.cancel();
-    
+
     // Exponential backoff: 2, 4, 8, 16, max 30 seconds
     _tripReconnectAttempts++;
     final delaySeconds = (2 * _tripReconnectAttempts).clamp(2, 30);
-    
-    debugPrint("Scheduling Trip WS reconnect in ${delaySeconds}s (Attempt: $_tripReconnectAttempts)");
-    
+
+    debugPrint(
+      "Scheduling Trip WS reconnect in ${delaySeconds}s (Attempt: $_tripReconnectAttempts)",
+    );
+
     _tripReconnectTimer = Timer(Duration(seconds: delaySeconds), () {
       debugPrint("Reconnecting Trip WS...");
       _connectTripChannel(wsUrl);

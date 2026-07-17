@@ -38,7 +38,10 @@ class PromoService {
       // Successful: {status: success, data: {...PromoResult}}
       // Failure:    {status: error,   error: {code, message, ...}}
       if (resp.statusCode == 200 && parsed['status'] == 'success') {
-        return {'ok': true, ...?(parsed['data'] as Map?)?.cast<String, dynamic>()};
+        return {
+          'ok': true,
+          ...?(parsed['data'] as Map?)?.cast<String, dynamic>(),
+        };
       }
       final err = parsed['error'] as Map?;
       return {
