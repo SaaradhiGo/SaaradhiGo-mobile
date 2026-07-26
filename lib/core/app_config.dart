@@ -21,8 +21,15 @@ class AppConfig {
   static String rideRequestWs = '$wsBaseUrl/ride/request/';
   static String tripWs(int tripId) => '$wsBaseUrl/ride/trip/$tripId/';
 
-  // Google Maps (if needed centrally)
-  static String get googleMapsApiKey => dotenv.env['GOOGLE_MAPS_API_KEY'] ?? '';
+  // Maps proxy — the Google Maps key lives on the server, never here.
+  // Anything bundled in assets/.env ships inside the APK and can be
+  // extracted from it, so a key placed here is a public key. Place search,
+  // place details, reverse geocoding and directions all go through these
+  // endpoints, which hold the key, rate-limit per user and cache results.
+  static const String mapsAutocomplete = '/ride/maps/geocode';
+  static const String mapsPlaceDetails = '/ride/maps/place-details';
+  static const String mapsReverseGeocode = '/ride/maps/reverse-geocode';
+  static const String mapsDirections = '/ride/maps/directions';
 
   // Cashfree
   static String get cashfreeAppId => dotenv.env['CASHFREE_APP_ID'] ?? '';
