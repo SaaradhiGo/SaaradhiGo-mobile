@@ -6,6 +6,7 @@ import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../../providers/map_provider.dart';
 import '../../utils/geometry_utils.dart';
+import '../components/map_attribution.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 
 class PrecisePickupScreen extends StatefulWidget {
@@ -29,10 +30,10 @@ class _PrecisePickupScreenState extends State<PrecisePickupScreen> {
       if (!mounted) return;
       _mapProvider = context.read<MapProvider>();
       _mapProvider?.addListener(_handleStateChange);
-      
+
       _centerLocation = _mapProvider?.pickupLocation?.latLng;
       _updateSnapping(_centerLocation);
-      
+
       _handleStateChange(); // Initial check
     });
   }
@@ -47,14 +48,14 @@ class _PrecisePickupScreenState extends State<PrecisePickupScreen> {
     if (!mounted || _isNavigated || _mapProvider == null) return;
 
     final status = _mapProvider?.rideRequestResponse?['status'];
-    
+
     if (status == 'start' || status == 'accept' || status == 'active') {
       _isNavigated = true;
       String target = (status == 'start') ? '/tracking' : '/driver-found';
-      
+
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (mounted && context.mounted) {
-           context.pushReplacement(target);
+          context.pushReplacement(target);
         }
       });
     }
@@ -85,7 +86,8 @@ class _PrecisePickupScreenState extends State<PrecisePickupScreen> {
               return FlutterMap(
                 mapController: _mapController,
                 options: MapOptions(
-                  initialCenter: mapProvider.pickupLocation?.latLng ?? const LatLng(0, 0),
+                  initialCenter:
+                      mapProvider.pickupLocation?.latLng ?? const LatLng(0, 0),
                   initialZoom: 17,
                   onPositionChanged: (position, hasGesture) {
                     if (hasGesture) {
@@ -95,7 +97,8 @@ class _PrecisePickupScreenState extends State<PrecisePickupScreen> {
                 ),
                 children: [
                   TileLayer(
-                    urlTemplate: 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png',
+                    urlTemplate:
+                        'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png',
                     subdomains: const ['a', 'b', 'c', 'd'],
                   ),
                   PolylineLayer(
@@ -122,6 +125,7 @@ class _PrecisePickupScreenState extends State<PrecisePickupScreen> {
                         ),
                       ],
                     ),
+                  const MapAttribution(),
                 ],
               );
             },
@@ -144,7 +148,10 @@ class _PrecisePickupScreenState extends State<PrecisePickupScreen> {
                 const SizedBox(width: 12),
                 Expanded(
                   child: Container(
-                    padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
+                    padding: const EdgeInsets.symmetric(
+                      vertical: 12,
+                      horizontal: 16,
+                    ),
                     decoration: BoxDecoration(
                       color: Colors.black.withValues(alpha: 0.5),
                       borderRadius: BorderRadius.circular(30),
@@ -161,7 +168,6 @@ class _PrecisePickupScreenState extends State<PrecisePickupScreen> {
               ],
             ),
           ),
-
 
           // Snap Indicator Line (Optional visual cue)
           if (_centerLocation != null && _snappedLocation != null)
@@ -186,11 +192,17 @@ class _PrecisePickupScreenState extends State<PrecisePickupScreen> {
                   decoration: BoxDecoration(
                     color: const Color(0xFF1E1C18),
                     borderRadius: BorderRadius.circular(16),
-                    border: Border.all(color: Colors.white.withValues(alpha: 0.1)),
+                    border: Border.all(
+                      color: Colors.white.withValues(alpha: 0.1),
+                    ),
                   ),
                   child: Row(
                     children: [
-                      const Icon(Icons.info_outline, color: Color(0xFFEEBD2B), size: 20),
+                      const Icon(
+                        Icons.info_outline,
+                        color: Color(0xFFEEBD2B),
+                        size: 20,
+                      ),
                       const SizedBox(width: 12),
                       const Expanded(
                         child: Text(
@@ -208,14 +220,18 @@ class _PrecisePickupScreenState extends State<PrecisePickupScreen> {
                   child: ElevatedButton(
                     onPressed: () {
                       if (_snappedLocation != null) {
-                        context.read<MapProvider>().setPrecisePickupLocation(_snappedLocation!);
+                        context.read<MapProvider>().setPrecisePickupLocation(
+                          _snappedLocation!,
+                        );
                         context.push('/searching-driver');
                       }
                     },
                     style: ElevatedButton.styleFrom(
                       backgroundColor: const Color(0xFFEEBD2B),
                       foregroundColor: Colors.black,
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(16),
+                      ),
                       elevation: 0,
                     ),
                     child: Text(
@@ -254,8 +270,14 @@ class _SnapLinePainter extends CustomPainter {
     final p2 = mapController.camera.project(snapped);
     final origin = mapController.camera.pixelOrigin;
 
-    final offset1 = Offset(p1.x.toDouble() - origin.x.toDouble(), p1.y.toDouble() - origin.y.toDouble());
-    final offset2 = Offset(p2.x.toDouble() - origin.x.toDouble(), p2.y.toDouble() - origin.y.toDouble());
+    final offset1 = Offset(
+      p1.x.toDouble() - origin.x.toDouble(),
+      p1.y.toDouble() - origin.y.toDouble(),
+    );
+    final offset2 = Offset(
+      p2.x.toDouble() - origin.x.toDouble(),
+      p2.y.toDouble() - origin.y.toDouble(),
+    );
 
     final paint = Paint()
       ..color = const Color(0xFFEEBD2B).withValues(alpha: 0.3)

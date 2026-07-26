@@ -34,13 +34,13 @@ class StateRecoveryDecisionService {
   static const String paymentMethodDeferred = 'deferred';
 
   /// Determines the appropriate screen based on trip data
-  /// 
+  ///
   /// Parameters:
   /// - tripStatus: The status of the trip (e.g., 'requested', 'completed')
   /// - paymentStatus: The status of payment (e.g., 'pending', 'completed')
   /// - paymentMethod: The payment method (e.g., 'cash', 'online', 'wallet')
   /// - hasActiveTrip: Whether there's an active trip (from /trips/active/ endpoint)
-  /// 
+  ///
   /// Returns: ScreenType enum indicating which screen to navigate to
   static ScreenType determineScreen({
     required String? tripStatus,
@@ -81,29 +81,29 @@ class StateRecoveryDecisionService {
       switch (paymentStatus) {
         case paymentStatusCompleted:
           return ScreenType.paymentSuccess;
-        
+
         case paymentStatusPending:
           // Check payment method for pending payments
           if (paymentMethod == paymentMethodCash) {
             return ScreenType.cashPaymentWaiting;
-          } else if (paymentMethod == paymentMethodOnline || 
-                     paymentMethod == paymentMethodWallet ||
-                     paymentMethod == paymentMethodDeferred) {
+          } else if (paymentMethod == paymentMethodOnline ||
+              paymentMethod == paymentMethodWallet ||
+              paymentMethod == paymentMethodDeferred) {
             return ScreenType.paymentPending;
           }
           // Default to payment pending for unknown payment methods
           return ScreenType.paymentPending;
-        
+
         case paymentStatusFailed:
           return ScreenType.paymentFailed;
-        
+
         case paymentStatusProcessing:
           if (paymentMethod == paymentMethodOnline) {
             return ScreenType.paymentPending;
           }
           // Default to payment pending for processing with other methods
           return ScreenType.paymentPending;
-        
+
         default:
           // Unknown payment status, default to payment pending
           return ScreenType.paymentPending;
@@ -136,7 +136,11 @@ class StateRecoveryDecisionService {
 
   /// Gets the route path for a given ScreenType
   /// This maps to the existing route paths in the app
-  static String getRoutePath(ScreenType screenType, {String? tripId, String? tripStatus}) {
+  static String getRoutePath(
+    ScreenType screenType, {
+    String? tripId,
+    String? tripStatus,
+  }) {
     switch (screenType) {
       case ScreenType.home:
         return '/home';
@@ -145,7 +149,8 @@ class StateRecoveryDecisionService {
         if (tripStatus != null) {
           if (tripStatus == tripStatusRequested) {
             return '/searching-driver';
-          } else if (tripStatus == tripStatusAccepted || tripStatus == tripStatusReached) {
+          } else if (tripStatus == tripStatusAccepted ||
+              tripStatus == tripStatusReached) {
             return '/driver-found';
           } else if (tripStatus == tripStatusInProgress) {
             return '/tracking';
@@ -170,25 +175,25 @@ class StateRecoveryDecisionService {
   }
 
   /// Extracts trip status, payment status, and payment method from trip data
-  /// 
+  ///
   /// Parameters:
   /// - tripData: Map containing trip data from API response
-  /// 
+  ///
   /// Returns: Map with extracted values
   static Map<String, String?> extractTripInfo(Map<String, dynamic> tripData) {
     // Extract from nested structure if needed
     final data = tripData['data'] ?? tripData;
-    
+
     String? tripStatus = data['status']?.toString();
     String? paymentStatus = data['payment_status']?.toString();
     String? paymentMethod = data['payment_method']?.toString();
-    
+
     // If payment info is nested in a payment object
     if (paymentStatus == null && data['payment'] is Map) {
       paymentStatus = data['payment']['status']?.toString();
       paymentMethod = data['payment']['method']?.toString();
     }
-    
+
     return {
       'tripStatus': tripStatus,
       'paymentStatus': paymentStatus,
@@ -199,23 +204,23 @@ class StateRecoveryDecisionService {
   /// Determines if WebSocket listening is required for a given screen
   static bool requiresWebSocket(ScreenType screenType) {
     return screenType == ScreenType.tripInProgress ||
-           screenType == ScreenType.cashPaymentWaiting ||
-           screenType == ScreenType.paymentPending;
+        screenType == ScreenType.cashPaymentWaiting ||
+        screenType == ScreenType.paymentPending;
   }
 
   /// Determines if the trip ID should be cleared from storage
-  /// Based on FLUTTER_STATE_RECOVERY.md: "After a trip reaches `completed` or `cancelled`, 
+  /// Based on FLUTTER_STATE_RECOVERY.md: "After a trip reaches `completed` or `cancelled`,
   /// clear the stored trip ID from SharedPreferences."
   static bool shouldClearTripId(String? tripStatus, String? paymentStatus) {
     if (tripStatus == tripStatusCancelled) {
       return true;
     }
-    
-    if (tripStatus == tripStatusCompleted && 
+
+    if (tripStatus == tripStatusCompleted &&
         paymentStatus == paymentStatusCompleted) {
       return true;
     }
-    
+
     return false;
   }
 }

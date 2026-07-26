@@ -12,11 +12,7 @@ class CancelledOverlay extends StatelessWidget {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Icon(
-                Icons.cancel_outlined,
-                color: Colors.redAccent,
-                size: 64,
-              ),
+              Icon(Icons.cancel_outlined, color: Colors.redAccent, size: 64),
               SizedBox(height: 24),
               Text(
                 'Ride Cancelled',
@@ -30,10 +26,7 @@ class CancelledOverlay extends StatelessWidget {
               SizedBox(height: 8),
               Text(
                 'Returning to home...',
-                style: TextStyle(
-                  color: Color(0xFFBDBDBD),
-                  fontSize: 14,
-                ),
+                style: TextStyle(color: Color(0xFFBDBDBD), fontSize: 14),
               ),
             ],
           ),

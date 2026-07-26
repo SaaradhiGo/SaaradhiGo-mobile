@@ -7,7 +7,8 @@ import 'payment_service.dart';
 
 class WebPaymentHelper {
   static Future<GatewaySuccessResponse?> launchCashfree(
-      Map<String, dynamic> options) {
+    Map<String, dynamic> options,
+  ) {
     final completer = Completer<GatewaySuccessResponse?>();
 
     void successCallback(String orderId) {
@@ -28,7 +29,9 @@ class WebPaymentHelper {
           js_pkg.allowInterop(errorCallback),
         ]);
       } else {
-        debugPrint('WebPaymentHelper Error: launchCashfree not found in JS context');
+        debugPrint(
+          'WebPaymentHelper Error: launchCashfree not found in JS context',
+        );
         completer.complete(null);
       }
     } catch (e) {

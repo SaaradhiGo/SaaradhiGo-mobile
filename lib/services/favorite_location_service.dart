@@ -9,12 +9,12 @@ class FavoriteLocationService {
   Future<List<FavoriteLocation>> fetchFavoriteLocations() async {
     final prefs = await SharedPreferences.getInstance();
     final token = prefs.getString('access_token');
-    
+
     final url = Uri.parse('${AppConfig.baseUrl}/rider/locations/all/');
-    
+
     try {
       final response = await http.get(
-        url, 
+        url,
         headers: {
           'Content-Type': 'application/json',
           'User-Agent': 'SaaradhiGo/1.0',
@@ -25,7 +25,9 @@ class FavoriteLocationService {
         final data = json.decode(response.body);
         if (data['status'] == 'success' && data['data'] != null) {
           final List locations = data['data'];
-          return locations.map((json) => FavoriteLocation.fromJson(json)).toList();
+          return locations
+              .map((json) => FavoriteLocation.fromJson(json))
+              .toList();
         }
       }
     } catch (e) {
@@ -34,15 +36,19 @@ class FavoriteLocationService {
     return [];
   }
 
-  Future<bool> saveFavoriteLocation(String address, double lat, double lng) async {
+  Future<bool> saveFavoriteLocation(
+    String address,
+    double lat,
+    double lng,
+  ) async {
     final prefs = await SharedPreferences.getInstance();
     final token = prefs.getString('access_token');
-    
+
     final url = Uri.parse('${AppConfig.baseUrl}/rider/locations/');
-    
+
     try {
       final response = await http.post(
-        url, 
+        url,
         headers: {
           'Content-Type': 'application/json',
           'User-Agent': 'SaaradhiGo/1.0',
@@ -54,7 +60,7 @@ class FavoriteLocationService {
           'longitude': lng.toString(),
         }),
       );
-      
+
       if (response.statusCode == 201 || response.statusCode == 200) {
         return true;
       }
@@ -67,19 +73,19 @@ class FavoriteLocationService {
   Future<bool> deleteFavoriteLocation(int id) async {
     final prefs = await SharedPreferences.getInstance();
     final token = prefs.getString('access_token');
-    
+
     final url = Uri.parse('${AppConfig.baseUrl}/rider/locations/$id/delete/');
-    
+
     try {
       final response = await http.delete(
-        url, 
+        url,
         headers: {
           'Content-Type': 'application/json',
           'User-Agent': 'SaaradhiGo/1.0',
           if (token != null) 'Authorization': 'Bearer $token',
         },
       );
-      
+
       if (response.statusCode == 204 || response.statusCode == 200) {
         return true;
       }

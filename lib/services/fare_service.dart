@@ -18,7 +18,7 @@ class FareService {
     final token = prefs.getString('access_token');
 
     final url = Uri.parse('${AppConfig.baseUrl}/ride/estimate-fare/');
-    
+
     try {
       final response = await http.post(
         url,

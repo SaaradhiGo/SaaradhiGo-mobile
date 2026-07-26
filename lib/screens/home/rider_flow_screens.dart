@@ -5,11 +5,15 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
+import 'package:url_launcher/url_launcher.dart';
+
+import 'trip_chat_screen.dart';
 
 import '../../providers/map_provider.dart';
 import '../../providers/wallet_provider.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:flutter_map_cancellable_tile_provider/flutter_map_cancellable_tile_provider.dart';
+import '../components/map_attribution.dart';
 import 'package:latlong2/latlong.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import '../../services/ride_service.dart';
@@ -132,6 +136,7 @@ class _SearchingDriverScreenState extends State<SearchingDriverScreen> {
       },
       child: _DarkMapScaffold(
         title: 'Finding your ride...',
+        backIcon: Icons.close,
         bottom: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
@@ -313,6 +318,7 @@ class _DriverFoundScreenState extends State<DriverFoundScreen> {
           },
           child: _DarkMapScaffold(
             title: 'Your Driver is Arriving',
+            backIcon: Icons.close,
             onBack: () async {
               if (mounted && context.mounted) {
                 Navigator.of(context).maybePop();
@@ -387,12 +393,76 @@ class _DriverFoundScreenState extends State<DriverFoundScreen> {
                         children: [
                           _ActionButton(
                             icon: Icons.chat_bubble_outline,
-                            onTap: () {},
+                            onTap: () {
+                              // Open in-trip chat. tripId is whatever
+                              // the rideData payload exposed; fall back
+                              // to 0 (skip) when not present.
+                              final tripIdRaw =
+                                  rideData?['trip_id'] ?? rideData?['id'];
+                              final tripId = tripIdRaw is int
+                                  ? tripIdRaw
+                                  : int.tryParse('$tripIdRaw') ?? 0;
+                              if (tripId <= 0) return;
+                              Navigator.of(context).push(
+                                MaterialPageRoute(
+                                  builder: (_) => TripChatScreen(
+                                    tripId: tripId,
+                                    myRole: 'rider',
+                                  ),
+                                ),
+                              );
+                            },
                           ),
                           const SizedBox(width: 12),
                           _ActionButton(
                             icon: Icons.phone_outlined,
-                            onTap: () {},
+                            // Privacy posture (Phase-0): we launch the
+                            // OS dialer with a tel: deep link but never
+                            // display the driver's number on screen.
+                            // When we wire a phone-masking proxy
+                            // (Exotel / Knowlarity, Phase-1), the
+                            // backend will return a proxy number here
+                            // and the UX is unchanged for the rider.
+                            onTap: () async {
+                              final raw =
+                                  (driverInfo?['phone'] ??
+                                          rideData?['driver_phone'] ??
+                                          '')
+                                      .toString();
+                              if (raw.isEmpty) {
+                                if (context.mounted) {
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    const SnackBar(
+                                      content: Text(
+                                        'Driver phone unavailable. Use in-app chat instead.',
+                                      ),
+                                    ),
+                                  );
+                                }
+                                return;
+                              }
+                              final uri = Uri(scheme: 'tel', path: raw);
+                              try {
+                                final ok = await launchUrl(uri);
+                                if (!ok && context.mounted) {
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    const SnackBar(
+                                      content: Text(
+                                        'Could not open dialer on this device.',
+                                      ),
+                                    ),
+                                  );
+                                }
+                              } catch (_) {
+                                if (context.mounted) {
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    const SnackBar(
+                                      content: Text('Could not start a call.'),
+                                    ),
+                                  );
+                                }
+                              }
+                            },
                           ),
                         ],
                       ),
@@ -408,7 +478,9 @@ class _DriverFoundScreenState extends State<DriverFoundScreen> {
                   decoration: BoxDecoration(
                     color: Colors.white.withValues(alpha: 0.05),
                     borderRadius: BorderRadius.circular(16),
-                    border: Border.all(color: Colors.white.withValues(alpha: 0.1)),
+                    border: Border.all(
+                      color: Colors.white.withValues(alpha: 0.1),
+                    ),
                   ),
                   child: Row(
                     children: [
@@ -632,6 +704,7 @@ class FullMapTrackingScreen extends StatefulWidget {
 }
 
 class _FullMapTrackingScreenState extends State<FullMapTrackingScreen> {
+  bool _canPop = false;
   bool _isNavigated = false;
   MapProvider? _mapProvider;
 
@@ -683,121 +756,176 @@ class _FullMapTrackingScreenState extends State<FullMapTrackingScreen> {
     }
   }
 
-  @override
-  Widget build(BuildContext context) {
-    return Consumer<MapProvider>(
-      builder: (context, mapProvider, child) {
-        return _DarkMapScaffold(
-          title: 'Ride in Progress',
-          forceInProgress: true,
-          bottom: Row(
-            children: [
-              Expanded(
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      mapProvider.duration ?? '-- min',
-                      style: GoogleFonts.inter(
-                        fontSize: 32,
-                        fontWeight: FontWeight.w800,
-                        color: Colors.white,
-                      ),
-                    ),
-                    Text(
-                      mapProvider.distance ?? '-- km',
-                      style: GoogleFonts.inter(
-                        color: Colors.white70,
-                        fontSize: 13,
-                        fontWeight: FontWeight.w500,
-                      ),
-                    ),
-                  ],
+  Future<bool> _showCancelConfirmation(BuildContext context) async {
+    return await showDialog<bool>(
+          context: context,
+          builder: (context) => AlertDialog(
+            backgroundColor: const Color(0xFF1E1C18),
+            title: Text(
+              'Cancel Ride?',
+              style: GoogleFonts.inter(
+                color: Colors.white,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+            content: Text(
+              'Are you sure you want to cancel your ongoing ride?',
+              style: GoogleFonts.inter(color: Colors.white70),
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(context, false),
+                child: Text(
+                  'Continue Ride',
+                  style: GoogleFonts.inter(color: const Color(0xFFEEBD2B)),
                 ),
               ),
-              GestureDetector(
-                onTap: () {
-                  showDialog(
-                    context: context,
-                    builder: (context) => AlertDialog(
-                      backgroundColor: const Color(0xFF1E1C18),
-                      title: const Text(
-                        'SOS Emergency',
-                        style: TextStyle(
-                          color: Colors.white,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                      content: const Text(
-                        'Are you in danger? This will alert the nearest authorities and our support team.',
-                        style: TextStyle(color: Colors.white70),
-                      ),
-                      actions: [
-                        TextButton(
-                          onPressed: () => Navigator.pop(context),
-                          child: const Text(
-                            'I\'m Safe',
-                            style: TextStyle(color: Colors.white54),
-                          ),
-                        ),
-                        ElevatedButton(
-                          onPressed: () {
-                            Navigator.pop(context);
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(
-                                backgroundColor: Colors.red,
-                                content: Text(
-                                  'Emergency Alert Sent! Support is on the way.',
-                                ),
-                              ),
-                            );
-                          },
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: Colors.red,
-                          ),
-                          child: const Text(
-                            'YES, CALL FOR HELP',
-                            style: TextStyle(color: Colors.white),
-                          ),
-                        ),
-                      ],
-                    ),
-                  );
-                },
-                child: Container(
-                  height: 58,
-                  width: 58,
-                  decoration: BoxDecoration(
-                    color: Colors.red.withValues(alpha: 0.9),
-                    shape: BoxShape.circle,
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.red.withValues(alpha: 0.4),
-                        blurRadius: 12,
-                        spreadRadius: 2,
-                      ),
-                    ],
-                  ),
-                  alignment: Alignment.center,
-                  child: const Text(
-                    'SOS',
-                    style: TextStyle(
-                      fontWeight: FontWeight.w900,
-                      color: Colors.white,
-                      fontSize: 14,
-                    ),
-                  ),
+              TextButton(
+                onPressed: () => Navigator.pop(context, true),
+                child: Text(
+                  'Cancel Ride',
+                  style: GoogleFonts.inter(color: Colors.red),
                 ),
               ),
             ],
           ),
-          action: mapProvider.rideRequestResponse?['status'] == 'complete'
-              ? ElevatedButton(
-                  onPressed: () => context.push('/ride-summary'),
-                  child: const Text('View Summary'),
-                )
-              : null,
+        ) ??
+        false;
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Consumer<MapProvider>(
+      builder: (context, mapProvider, child) {
+        return PopScope(
+          canPop: _canPop,
+          onPopInvokedWithResult: (didPop, result) async {
+            if (didPop) return;
+            final shouldPop = await _showCancelConfirmation(context);
+            if (shouldPop && mounted && context.mounted) {
+              context.read<MapProvider>().cancelRideRequest();
+              setState(() => _canPop = true);
+              Navigator.of(context).pop();
+            }
+          },
+          child: _DarkMapScaffold(
+            title: 'Ride in Progress',
+            backIcon: Icons.close,
+            onBack: () async {
+              if (mounted && context.mounted) {
+                Navigator.of(context).maybePop();
+              }
+            },
+            forceInProgress: true,
+            bottom: Row(
+              children: [
+                Expanded(
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        mapProvider.duration ?? '-- min',
+                        style: GoogleFonts.inter(
+                          fontSize: 32,
+                          fontWeight: FontWeight.w800,
+                          color: Colors.white,
+                        ),
+                      ),
+                      Text(
+                        mapProvider.distance ?? '-- km',
+                        style: GoogleFonts.inter(
+                          color: Colors.white70,
+                          fontSize: 13,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                GestureDetector(
+                  onTap: () {
+                    showDialog(
+                      context: context,
+                      builder: (context) => AlertDialog(
+                        backgroundColor: const Color(0xFF1E1C18),
+                        title: const Text(
+                          'SOS Emergency',
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                        content: const Text(
+                          'Are you in danger? This will alert the nearest authorities and our support team.',
+                          style: TextStyle(color: Colors.white70),
+                        ),
+                        actions: [
+                          TextButton(
+                            onPressed: () => Navigator.pop(context),
+                            child: const Text(
+                              'I\'m Safe',
+                              style: TextStyle(color: Colors.white54),
+                            ),
+                          ),
+                          ElevatedButton(
+                            onPressed: () {
+                              Navigator.pop(context);
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                const SnackBar(
+                                  backgroundColor: Colors.red,
+                                  content: Text(
+                                    'Emergency Alert Sent! Support is on the way.',
+                                  ),
+                                ),
+                              );
+                            },
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: Colors.red,
+                            ),
+                            child: const Text(
+                              'YES, CALL FOR HELP',
+                              style: TextStyle(color: Colors.white),
+                            ),
+                          ),
+                        ],
+                      ),
+                    );
+                  },
+                  child: Container(
+                    height: 58,
+                    width: 58,
+                    decoration: BoxDecoration(
+                      color: Colors.red.withValues(alpha: 0.9),
+                      shape: BoxShape.circle,
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.red.withValues(alpha: 0.4),
+                          blurRadius: 12,
+                          spreadRadius: 2,
+                        ),
+                      ],
+                    ),
+                    alignment: Alignment.center,
+                    child: const Text(
+                      'SOS',
+                      style: TextStyle(
+                        fontWeight: FontWeight.w900,
+                        color: Colors.white,
+                        fontSize: 14,
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            action: mapProvider.rideRequestResponse?['status'] == 'complete'
+                ? ElevatedButton(
+                    onPressed: () => context.push('/ride-summary'),
+                    child: const Text('View Summary'),
+                  )
+                : null,
+          ),
         );
       },
     );
@@ -998,7 +1126,8 @@ class _RidePaymentSummaryScreenState extends State<RidePaymentSummaryScreen> {
 
         final sessionId =
             orderData?['cashfree_payment_session_id']?.toString() ??
-            orderData?['data']?['cashfree_payment_session_id']?.toString() ?? '';
+            orderData?['data']?['cashfree_payment_session_id']?.toString() ??
+            '';
 
         if (orderId == null || orderId.isEmpty) {
           setState(() => _isProcessing = false);
@@ -1395,6 +1524,7 @@ class _DarkMapScaffold extends StatefulWidget {
     required this.bottom,
     this.action,
     this.onBack,
+    this.backIcon,
     this.forceInProgress = false,
   });
 
@@ -1402,6 +1532,7 @@ class _DarkMapScaffold extends StatefulWidget {
   final Widget bottom;
   final Widget? action;
   final VoidCallback? onBack;
+  final IconData? backIcon;
   final bool forceInProgress;
 
   @override
@@ -1666,6 +1797,7 @@ class _DarkMapScaffoldState extends State<_DarkMapScaffold>
                   ),
                   PolylineLayer(polylines: polylines),
                   MarkerLayer(markers: markers),
+                  const MapAttribution(),
                 ],
               ),
               SafeArea(
@@ -1675,10 +1807,13 @@ class _DarkMapScaffoldState extends State<_DarkMapScaffold>
                     children: [
                       IconButton(
                         onPressed: widget.onBack ?? () => context.pop(),
-                        icon: const CircleAvatar(
+                        icon: CircleAvatar(
                           radius: 20,
-                          backgroundColor: Color(0x77000000),
-                          child: Icon(Icons.arrow_back, color: Colors.white),
+                          backgroundColor: const Color(0x77000000),
+                          child: Icon(
+                            widget.backIcon ?? Icons.arrow_back,
+                            color: Colors.white,
+                          ),
                         ),
                       ),
                       Expanded(

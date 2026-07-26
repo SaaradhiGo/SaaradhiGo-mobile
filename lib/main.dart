@@ -12,6 +12,7 @@ import 'providers/map_provider.dart';
 import 'providers/history_provider.dart';
 import 'providers/wallet_provider.dart';
 import 'providers/notification_provider.dart';
+import 'providers/remote_config_provider.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart' as riverpod;
@@ -44,6 +45,7 @@ import 'screens/components/payment_pending_banner.dart';
 
 import 'services/push_notification_service.dart';
 import 'services/ongoing_ride_notification_service.dart';
+import 'services/ride_foreground_link.dart';
 
 @pragma('vm:entry-point')
 Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
@@ -84,6 +86,14 @@ void main() async {
           ChangeNotifierProvider(create: (_) => HistoryProvider()),
           ChangeNotifierProvider(create: (_) => WalletProvider()),
           ChangeNotifierProvider(create: (_) => NotificationProvider()),
+          // Pulls server-controlled feature flags (e.g. whether wallet
+          // top-ups are enabled). Fires off the fetch immediately so
+          // the wallet screen has the right posture by the time the
+          // user navigates to it; safe defaults are used until the
+          // response lands.
+          ChangeNotifierProvider(
+            create: (_) => RemoteConfigProvider()..fetch(),
+          ),
         ],
         child: VahanGoApp(isFirstLaunch: isFirstLaunch, isLoggedIn: isLoggedIn),
       ),
@@ -259,6 +269,13 @@ class VahanGoApp extends StatelessWidget {
           builder: (context, child) {
             return riverpod.Consumer(
               builder: (context, ref, _) {
+                // Wire the foreground-service notification into ride
+                // lifecycle. Listener is attached once per Consumer
+                // build and persists for the app's lifetime — without
+                // it the rider's app gets killed mid-trip on Xiaomi /
+                // Vivo / Oppo / Realme.
+                wireRideForegroundService(ref);
+
                 final rideState = ref.watch(rideNotifierProvider);
                 return Stack(
                   children: [

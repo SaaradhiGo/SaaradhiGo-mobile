@@ -161,7 +161,11 @@ class _HistoryScreenState extends State<HistoryScreen> {
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Icon(Icons.history, size: 64, color: Colors.white.withValues(alpha: 0.05)),
+          Icon(
+            Icons.history,
+            size: 64,
+            color: Colors.white.withValues(alpha: 0.05),
+          ),
           const SizedBox(height: 16),
           Text(
             'No rides found',
@@ -416,7 +420,9 @@ class _HistoryRideCard extends StatelessWidget {
                 child: ElevatedButton(
                   onPressed: () {},
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFF8B6508).withValues(alpha: 0.4),
+                    backgroundColor: const Color(
+                      0xFF8B6508,
+                    ).withValues(alpha: 0.4),
                     foregroundColor: const Color(0xFFF8D468),
                     elevation: 0,
                     padding: const EdgeInsets.symmetric(vertical: 12),

@@ -12,7 +12,7 @@ class OngoingRideNotificationService {
 
   static Future<void> initialize() async {
     if (kIsWeb || !(Platform.isAndroid || Platform.isIOS)) return;
-    
+
     await NotificationHelper.initialize(channelId, channelName);
 
     // Initial setup for the background service
@@ -65,7 +65,7 @@ class OngoingRideNotificationService {
         if (event != null) {
           final title = event['title'] as String?;
           final content = event['content'] as String?;
-          
+
           if (title != null && content != null) {
             await NotificationHelper.showNotification(
               notificationId,
@@ -82,7 +82,7 @@ class OngoingRideNotificationService {
 
   static Future<void> startService() async {
     if (kIsWeb || !(Platform.isAndroid || Platform.isIOS)) return;
-    
+
     final service = FlutterBackgroundService();
     var isRunning = await service.isRunning();
     if (!isRunning) {
@@ -92,18 +92,18 @@ class OngoingRideNotificationService {
 
   static void stopService() {
     if (kIsWeb || !(Platform.isAndroid || Platform.isIOS)) return;
-    
+
     final service = FlutterBackgroundService();
     service.invoke('stopService');
   }
 
-  static void updateNotification({required String title, required String content}) {
+  static void updateNotification({
+    required String title,
+    required String content,
+  }) {
     if (kIsWeb || !(Platform.isAndroid || Platform.isIOS)) return;
-    
+
     final service = FlutterBackgroundService();
-    service.invoke('update', {
-      'title': title,
-      'content': content,
-    });
+    service.invoke('update', {'title': title, 'content': content});
   }
 }

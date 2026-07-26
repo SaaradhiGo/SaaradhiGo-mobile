@@ -11,13 +11,17 @@ class PushNotificationService {
       // Foreground messages
       FirebaseMessaging.onMessage.listen((RemoteMessage message) {
         debugPrint('Got a message whilst in the foreground!');
-        
+
         if (message.data.isNotEmpty) {
-           container.read(rideNotifierProvider.notifier).updateFromNotification(message.data);
+          container
+              .read(rideNotifierProvider.notifier)
+              .updateFromNotification(message.data);
         }
 
         if (message.notification != null) {
-          debugPrint('Message also contained a notification: ${message.notification?.title}');
+          debugPrint(
+            'Message also contained a notification: ${message.notification?.title}',
+          );
         }
       });
 
@@ -25,14 +29,18 @@ class PushNotificationService {
       FirebaseMessaging.onMessageOpenedApp.listen((RemoteMessage message) {
         debugPrint('A new onMessageOpenedApp event was published!');
         if (message.data.isNotEmpty) {
-           container.read(rideNotifierProvider.notifier).updateFromNotification(message.data);
+          container
+              .read(rideNotifierProvider.notifier)
+              .updateFromNotification(message.data);
         }
       });
 
       // When app is launched from terminated state via a notification
       RemoteMessage? initialMessage = await _messaging.getInitialMessage();
       if (initialMessage != null && initialMessage.data.isNotEmpty) {
-        container.read(rideNotifierProvider.notifier).updateFromNotification(initialMessage.data);
+        container
+            .read(rideNotifierProvider.notifier)
+            .updateFromNotification(initialMessage.data);
       }
 
       _messaging.onTokenRefresh.listen((newToken) {
@@ -58,7 +66,9 @@ class PushNotificationService {
         debugPrint('FCM Token retrieved: $token');
         return token;
       } else {
-        debugPrint('User declined or has not accepted notification permissions');
+        debugPrint(
+          'User declined or has not accepted notification permissions',
+        );
         return null;
       }
     } catch (e) {

@@ -16,10 +16,13 @@ class MapService {
   final LocationService _locationService = LocationService();
   final FareService _fareService = FareService();
   final DriverService _driverService = DriverService();
-  final FavoriteLocationService _favoriteLocationService = FavoriteLocationService();
+  final FavoriteLocationService _favoriteLocationService =
+      FavoriteLocationService();
 
-  Future<List<PlaceSuggestion>> getPlaceAutocomplete(String query, String sessionToken) =>
-      _locationService.getPlaceAutocomplete(query, sessionToken);
+  Future<List<PlaceSuggestion>> getPlaceAutocomplete(
+    String query,
+    String sessionToken,
+  ) => _locationService.getPlaceAutocomplete(query, sessionToken);
 
   Future<PlaceDetails?> getPlaceDetails(String placeId, String sessionToken) =>
       _locationService.getPlaceDetails(placeId, sessionToken);
@@ -37,8 +40,7 @@ class MapService {
     required double lat,
     required double lng,
     double radius = 1000,
-  }) =>
-      _driverService.getNearbyDrivers(lat: lat, lng: lng, radius: radius);
+  }) => _driverService.getNearbyDrivers(lat: lat, lng: lng, radius: radius);
 
   Future<Map<String, dynamic>?> estimateFare({
     required double pickup_lat,
@@ -48,16 +50,15 @@ class MapService {
     required double distance_km,
     required int duration_min,
     required String vehicle_type,
-  }) =>
-      _fareService.estimateFare(
-        pickupLat: pickup_lat,
-        pickupLng: pickup_lng,
-        destinationLat: destination_lat,
-        destinationLng: destination_long,
-        distanceKm: distance_km,
-        durationMin: duration_min,
-        vehicleType: vehicle_type,
-      );
+  }) => _fareService.estimateFare(
+    pickupLat: pickup_lat,
+    pickupLng: pickup_lng,
+    destinationLat: destination_lat,
+    destinationLng: destination_long,
+    distanceKm: distance_km,
+    durationMin: duration_min,
+    vehicleType: vehicle_type,
+  );
 
   Future<List<FavoriteLocation>> fetchFavoriteLocations() =>
       _favoriteLocationService.fetchFavoriteLocations();

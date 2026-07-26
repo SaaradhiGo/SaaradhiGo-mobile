@@ -35,20 +35,29 @@ class Trip {
   factory Trip.fromJson(Map<String, dynamic> json) {
     // Map date: created_at or requested_at
     final dateStr = json['created_at'] ?? json['requested_at'];
-    
+
     return Trip(
       id: json['id'] as int,
       pickupAddress: json['pickup_address'] as String? ?? 'Unknown Pickup',
-      destinationAddress: json['destination_address'] as String? ?? 'Unknown Destination',
+      destinationAddress:
+          json['destination_address'] as String? ?? 'Unknown Destination',
       status: json['status'] as String? ?? 'unknown',
       estimatedFare: json['estimated_fare']?.toString(),
       finalFare: json['final_fare']?.toString(),
       createdAt: dateStr != null ? DateTime.tryParse(dateStr) : null,
-      vehicleType: json['vehicle_type'] as String? ?? (json['vehicle_info'] is Map ? json['vehicle_info']['type'] as String? : json['vehicle_info'] as String?),
+      vehicleType:
+          json['vehicle_type'] as String? ??
+          (json['vehicle_info'] is Map
+              ? json['vehicle_info']['type'] as String?
+              : json['vehicle_info'] as String?),
       pickupLat: double.tryParse(json['pickup_lat']?.toString() ?? ''),
       pickupLng: double.tryParse(json['pickup_long']?.toString() ?? ''),
-      destinationLat: double.tryParse(json['destination_lat']?.toString() ?? ''),
-      destinationLng: double.tryParse(json['destination_long']?.toString() ?? ''),
+      destinationLat: double.tryParse(
+        json['destination_lat']?.toString() ?? '',
+      ),
+      destinationLng: double.tryParse(
+        json['destination_long']?.toString() ?? '',
+      ),
     );
   }
 

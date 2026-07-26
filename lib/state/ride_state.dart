@@ -84,7 +84,12 @@ class RideState {
 
   // Helper getters
   bool get isRequesting => status == RideStatus.searchingDriver;
-  bool get isActiveRide => status != RideStatus.none && status != RideStatus.cancelled && status != RideStatus.rideCompleted && status != RideStatus.paymentPending && status != RideStatus.rated;
+  bool get isActiveRide =>
+      status != RideStatus.none &&
+      status != RideStatus.cancelled &&
+      status != RideStatus.rideCompleted &&
+      status != RideStatus.paymentPending &&
+      status != RideStatus.rated;
 
   // Converts from json map (for persistence or fast resume)
   factory RideState.fromJson(Map<String, dynamic> json) {
@@ -114,7 +119,10 @@ class RideState {
       status: _parseStatus(json['status']),
       tripId: json['trip_id']?.toString(),
       driverLocation: json['driver_lat'] != null && json['driver_lng'] != null
-          ? LatLng((json['driver_lat'] as num).toDouble(), (json['driver_lng'] as num).toDouble())
+          ? LatLng(
+              (json['driver_lat'] as num).toDouble(),
+              (json['driver_lng'] as num).toDouble(),
+            )
           : null,
       pickupLocation: pickup,
       dropLocation: drop,
@@ -151,15 +159,24 @@ class RideState {
   static RideStatus _parseStatus(String? statusStr) {
     switch (statusStr) {
       case 'searchingDriver':
-      case 'searching': return RideStatus.searchingDriver;
-      case 'driverAccepted': return RideStatus.driverAccepted;
-      case 'driverArrived': return RideStatus.driverArrived;
-      case 'rideStarted': return RideStatus.rideStarted;
-      case 'rideCompleted': return RideStatus.rideCompleted;
-      case 'paymentPending': return RideStatus.paymentPending;
-      case 'rated': return RideStatus.rated;
-      case 'cancelled': return RideStatus.cancelled;
-      default: return RideStatus.none;
+      case 'searching':
+        return RideStatus.searchingDriver;
+      case 'driverAccepted':
+        return RideStatus.driverAccepted;
+      case 'driverArrived':
+        return RideStatus.driverArrived;
+      case 'rideStarted':
+        return RideStatus.rideStarted;
+      case 'rideCompleted':
+        return RideStatus.rideCompleted;
+      case 'paymentPending':
+        return RideStatus.paymentPending;
+      case 'rated':
+        return RideStatus.rated;
+      case 'cancelled':
+        return RideStatus.cancelled;
+      default:
+        return RideStatus.none;
     }
   }
 }
