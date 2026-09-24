@@ -1,3 +1,4 @@
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:vahango/state/ride_notifier.dart';
@@ -126,24 +127,42 @@ void main() {
 
   late _FakeRideService fakeRideService;
   late SharedPreferences prefs;
+  late ProviderContainer container;
 
   setUp(() async {
     // Initialize SharedPreferences for testing
     SharedPreferences.setMockInitialValues({});
     prefs = await SharedPreferences.getInstance();
-    
+
     fakeRideService = _FakeRideService();
+
+    // The fake is now actually REACHED. Before `rideServiceProvider` existed,
+    // RideNotifier built its RideService inline, so this fake was constructed in
+    // every test and used by none of them -- the tests would have hit the real
+    // network had they run at all.
+    container = ProviderContainer(
+      overrides: [rideServiceProvider.overrideWithValue(fakeRideService)],
+    );
   });
 
   tearDown(() async {
+    container.dispose();
     // Clear SharedPreferences after each test
     await prefs.clear();
   });
 
+  /// The notifier under test, hosted by the container.
+  ///
+  /// Riverpod 3 refuses `RideNotifier()` constructed by hand -- "tried to use a
+  /// notifier in an uninitialized state" -- because state and ref only exist once
+  /// a container owns it. Every test previously did exactly that.
+  RideNotifier notifierUnderTest() =>
+      container.read(rideNotifierProvider.notifier);
+
   group('Ride State Recovery Tests', () {
     test('loadInitialState - no auth token clears state', () async {
       // Arrange
-      final notifier = RideNotifier();
+      final notifier = notifierUnderTest();
       
       // Act
       await notifier.loadInitialState();
@@ -160,7 +179,7 @@ void main() {
       // Mock no active trip response
       fakeRideService.fetchActiveTripResponse = null;
       
-      final notifier = RideNotifier();
+      final notifier = notifierUnderTest();
       
       // Act
       await notifier.loadInitialState();
@@ -201,7 +220,7 @@ void main() {
         }
       };
       
-      final notifier = RideNotifier();
+      final notifier = notifierUnderTest();
       
       // Act
       await notifier.loadInitialState();
@@ -224,7 +243,7 @@ void main() {
       // Mock trip status check returns error
       fakeRideService.getTripStatusResponse = {'status': 'error', 'message': 'Trip not found'};
       
-      final notifier = RideNotifier();
+      final notifier = notifierUnderTest();
       
       // Act
       await notifier.loadInitialState();
@@ -250,7 +269,7 @@ void main() {
       
       fakeRideService.getTripDetailsResponse = {'status': 'success', 'data': {}};
       
-      final notifier = RideNotifier();
+      final notifier = notifierUnderTest();
       
       // Act
       await notifier.loadInitialState();
@@ -286,7 +305,7 @@ void main() {
     test('clearState - clears both state and active trip ID', () async {
       // Arrange
       await prefs.setString('active_trip_id', '12345');
-      final notifier = RideNotifier();
+      final notifier = notifierUnderTest();
       
       // Set some state
       notifier.state = const RideState(
@@ -314,7 +333,7 @@ void main() {
       
       fakeRideService.getTripDetailsResponse = {'status': 'success', 'data': {}};
       
-      final notifier = RideNotifier();
+      final notifier = notifierUnderTest();
       
       // Act
       await notifier.syncStateFromBackend('cancelled_trip_id');
@@ -344,7 +363,7 @@ void main() {
         }
       };
       
-      final notifier = RideNotifier();
+      final notifier = notifierUnderTest();
       
       // Act
       await notifier.syncStateFromBackend('12345');
@@ -361,7 +380,7 @@ void main() {
   group('App Launch Scenarios', () {
     test('Scenario 1: Fresh install with no auth', () async {
       // Arrange - No SharedPreferences data
-      final notifier = RideNotifier();
+      final notifier = notifierUnderTest();
       
       // Act
       await notifier.loadInitialState();
@@ -377,7 +396,7 @@ void main() {
       
       fakeRideService.fetchActiveTripResponse = null;
       
-      final notifier = RideNotifier();
+      final notifier = notifierUnderTest();
       
       // Act
       await notifier.loadInitialState();
@@ -414,7 +433,7 @@ void main() {
         }
       };
       
-      final notifier = RideNotifier();
+      final notifier = notifierUnderTest();
       
       // Act
       await notifier.loadInitialState();
@@ -441,7 +460,7 @@ void main() {
       
       fakeRideService.getTripDetailsResponse = {'status': 'success', 'data': {}};
       
-      final notifier = RideNotifier();
+      final notifier = notifierUnderTest();
       
       // Act
       await notifier.loadInitialState();
@@ -468,7 +487,7 @@ void main() {
         }
       };
 
-      final notifier = RideNotifier();
+      final notifier = notifierUnderTest();
       
       // Act
       await notifier.loadInitialState();
@@ -504,7 +523,7 @@ void main() {
         }
       };
 
-      final notifier = RideNotifier();
+      final notifier = notifierUnderTest();
       
       // Act - simulate app refocus (loadInitialState is called)
       await notifier.loadInitialState();
@@ -559,7 +578,7 @@ void main() {
       await prefs.setString('app_state_screen', '/ride-in-progress');
       await prefs.setInt('app_state_timestamp', DateTime.now().millisecondsSinceEpoch);
 
-      final notifier = RideNotifier();
+      final notifier = notifierUnderTest();
       
       // Act
       await notifier.loadInitialState();

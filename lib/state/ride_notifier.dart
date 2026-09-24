@@ -7,6 +7,18 @@ import 'package:shared_preferences/shared_preferences.dart';
 import '../services/websocket_service.dart';
 import '../services/ride_service.dart';
 
+/// Injection seam for the ride API.
+///
+/// RideNotifier used to build its RideService inline, which left no way to
+/// substitute a fake -- so the ride-state-recovery tests could never run against
+/// anything but the real network, and in practice never ran at all. Recovery after
+/// an app kill or a network outage is one of the behaviours a rider notices most,
+/// so it needs to be testable.
+///
+/// Overriding this provider is the supported way to do that:
+///   ProviderContainer(overrides: [rideServiceProvider.overrideWithValue(fake)])
+final rideServiceProvider = Provider<RideService>((ref) => RideService());
+
 final rideNotifierProvider = NotifierProvider<RideNotifier, RideState>(
   RideNotifier.new,
 );
@@ -39,7 +51,7 @@ class RideNotifier extends Notifier<RideState> {
 
     // 1. Try to fetch active trip from backend
     try {
-      final rideService = RideService();
+      final rideService = ref.read(rideServiceProvider);
       final activeTripResponse = await rideService.fetchActiveTrip(token);
 
       if (activeTripResponse != null &&
@@ -110,7 +122,7 @@ class RideNotifier extends Notifier<RideState> {
       return;
     }
 
-    final rideService = RideService();
+    final rideService = ref.read(rideServiceProvider);
 
     // Fetch in parallel
     final results = await Future.wait([
