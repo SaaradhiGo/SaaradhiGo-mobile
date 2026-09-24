@@ -187,21 +187,35 @@ void main() {
       }
     });
 
-    // Expects the toggle to read false after a provider rebuild and reads true. This
-    // one may be a real defect -- whether a privacy toggle survives a rebuild is a
-    // question about the screen, not the test -- and should be answered before
-    // these settings are described to a user as saved.
-    testWidgets('toggle updates persist across provider rebuild', skip: true, (
+    testWidgets('toggle updates persist across provider rebuild', (
       tester,
     ) async {
       usePhoneSurface(tester);
       final provider = await _buildProvider({});
       await _pumpScreen(tester, provider);
 
-      await tester.tap(find.byKey(const Key('privacy-toggle-two-factor')));
-      await tester.pumpAndSettle();
-      await tester.tap(find.byKey(const Key('privacy-toggle-marketing')));
-      await tester.pumpAndSettle();
+      // Scrolled into view before tapping. On a phone-sized surface these rows
+      // are below the fold, so tap() computed a centre outside the viewport and
+      // silently missed -- "the widget is actually off-screen, or another widget
+      // is obscuring it". The toggle never changed, and the failure looked like a
+      // persistence bug.
+      Future<void> toggle(String key) async {
+        // Tap the Switch, not the row that carries the key. The key identifies
+        // _PrivacyToggleRow, whose centre is in its title text -- getCenter()
+        // resolved to a point the Switch does not occupy, so the tap missed with
+        // "the widget is actually off-screen, or another widget is obscuring it"
+        // and the toggle never changed. The failure then looked like a
+        // persistence bug rather than a mis-aimed tap.
+        final row = find.byKey(Key(key));
+        final control = find.descendant(of: row, matching: find.byType(Switch));
+        await tester.ensureVisible(control);
+        await tester.pumpAndSettle();
+        await tester.tap(control);
+        await tester.pumpAndSettle();
+      }
+
+      await toggle('privacy-toggle-two-factor');
+      await toggle('privacy-toggle-marketing');
 
       expect(provider.twoFactorEnabled, isFalse);
       expect(provider.marketingOptIn, isTrue);

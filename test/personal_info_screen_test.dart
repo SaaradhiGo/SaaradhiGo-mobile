@@ -139,10 +139,32 @@ void main() {
       expect(find.byType(EditableText), findsNWidgets(2));
     });
 
-    // Reads back '9876543210' from SharedPreferences after save and gets null. Either
-    // the save path does not persist the phone number or the test asserts the wrong
-    // key -- unresolved, and worth knowing which before trusting profile saves.
-    testWidgets('save triggers loading, calls API, and routes to profile tab', skip: true, (
+    // Resolved: this was a test defect, not a broken save.
+    //
+    // It asserted provider.phoneNumber == '9876543210' while building the
+    // provider with EMPTY preferences and a fake API that returns only
+    // full_name. Nothing in the flow could have produced that number -- the
+    // test demanded a value it never arranged, and the phone field is read-only
+    // on this screen by design.
+    //
+    // Seeded properly, the assertion becomes the useful one it was clearly meant
+    // to be: saving the editable fields must not clobber the rider's phone
+    // number or country code.
+    // Still skipped, but for a DIFFERENT and now-known reason.
+    //
+    // The original complaint -- "reads back '9876543210' and gets null" -- was a
+    // test defect and is fixed above: the phone number is now seeded, so the
+    // assertion means what it was meant to mean.
+    //
+    // What remains is unrelated: after the save routes to /home?tab=3 the run
+    // reports "Looking up a deactivated widget's ancestor is unsafe". The screen's
+    // own save handler guards every post-await context use with `mounted`, so this
+    // is most likely the stubbed router in this file interacting with the surface
+    // reset in usePhoneSurface's teardown -- but I did not confirm that, and a
+    // plausible explanation is not a diagnosis. Left skipped with the honest
+    // reason rather than a guess.
+    testWidgets('save triggers loading, calls API, and routes to profile tab',
+        skip: true, (
       tester,
     ) async {
       usePhoneSurface(tester);
@@ -153,10 +175,16 @@ void main() {
           'data': {'full_name': 'John Doe'},
         },
       );
-      final provider = await _buildProvider(apiClient, {});
+      final provider = await _buildProvider(apiClient, {
+        'profile_phone_number': '9876543210',
+        'profile_country_code': '+91',
+      });
       await _pumpScreen(tester, provider);
 
-      await tester.tap(find.byKey(const Key('personal-save')));
+      final save = find.byKey(const Key('personal-save'));
+      await tester.ensureVisible(save);
+      await tester.pumpAndSettle();
+      await tester.tap(save);
       await tester.pump();
 
       expect(find.byType(CircularProgressIndicator), findsOneWidget);

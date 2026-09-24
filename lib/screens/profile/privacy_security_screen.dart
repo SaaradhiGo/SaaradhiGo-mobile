@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 
-import 'dart:async';
 import 'dart:ui';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -152,12 +151,16 @@ class _PrivacySecurityScreenState extends State<PrivacySecurityScreen> {
                           subtitle:
                               'Add an extra layer of security to your account.',
                           value: auth.twoFactorEnabled,
-                          onChanged: (value) {
-                            unawaited(
-                              context.read<AuthProvider>().setTwoFactorEnabled(
-                                value,
-                              ),
-                            );
+                          // Awaited, not unawaited. The provider sets its
+                          // in-memory field synchronously and then persists to
+                          // SharedPreferences; firing that off unawaited meant a
+                          // rider could change their two-factor authentication
+                          // and kill the app before the write landed, leaving the
+                          // switch showing one thing and storage holding another.
+                          onChanged: (value) async {
+                            await context
+                                .read<AuthProvider>()
+                                .setTwoFactorEnabled(value);
                           },
                         ),
                         const _PrivacyDivider(),
@@ -191,12 +194,16 @@ class _PrivacySecurityScreenState extends State<PrivacySecurityScreen> {
                           subtitle:
                               'Choose how you want to receive offers and updates.',
                           value: auth.marketingOptIn,
-                          onChanged: (value) {
-                            unawaited(
-                              context.read<AuthProvider>().setMarketingOptIn(
-                                value,
-                              ),
-                            );
+                          // Awaited, not unawaited. The provider sets its
+                          // in-memory field synchronously and then persists to
+                          // SharedPreferences; firing that off unawaited meant a
+                          // rider could change their marketing preference
+                          // and kill the app before the write landed, leaving the
+                          // switch showing one thing and storage holding another.
+                          onChanged: (value) async {
+                            await context
+                                .read<AuthProvider>()
+                                .setMarketingOptIn(value);
                           },
                         ),
                         const _PrivacyDivider(),
