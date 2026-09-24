@@ -37,12 +37,26 @@ android {
         jvmTarget = JavaVersion.VERSION_17.toString()
     }
 
-    signingConfigs {
-        create("release") {
-            keyAlias = keystoreProperties["keyAlias"] as String
-            keyPassword = keystoreProperties["keyPassword"] as String
-            storeFile = keystoreProperties["storeFile"]?.let { file(it) }
-            storePassword = keystoreProperties["storePassword"] as String
+    // Only declared when key.properties is actually present.
+    //
+    // This block used to run unconditionally, so `keystoreProperties["keyAlias"]
+    // as String` cast null and the whole build died with "null cannot be cast to
+    // non-null type kotlin.String" -- including `flutter build apk --debug`, which
+    // needs no keystore at all. The release buildType below already chose the
+    // debug signing config when the file was missing; the config it was avoiding
+    // still had to be constructed, and constructing it was the failure.
+    //
+    // Consequence: no APK of this app could be produced on any machine without a
+    // keystore, which is every CI runner and every fresh checkout. `flutter test`
+    // and `flutter analyze` never read Gradle, so nothing reported it.
+    if (keystorePropertiesFile.exists()) {
+        signingConfigs {
+            create("release") {
+                keyAlias = keystoreProperties["keyAlias"] as String
+                keyPassword = keystoreProperties["keyPassword"] as String
+                storeFile = keystoreProperties["storeFile"]?.let { file(it) }
+                storePassword = keystoreProperties["storePassword"] as String
+            }
         }
     }
 
