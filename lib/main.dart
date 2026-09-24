@@ -118,18 +118,18 @@ void main() async {
             create: (_) => RemoteConfigProvider()..fetch(),
           ),
         ],
-          child: VahanGoApp(isFirstLaunch: isFirstLaunch, isLoggedIn: isLoggedIn),
+          child: SaaradhiGoApp(isFirstLaunch: isFirstLaunch, isLoggedIn: isLoggedIn),
         ),
       ),
     ),
   );
 }
 
-class VahanGoApp extends StatelessWidget {
+class SaaradhiGoApp extends StatelessWidget {
   final bool isFirstLaunch;
   final bool isLoggedIn;
 
-  const VahanGoApp({
+  const SaaradhiGoApp({
     super.key,
     required this.isFirstLaunch,
     required this.isLoggedIn,
@@ -288,7 +288,9 @@ class VahanGoApp extends StatelessWidget {
     return RideNavigationHandler(
       child: LifecycleObserver(
         child: MaterialApp.router(
-          title: 'VahanGo',
+          // The name shown in the Android task switcher. Was 'VahanGo'
+          // while the launcher label said SaaradhiGo.
+          title: 'SaaradhiGo',
           debugShowCheckedModeBanner: false,
           builder: (context, child) {
             return riverpod.Consumer(

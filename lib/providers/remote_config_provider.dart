@@ -16,7 +16,10 @@ class RemoteConfigProvider extends ChangeNotifier {
   bool _walletTopupsEnabled = false;
   bool _walletCreditsOnly = true;
   String _walletBalanceCap = '2000.00';
-  String _walletDisplayName = 'VahanGo Credits';
+  // Fallback only. The server supplies this via remote config and now
+  // derives it from the platform brand setting; this value is what shows
+  // before that response lands.
+  String _walletDisplayName = 'SaaradhiGo Credits';
   List<String> _refundModes = const ['original'];
   bool _loaded = false;
   String? _error;
@@ -50,7 +53,7 @@ class RemoteConfigProvider extends ChangeNotifier {
       _walletCreditsOnly =
           wallet['credits_only'] == true || !_walletTopupsEnabled;
       _walletBalanceCap = (wallet['balance_cap'] ?? '2000.00').toString();
-      _walletDisplayName = (wallet['display_name'] ?? 'VahanGo Credits')
+      _walletDisplayName = (wallet['display_name'] ?? 'SaaradhiGo Credits')
           .toString();
       final modes = wallet['refund_modes'];
       if (modes is List) {

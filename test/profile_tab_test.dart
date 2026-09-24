@@ -6,9 +6,9 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:vahango/providers/auth_provider.dart';
-import 'package:vahango/screens/home/home_screen.dart';
-import 'package:vahango/services/api_service.dart';
+import 'package:saaradhigo_rider/providers/auth_provider.dart';
+import 'package:saaradhigo_rider/screens/home/home_screen.dart';
+import 'package:saaradhigo_rider/services/api_service.dart';
 
 class _FakeAuthApiClient implements AuthApiClient {
   @override
