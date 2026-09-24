@@ -23,7 +23,9 @@ void main() {
       files.addAll(d
           .listSync(recursive: true)
           .whereType<File>()
-          .where((f) => f.path.endsWith('.dart')));
+          .where((f) => f.path.endsWith('.dart'))
+          // This file necessarily contains the string it searches for.
+          .where((f) => !f.path.endsWith('brand_consistency_test.dart')));
     }
     for (final p in [
       'pubspec.yaml',
