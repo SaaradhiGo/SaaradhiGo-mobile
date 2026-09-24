@@ -290,7 +290,9 @@ class _PrivacyActionRow extends StatelessWidget {
     return Material(
       color: Colors.transparent,
       child: InkWell(
-        key: key,
+        // Not `key: key`: that put this widget's own key on a descendant too, so
+        // the same key appeared twice in the tree and every find.byKey() on it was
+        // ambiguous -- unusable for tests, integration drivers and a11y tooling.
         onTap: onTap,
         borderRadius: BorderRadius.circular(16),
         child: Padding(
@@ -384,7 +386,9 @@ class _PrivacyToggleRow extends StatelessWidget {
             ),
           ),
           Switch(
-            key: key,
+            // Not `key: key`: that put this widget's own key on a descendant too, so
+            // the same key appeared twice in the tree and every find.byKey() on it was
+            // ambiguous -- unusable for tests, integration drivers and a11y tooling.
             value: value,
             onChanged: onChanged,
             activeThumbColor: Colors.white,
@@ -422,7 +426,9 @@ class _PrivacyNavItem extends StatelessWidget {
 
     return Expanded(
       child: InkWell(
-        key: key,
+        // Not `key: key`: that put this widget's own key on a descendant too, so
+        // the same key appeared twice in the tree and every find.byKey() on it was
+        // ambiguous -- unusable for tests, integration drivers and a11y tooling.
         onTap: onTap,
         borderRadius: BorderRadius.circular(10),
         child: Column(

@@ -1677,12 +1677,14 @@ class _BottomNav extends StatelessWidget {
             child: Row(
               children: [
                 _NavItem(
+                  key: const Key('home-nav-home'),
                   icon: Icons.home,
                   label: 'Home',
                   selected: selectedIndex == 0,
                   onTap: () => onItemTap(0),
                 ),
                 _NavItem(
+                  key: const Key('home-nav-history'),
                   icon: Icons.history,
                   label: 'History',
                   selected: selectedIndex == 1,
@@ -1690,6 +1692,7 @@ class _BottomNav extends StatelessWidget {
                   onTap: () => onItemTap(1),
                 ),
                 _NavItem(
+                  key: const Key('home-nav-wallet'),
                   icon: Icons.account_balance_wallet,
                   label: 'Wallet',
                   selected: selectedIndex == 2,
@@ -1697,6 +1700,7 @@ class _BottomNav extends StatelessWidget {
                   onTap: () => onItemTap(2),
                 ),
                 _NavItem(
+                  key: const Key('home-nav-profile'),
                   icon: Icons.person,
                   label: 'Profile',
                   selected: selectedIndex == 3,
@@ -1714,6 +1718,7 @@ class _BottomNav extends StatelessWidget {
 
 class _NavItem extends StatelessWidget {
   const _NavItem({
+    super.key,
     required this.icon,
     required this.label,
     required this.selected,

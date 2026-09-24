@@ -540,6 +540,7 @@ class _EditPersonalInformationScreenState
                               ),
                               child: Text(
                                 displayPhoneNumber,
+                                key: const Key('personal-phone-display'),
                                 style: GoogleFonts.inter(
                                   color: const Color(
                                     0xFFF8FAFC,
@@ -808,6 +809,7 @@ class _EditPersonalInformationScreenState
             width: double.infinity,
             height: 56,
             child: ElevatedButton(
+              key: const Key('personal-save'),
               onPressed: _isSubmitting ? null : _saveChanges,
               style: ElevatedButton.styleFrom(
                 backgroundColor: _primaryColor,

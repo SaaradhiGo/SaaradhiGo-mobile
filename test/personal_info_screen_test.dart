@@ -1,14 +1,12 @@
-@Skip('Never passed; predates CI on this repo. All 4 tests assert against an Edit-Personal-Information redesign whose widget tree differs from what ships. Needs a device to see the real layout before the expectations can be corrected. Tracked in the India launch readiness report.')
-library;
-
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:go_router/go_router.dart';
-import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:saaradhigo_rider/providers/auth_provider.dart';
 import 'package:saaradhigo_rider/screens/profile/edit_personal_information_screen.dart';
 import 'package:saaradhigo_rider/services/api_service.dart';
+
+import 'support/screen_test_harness.dart';
 
 class _FakeAuthApiClient implements AuthApiClient {
   _FakeAuthApiClient({
@@ -104,8 +102,8 @@ Future<void> _pumpScreen(
   String initialLocation = '/personal-info',
 }) async {
   await tester.pumpWidget(
-    ChangeNotifierProvider<AuthProvider>.value(
-      value: provider,
+    wrapWithRiderProviders(
+      auth: provider,
       child: MaterialApp.router(
         routerConfig: _buildRouter(initialLocation: initialLocation),
       ),
@@ -116,11 +114,16 @@ Future<void> _pumpScreen(
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
+  setUp(stubStartupPluginChannels);
 
   group('EditPersonalInformationScreen redesign', () {
-    testWidgets('renders fallback values and keeps phone read-only', (
+    // 'John Doe' matches twice: the screen shows the name in an editable TextField
+    // AND in a display Text, so find.text matches the EditableText as well. Needs a
+    // finder scoped to the display Text, or a key on it.
+    testWidgets('renders fallback values and keeps phone read-only', skip: true, (
       tester,
     ) async {
+      usePhoneSurface(tester);
       final provider = await _buildProvider(_FakeAuthApiClient(), {});
       await _pumpScreen(tester, provider);
 
@@ -136,9 +139,13 @@ void main() {
       expect(find.byType(EditableText), findsNWidgets(2));
     });
 
-    testWidgets('save triggers loading, calls API, and routes to profile tab', (
+    // Reads back '9876543210' from SharedPreferences after save and gets null. Either
+    // the save path does not persist the phone number or the test asserts the wrong
+    // key -- unresolved, and worth knowing which before trusting profile saves.
+    testWidgets('save triggers loading, calls API, and routes to profile tab', skip: true, (
       tester,
     ) async {
+      usePhoneSurface(tester);
       final apiClient = _FakeAuthApiClient(
         updateProfileDelay: const Duration(milliseconds: 200),
         updateProfileResponse: {
@@ -165,9 +172,13 @@ void main() {
       expect(provider.countryCode, '+91');
     });
 
-    testWidgets('save failure shows error and stays on the same screen', (
+    // Passes and fails depending on surface size, so it is timing- or layout-sensitive
+    // around the error SnackBar. Flaky rather than wrong; needs the assertion pinned
+    // to the SnackBar instead of a bare text match.
+    testWidgets('save failure shows error and stays on the same screen', skip: true, (
       tester,
     ) async {
+      usePhoneSurface(tester);
       final provider = await _buildProvider(_FakeAuthApiClient(), {});
       await _pumpScreen(tester, provider);
 
@@ -179,7 +190,13 @@ void main() {
       expect(find.text('Home Tab 3'), findsNothing);
     });
 
-    testWidgets('bottom nav routes to /home?tab=0..3', (tester) async {
+    // This screen has no bottom navigation bar. Its bottomNavigationBar slot
+    // holds the Save Changes button. The privacy-and-security screen does have
+    // one (privacy-nav-*), so either this screen is missing it or the design
+    // changed after the test was written -- a product question, not something a
+    // test should invent. Left visible until someone decides.
+    testWidgets('bottom nav routes to /home?tab=0..3', skip: true, (tester) async {
+      usePhoneSurface(tester);
       final targets = <String, int>{
         'personal-nav-home': 0,
         'personal-nav-history': 1,
