@@ -163,8 +163,18 @@ class FareBreakdown extends StatelessWidget {
       }
 
       // A minimum fare that has kicked in is the difference between the rider's
-      // arithmetic and ours, so it gets said out loud.
-      if (breakdown['min_fare_applied'] == true) {
+      // arithmetic and ours, so it gets said out loud -- but only once. When the
+      // server sends an explicit `minimum_fare` adjustment with the actual uplift,
+      // that line is strictly better than this valueless flag, so this one stands
+      // down rather than showing the same fact twice.
+      final adjustmentCodes = <String>{
+        for (final a in (fareData?['fare_adjustments'] is List
+                ? fareData!['fare_adjustments'] as List
+                : const []))
+          if (a is Map && a['code'] != null) a['code'].toString(),
+      };
+      if (breakdown['min_fare_applied'] == true &&
+          !adjustmentCodes.contains('minimum_fare')) {
         lines.add(
           const FareLine(
             'Minimum fare applied',
@@ -172,6 +182,41 @@ class FareBreakdown extends StatelessWidget {
             note: 'Short trips are charged a minimum',
           ),
         );
+      }
+
+      // Named adjustment lines from the server that close the gap between the
+      // metered components and the amount charged.
+      //
+      // Without these the panel showed base + distance + time beside a total they
+      // did not sum to -- QA trip 45 displayed 60.00 + 55.59 + 19.62 next to a
+      // charged 135.22. A rider who adds up an itemised fare and gets a different
+      // number has been handed a reason to distrust the whole receipt.
+      //
+      // The server decides what these are and what they are called; this widget
+      // renders them and does no arithmetic of its own.
+      final adjustments = fareData?['fare_adjustments'];
+      if (adjustments is List) {
+        for (final raw in adjustments) {
+          if (raw is! Map) continue;
+          final amount = _money(raw['amount']);
+          if (amount == null) continue;
+          final label = (raw['label'] ?? raw['code'] ?? 'Adjustment').toString();
+          final code = (raw['code'] ?? '').toString();
+          lines.add(
+            FareLine(
+              label,
+              amount,
+              note: code == 'rounding'
+                  ? 'Rounded to the nearest paisa'
+                  : (code == 'minimum_fare'
+                      ? 'Short trips are charged a minimum'
+                      : null),
+              color: code == 'surge'
+                  ? const Color(0xFFEEBD2B)
+                  : Colors.white,
+            ),
+          );
+        }
       }
 
       // Promotions are not live. `_isPositive` means an inactive promo sending

@@ -225,6 +225,91 @@ void main() {
     }
   });
 
+  group('server adjustment lines close the displayed total', () {
+    // QA trip 45 displayed 60.00 + 55.59 + 19.62 beside a charged 135.22. The
+    // server now sends named lines for the difference; the panel renders them and
+    // does no arithmetic of its own.
+    testWidgets('a rounding line is shown with an explanation', (tester) async {
+      await pumpPanel(tester, {
+        'estimated_fare': '135.22',
+        'fare_breakdown': {
+          'base_fare': '60.00',
+          'distance_fare': '55.59',
+          'time_fare': '19.62',
+          'surge_multiplier': '1.00',
+        },
+        'fare_adjustments': [
+          {'code': 'rounding', 'label': 'Rounding', 'amount': '0.01'},
+        ],
+      });
+
+      expect(find.text('Rounding'), findsOneWidget);
+      expect(find.text('₹0.01'), findsOneWidget);
+      expect(find.textContaining('nearest paisa'), findsOneWidget);
+    });
+
+    testWidgets('a minimum-fare uplift is shown with its real amount',
+        (tester) async {
+      await pumpPanel(tester, {
+        'estimated_fare': '50.00',
+        'fare_breakdown': {
+          'base_fare': '30.00',
+          'distance_fare': '2.40',
+          'time_fare': '2.00',
+          'min_fare_applied': true,
+        },
+        'fare_adjustments': [
+          {'code': 'minimum_fare', 'label': 'Minimum fare adjustment',
+           'amount': '15.60'},
+        ],
+      });
+
+      expect(find.text('Minimum fare adjustment'), findsOneWidget);
+      expect(find.text('₹15.60'), findsOneWidget);
+      // And the older valueless flag must stand down rather than saying it twice.
+      expect(find.text('Minimum fare applied'), findsNothing);
+    });
+
+    testWidgets('the old minimum-fare flag still shows when no line is sent',
+        (tester) async {
+      // Negative control: an older server that sends no adjustments must not
+      // lose the disclosure entirely.
+      await pumpPanel(tester, {
+        'estimated_fare': '50.00',
+        'fare_breakdown': {
+          'base_fare': '30.00',
+          'min_fare_applied': true,
+        },
+      });
+
+      expect(find.text('Minimum fare applied'), findsOneWidget);
+    });
+
+    testWidgets('no adjustments means no extra lines', (tester) async {
+      await pumpPanel(tester, quote());
+
+      expect(find.text('Rounding'), findsNothing);
+      expect(find.textContaining('adjustment'), findsNothing);
+    });
+
+    testWidgets('a malformed adjustment list does not crash the panel',
+        (tester) async {
+      await pumpPanel(tester, {
+        'estimated_fare': '100.00',
+        'fare_breakdown': {'base_fare': '60.00'},
+        'fare_adjustments': [
+          'not-a-map',
+          {'code': 'rounding'},                 // no amount
+          {'amount': 'not-a-number'},           // unparseable
+          {'code': 'surge', 'label': 'Busy-time surcharge', 'amount': '5.00'},
+        ],
+      });
+
+      expect(tester.takeException(), isNull);
+      expect(find.text('₹5.00'), findsOneWidget);
+    });
+  });
+
   testWidgets('the estimate is labelled as an estimate', (tester) async {
     // A quote presented as a final price is a complaint waiting to happen.
     await pumpPanel(tester, quote());
