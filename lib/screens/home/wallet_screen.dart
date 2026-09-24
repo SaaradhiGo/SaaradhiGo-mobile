@@ -79,7 +79,7 @@ class _WalletScreenState extends State<WalletScreen> {
                 Consumer<RemoteConfigProvider>(
                   builder: (context, cfg, _) {
                     final title = cfg.walletCreditsOnly
-                        ? 'VahanGo Credits'
+                        ? 'SaaradhiGo Credits'
                         : 'Wallet';
                     return Text(
                       title,

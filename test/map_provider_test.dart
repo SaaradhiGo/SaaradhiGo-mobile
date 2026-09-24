@@ -1,8 +1,8 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:latlong2/latlong.dart';
-import 'package:vahango/providers/map_provider.dart';
-import 'package:vahango/services/map_service.dart';
-import 'package:vahango/services/ride_service.dart';
+import 'package:saaradhigo_rider/providers/map_provider.dart';
+import 'package:saaradhigo_rider/services/map_service.dart';
+import 'package:saaradhigo_rider/services/ride_service.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 class FakeLocationService extends Fake implements LocationService {
