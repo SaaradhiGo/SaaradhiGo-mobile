@@ -1,19 +1,13 @@
 // ignore_for_file: unused_element, unused_element_parameter
 //
-// This file contains ten private widgets that are built but never rendered.
-// They are RETAINED deliberately rather than deleted, because at least one is a
-// finished feature waiting to be connected rather than dead decoration:
+// This file contains nine private widgets that are built but never rendered.
 //
-//   _FareBreakdown / _FareLine  a complete fare-transparency panel (base fare,
-//     distance, time, waiting, taxes, promo discount, total). It reads
-//     rideData['fare_breakdown'], and the backend's TripDetailSerializer already
-//     returns exactly that key with matching field names (base_fare,
-//     distance_fare, time_fare, total_fare) via FarePricingSerializer. Every line
-//     is null-guarded, so the three fields the API does not yet supply
-//     (waiting_fare, taxes, discount) simply do not render. Wiring it into the
-//     trip-detail and completion screens would give the rider an itemised fare
-//     instead of a bare total, which is a baseline expectation in this market.
-//     Not wired here because it needs to be seen on a device, not guessed at.
+// The tenth was _FareBreakdown / _FareLine, the fare-transparency panel. It is
+// no longer here: it moved to lib/widgets/fare_breakdown.dart, became public,
+// and is now actually shown on the booking screen behind "How is this fare
+// calculated?". The old note here said it was "not wired because it needs to be
+// seen on a device, not guessed at" -- it turned out to need a Flutter toolchain,
+// not a device.
 //
 //   _VehicleTile, _Card, _DarkCard, _PaymentTile, _MiniTile, _ContactTile,
 //   _HelpSearchField, _HelpSectionLabel, _showCancelDialog
@@ -2202,91 +2196,11 @@ class _HelpSectionLabel extends StatelessWidget {
   }
 }
 
-class _FareBreakdown extends StatelessWidget {
-  final Map<String, dynamic>? rideData;
-  const _FareBreakdown({this.rideData});
-
-  @override
-  Widget build(BuildContext context) {
-    final fareBreakdown = rideData?['fare_breakdown'] as Map<String, dynamic>?;
-    final currency = rideData?['currency'] ?? 'INR';
-    final totalFare =
-        rideData?['total_fare'] ?? rideData?['estimated_fare'] ?? '0.00';
-
-    if (fareBreakdown == null) {
-      return Padding(
-        padding: const EdgeInsets.all(12),
-        child: _FareLine('Total Fare', '$currency $totalFare', bold: true),
-      );
-    }
-
-    return Padding(
-      padding: const EdgeInsets.all(12),
-      child: Column(
-        children: [
-          if (fareBreakdown['base_fare'] != null)
-            _FareLine('Base Fare', '$currency ${fareBreakdown['base_fare']}'),
-          if (fareBreakdown['distance_fare'] != null)
-            _FareLine(
-              'Distance Fare',
-              '$currency ${fareBreakdown['distance_fare']}',
-            ),
-          if (fareBreakdown['time_fare'] != null)
-            _FareLine('Time Fare', '$currency ${fareBreakdown['time_fare']}'),
-          if (fareBreakdown['waiting_fare'] != null)
-            _FareLine(
-              'Waiting Fare',
-              '$currency ${fareBreakdown['waiting_fare']}',
-            ),
-          if (fareBreakdown['taxes'] != null)
-            _FareLine('Taxes & Fees', '$currency ${fareBreakdown['taxes']}'),
-          if (fareBreakdown['discount'] != null &&
-              fareBreakdown['discount'] > 0)
-            _FareLine(
-              'Promo Discount',
-              '-$currency ${fareBreakdown['discount']}',
-              color: const Color(0xFFEEBD2B),
-            ),
-          const Divider(color: Colors.white24),
-          _FareLine('Total', '$currency $totalFare', bold: true),
-        ],
-      ),
-    );
-  }
-}
-
-class _FareLine extends StatelessWidget {
-  const _FareLine(
-    this.label,
-    this.value, {
-    this.color = Colors.white,
-    this.bold = false,
-  });
-
-  final String label;
-  final String value;
-  final Color color;
-  final bool bold;
-
-  @override
-  Widget build(BuildContext context) {
-    final style = TextStyle(
-      color: color,
-      fontSize: bold ? 20 : 15,
-      fontWeight: bold ? FontWeight.w700 : FontWeight.w500,
-    );
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 5),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          Text(label, style: style),
-          Text(value, style: style),
-        ],
-      ),
-    );
-  }
-}
+// _FareBreakdown and _FareLine used to live here, built but never rendered.
+// They are now lib/widgets/fare_breakdown.dart, public, and actually shown on
+// the booking screen behind "How is this fare calculated?". Kept out of this
+// file so there is one implementation rather than a rendered copy and a
+// forgotten one.
 
 class SmoothAnimatedMarker extends StatefulWidget {
   const SmoothAnimatedMarker({super.key, required this.child});

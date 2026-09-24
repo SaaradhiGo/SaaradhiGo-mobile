@@ -11,6 +11,7 @@ import 'package:google_fonts/google_fonts.dart';
 import '../../providers/map_provider.dart';
 import '../components/coming_soon_overlay.dart';
 import '../components/map_attribution.dart';
+import '../../widgets/fare_breakdown.dart';
 
 class RouteMapScreen extends StatefulWidget {
   const RouteMapScreen({super.key});
@@ -562,6 +563,11 @@ class _RouteMapScreenState extends State<RouteMapScreen> {
     required bool isRecommended,
     required bool isSelected,
     required VoidCallback onTap,
+    // The raw /ride/estimate-fare/ response for this vehicle type. Present so a
+    // rider can see how the number was reached; the booking screen previously
+    // showed one total per option and nothing else, while the server was already
+    // returning base, distance, time and surge components.
+    Map<String, dynamic>? fareData,
   }) {
     // Ensure all text values have fallbacks to prevent layout issues
     final safeTitle = title.isNotEmpty ? title : 'Ride Option';
@@ -805,6 +811,7 @@ class _RouteMapScreenState extends State<RouteMapScreen> {
           onTap: () => provider.selectVehicleType('bike'),
           time: _getTimeToDrop(fareEstimates['bike']),
           price: _getEstimatedFare(fareEstimates['bike']),
+          fareData: fareEstimates['bike'],
           icon: Icons.two_wheeler,
           isRecommended: false,
         ),
@@ -814,6 +821,7 @@ class _RouteMapScreenState extends State<RouteMapScreen> {
           onTap: () => provider.selectVehicleType('auto'),
           time: _getTimeToDrop(fareEstimates['auto']),
           price: _getEstimatedFare(fareEstimates['auto']),
+          fareData: fareEstimates['auto'],
           icon: Icons.electric_rickshaw,
           isRecommended: true,
         ),
@@ -823,6 +831,7 @@ class _RouteMapScreenState extends State<RouteMapScreen> {
           onTap: () => provider.selectVehicleType('car'),
           time: _getTimeToDrop(fareEstimates['car']),
           price: _getEstimatedFare(fareEstimates['car']),
+          fareData: fareEstimates['car'],
           icon: Icons.directions_car,
           isRecommended: false,
         ),
@@ -833,6 +842,7 @@ class _RouteMapScreenState extends State<RouteMapScreen> {
           onTap: () => provider.selectVehicleType('car_xl'),
           time: _getTimeToDrop(fareEstimates['car_xl']),
           price: _getEstimatedFare(fareEstimates['car_xl']),
+          fareData: fareEstimates['car_xl'],
           icon: Icons.airline_seat_recline_extra,
           isRecommended: false,
         ),
@@ -845,8 +855,50 @@ class _RouteMapScreenState extends State<RouteMapScreen> {
           price: _getEstimatedFare(fareEstimates['car_premium']),
           icon: Icons.diamond_outlined,
           isRecommended: false,
+          fareData: fareEstimates['car_premium'],
         ),
+        _buildFareDetailsLink(fareEstimates[provider.selectedVehicleType]),
       ],
+    );
+  }
+
+  /// "How is this calculated?" for the currently selected vehicle type.
+  ///
+  /// One affordance under the list rather than one per row: the rider is
+  /// choosing between totals, and only the selected option's breakdown is
+  /// meaningful once they have chosen.
+  ///
+  /// The panel itself does no arithmetic -- it renders the components the server
+  /// already returns from /ride/estimate-fare/. Before this, the booking screen
+  /// showed a single number per vehicle type and no way to ask why, including
+  /// when a surge multiplier was being applied.
+  Widget _buildFareDetailsLink(Map<String, dynamic>? fareData) {
+    if (fareData == null || fareData.isEmpty) return const SizedBox.shrink();
+    if (fareData['estimated_fare'] == null) return const SizedBox.shrink();
+
+    return Align(
+      alignment: Alignment.centerLeft,
+      child: TextButton.icon(
+        onPressed: () => showFareBreakdownSheet(context, fareData),
+        icon: const Icon(
+          Icons.receipt_long_outlined,
+          size: 18,
+          color: Color(0xFFEEBD2B),
+        ),
+        label: const Text(
+          'How is this fare calculated?',
+          style: TextStyle(
+            color: Color(0xFFEEBD2B),
+            fontSize: 14,
+            fontWeight: FontWeight.w600,
+          ),
+        ),
+        style: TextButton.styleFrom(
+          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+          minimumSize: const Size(0, 44), // Comfortable tap target.
+          tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+        ),
+      ),
     );
   }
 
