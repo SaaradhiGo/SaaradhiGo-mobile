@@ -142,7 +142,7 @@ class RideNavigationHandler extends ConsumerWidget {
     );
 
     // Navigate to the determined route
-    if (routePath != null && routePath.isNotEmpty) {
+    if (routePath.isNotEmpty) {
       // Use go() to clear the navigation stack and start fresh
       // This ensures clean backstack on app resume
       context.go(routePath);

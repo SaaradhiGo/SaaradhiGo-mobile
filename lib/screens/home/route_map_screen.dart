@@ -1,4 +1,3 @@
-import 'dart:developer';
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -734,16 +733,12 @@ class _RouteMapScreenState extends State<RouteMapScreen> {
     // More lenient check: allow partial fare data
     final hasFareData =
         fareEstimates.isNotEmpty &&
-        fareEstimates.values.any(
-          (estimate) => estimate != null && estimate.isNotEmpty,
-        );
+        fareEstimates.values.any((estimate) => estimate.isNotEmpty);
 
     // Also check if we have at least one valid fare estimate with estimated_fare
     final hasValidFare = fareEstimates.values.any(
       (estimate) =>
-          estimate != null &&
-          estimate.isNotEmpty &&
-          estimate['estimated_fare'] != null,
+          estimate.isNotEmpty && estimate['estimated_fare'] != null,
     );
 
     if (!hasFareData || !hasValidFare) {

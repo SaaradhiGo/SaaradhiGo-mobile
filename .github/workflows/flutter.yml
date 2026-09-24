@@ -1,0 +1,53 @@
+# Static analysis and unit tests for the RIDER app.
+#
+# This repository had no CI, so its ~48 existing tests had never been run
+# automatically -- the rider half of a two-sided product was the less-verified half.
+# The driver app got CI first; this brings the rider app to the same footing so
+# changes to booking, payment and trip state are checked on every push.
+#
+# `flutter test` needs no secrets and no assets/.env: AppConfig falls back to the QA
+# host in debug builds, which is exactly what a test binary is.
+name: flutter
+
+on:
+  push:
+    branches: ['**']
+  pull_request:
+  workflow_dispatch:
+
+concurrency:
+  # A newer push supersedes an in-flight run on the same ref.
+  group: flutter-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  analyze-and-test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+
+      - name: Flutter version
+        run: flutter --version
+
+      - name: Install dependencies
+        run: flutter pub get
+
+      # Formatting is checked but not enforced as a failure: a reformat of the
+      # whole tree is a separate, reviewable change, not something CI should
+      # spring on an unrelated commit.
+      - name: Check formatting (informational)
+        continue-on-error: true
+        run: dart format --output=none --set-exit-if-changed lib test
+
+      - name: Analyze
+        run: flutter analyze --no-fatal-infos
+
+      - name: Test
+        run: flutter test --reporter expanded

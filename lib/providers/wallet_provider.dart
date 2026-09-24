@@ -110,15 +110,13 @@ class WalletProvider extends ChangeNotifier {
           context: context,
         );
 
-        if (successResponse != null &&
-            successResponse.paymentId != null &&
-            successResponse.signature != null) {
+        if (successResponse != null) {
           // Verify payment
           final verifyResult = await _walletService.verifyTopUpPayment(
             token,
             orderId,
-            successResponse.paymentId!,
-            successResponse.signature!,
+            successResponse.paymentId,
+            successResponse.signature,
           );
 
           if (verifyResult != null &&

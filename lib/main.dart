@@ -7,6 +7,9 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 
+import 'core/app_config.dart';
+import 'screens/components/misconfigured_build_screen.dart';
+
 import 'providers/auth_provider.dart';
 import 'providers/map_provider.dart';
 import 'providers/history_provider.dart';
@@ -68,15 +71,35 @@ void main() async {
   } catch (e) {
     debugPrint('Firebase initialization error: $e');
   }
-  await dotenv.load(fileName: "assets/.env");
+  // Optional. `assets/.env` is gitignored and no longer declared in pubspec, so a
+  // release build has no such file and must not die looking for one -- its
+  // configuration comes from --dart-define. Local development can still drop a
+  // .env in place and it will be picked up.
+  try {
+    await dotenv.load(fileName: 'assets/.env');
+  } on Object catch (e) {
+    debugPrint('No assets/.env loaded (${e.runtimeType}); '
+        'using --dart-define configuration.');
+  }
+
+  // Refuse to run a release build that was compiled without its environment, or
+  // one pointed at a dev/staging host. A store build silently talking to QA would
+  // let riders book rides that do not exist.
+  final misconfiguration = AppConfig.misconfiguration;
+  if (misconfiguration != null) {
+    runApp(MisconfiguredBuildScreen(reason: misconfiguration));
+    return;
+  }
   final prefs = await SharedPreferences.getInstance();
   final isFirstLaunch = prefs.getBool('isFirstLaunch') ?? true;
   final token = prefs.getString('access_token');
   final isLoggedIn = token != null && token.isNotEmpty;
 
   runApp(
-    riverpod.UncontrolledProviderScope(
-      container: container,
+    // Wrapped so a non-production build is identifiable in the hand.
+    EnvironmentBadge(
+      child: riverpod.UncontrolledProviderScope(
+        container: container,
       child: MultiProvider(
         providers: [
           ChangeNotifierProvider(create: (_) => AuthProvider()),
@@ -95,7 +118,8 @@ void main() async {
             create: (_) => RemoteConfigProvider()..fetch(),
           ),
         ],
-        child: VahanGoApp(isFirstLaunch: isFirstLaunch, isLoggedIn: isLoggedIn),
+          child: VahanGoApp(isFirstLaunch: isFirstLaunch, isLoggedIn: isLoggedIn),
+        ),
       ),
     ),
   );

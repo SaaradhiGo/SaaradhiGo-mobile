@@ -1,3 +1,26 @@
+// ignore_for_file: unused_element, unused_element_parameter
+//
+// This file contains ten private widgets that are built but never rendered.
+// They are RETAINED deliberately rather than deleted, because at least one is a
+// finished feature waiting to be connected rather than dead decoration:
+//
+//   _FareBreakdown / _FareLine  a complete fare-transparency panel (base fare,
+//     distance, time, waiting, taxes, promo discount, total). It reads
+//     rideData['fare_breakdown'], and the backend's TripDetailSerializer already
+//     returns exactly that key with matching field names (base_fare,
+//     distance_fare, time_fare, total_fare) via FarePricingSerializer. Every line
+//     is null-guarded, so the three fields the API does not yet supply
+//     (waiting_fare, taxes, discount) simply do not render. Wiring it into the
+//     trip-detail and completion screens would give the rider an itemised fare
+//     instead of a bare total, which is a baseline expectation in this market.
+//     Not wired here because it needs to be seen on a device, not guessed at.
+//
+//   _VehicleTile, _Card, _DarkCard, _PaymentTile, _MiniTile, _ContactTile,
+//   _HelpSearchField, _HelpSectionLabel, _showCancelDialog
+//     Presentation helpers from an in-progress refactor of this screen.
+//
+// Deleting them is a reasonable future change; doing it silently as part of a
+// lint cleanup is not, which is why this comment exists instead.
 import 'dart:async';
 import 'dart:convert';
 
@@ -18,10 +41,8 @@ import 'package:latlong2/latlong.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import '../../services/ride_service.dart';
 import '../../services/payment_service.dart';
-import '../../core/app_config.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:provider/provider.dart' as p;
-import '../../state/ride_notifier.dart';
 
 class SetDestinationScreen extends StatelessWidget {
   const SetDestinationScreen({super.key});
@@ -1179,14 +1200,12 @@ class _RidePaymentSummaryScreenState extends State<RidePaymentSummaryScreen> {
           context: context,
         );
 
-        if (successResponse != null &&
-            successResponse.paymentId != null &&
-            successResponse.signature != null) {
+        if (successResponse != null) {
           final verifyResult = await _rideService.verifyTripPayment(
             token,
             orderId,
-            successResponse.paymentId!,
-            successResponse.signature!,
+            successResponse.paymentId,
+            successResponse.signature,
           );
 
           if (verifyResult != null &&
