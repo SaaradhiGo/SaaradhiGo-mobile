@@ -507,7 +507,7 @@ class AuthProvider extends ChangeNotifier {
 
     if (previousAvatarUrl != null && previousAvatarUrl != _avatarUrl) {
       Future.microtask(
-        () => CachedNetworkImageProvider(previousAvatarUrl!).evict(),
+        () => CachedNetworkImageProvider(previousAvatarUrl).evict(),
       );
     }
 

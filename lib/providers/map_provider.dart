@@ -16,7 +16,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../state/ride_notifier.dart';
 import '../state/ride_state.dart';
 import '../services/websocket_service.dart';
-import '../screens/components/coming_soon_overlay.dart';
 
 enum LocationStatus { unknown, loading, confirmed, failed }
 
