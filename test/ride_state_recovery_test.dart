@@ -205,7 +205,7 @@ void main() {
       expect(prefs.getString('active_trip_id'), isNull);
     });
 
-    test('loadInitialState - active trip exists on backend', skip: 'Shared-preferences mock state appears to leak between tests in this file: this expectation and "clearState" disagree about the same key. Suspected harness issue, not notifier behaviour. See the file comment.', () async {
+    test('loadInitialState - active trip exists on backend', () async {
       // Arrange
       await prefs.setString('access_token', 'test_token');
       
@@ -295,30 +295,91 @@ void main() {
       expect(notifier.state.status, RideStatus.driverAccepted);
     });
 
-    // Note: _saveActiveTripId method was removed in Phase 18 cleanup
-    // The functionality is now handled by loadInitialState and syncStateFromBackend
+    // This test asserted nothing. It built a fixture, explained in a comment that
+    // RideService could not be injected, and ended -- so it reported green while
+    // covering nothing. `rideServiceProvider` now makes the injection possible, so
+    // it does the job its name claims.
     test('loadInitialState - saves active trip ID when backend has active trip', () async {
       // Arrange
-      final fakeService = _FakeRideService();
-      fakeService.fetchActiveTripResponse = {
+      await prefs.setString('access_token', 'test_token');
+      fakeRideService.fetchActiveTripResponse = {
         'status': 'success',
         'data': {
           'id': '12345',
-          'status': 'driver_accepted',
+          // A real status_code, not the 'driver_accepted' the old fixture used.
+          'status': 'accepted',
           'driver_name': 'Test Driver',
           'vehicle_type': 'car',
           'pickup_address': 'Test Pickup',
           'drop_address': 'Test Drop',
         },
       };
-      
-      // Note: This test would require mocking the RideService dependency
-      // Since RideNotifier creates its own RideService instance, we can't easily inject
-      // For now, we'll skip this test as it's testing implementation details
-      // that were cleaned up in Phase 18
+      final notifier = notifierUnderTest();
+
+      // Act
+      await notifier.loadInitialState();
+
+      // Assert: the pointer must survive recovery. It did not, because the sync
+      // path dropped tripId and _saveActiveTripId then removed the key.
+      expect(prefs.getString('active_trip_id'), '12345');
+      expect(notifier.state.tripId, '12345');
+      expect(notifier.state.status, RideStatus.driverAccepted);
     });
 
-    test('clearState - clears both state and active trip ID', skip: 'Shared-preferences mock state appears to leak between tests in this file: this expectation and "clearState" disagree about the same key. Suspected harness issue, not notifier behaviour. See the file comment.', () async {
+    // The defect these quarantined tests were hiding.
+    //
+    // The backend's TripStatus choices are requested/accepted/reached/in_progress/
+    // completed/cancelled. Both recovery paths branched on 'arrived' and 'started',
+    // which the backend never sends, and fell through to the current status for
+    // anything else. On a cold start the current status is none, so a rider whose
+    // app restarted while the driver was waiting at the pickup point saw no active
+    // ride at all.
+    group('backend status vocabulary is honoured on recovery', () {
+      const cases = <String, RideStatus>{
+        'requested': RideStatus.searchingDriver,
+        'accepted': RideStatus.driverAccepted,
+        'reached': RideStatus.driverArrived,
+        'in_progress': RideStatus.rideStarted,
+        'completed': RideStatus.paymentPending,
+      };
+
+      cases.forEach((code, expected) {
+        test('recovers "$code" as $expected', () async {
+          await prefs.setString('access_token', 'test_token');
+          fakeRideService.fetchActiveTripResponse = {
+            'status': 'success',
+            'data': {'id': '777', 'status': code, 'driver_name': 'D'},
+          };
+          final notifier = notifierUnderTest();
+
+          await notifier.loadInitialState();
+
+          expect(notifier.state.status, expected);
+          expect(notifier.state.tripId, '777');
+        });
+      });
+
+      test('every backend status_code is mapped', () {
+        // Kept in step with servers/ride/models.py TripStatus.status_code choices.
+        const backendCodes = [
+          'requested', 'accepted', 'reached',
+          'in_progress', 'completed', 'cancelled',
+        ];
+        final unmapped = backendCodes
+            .where((c) => rideStatusFromBackendCode(c) == null)
+            .toList();
+        expect(unmapped, isEmpty,
+            reason: 'the backend can send these and the rider app cannot read them');
+      });
+
+      test('an unknown status does not masquerade as a known one', () {
+        expect(rideStatusFromBackendCode('arrived'), isNull);
+        expect(rideStatusFromBackendCode('started'), isNull);
+        expect(rideStatusFromBackendCode('ride_started'), isNull);
+      });
+    });
+
+    test('clearState - clears both state and active trip ID', () async {
       // Arrange
       await prefs.setString('active_trip_id', '12345');
       final notifier = notifierUnderTest();
@@ -330,14 +391,14 @@ void main() {
       );
       
       // Act
-      notifier.clearState();
+      await notifier.clearState();
       
       // Assert
       expect(notifier.state, const RideState());
       expect(prefs.getString('active_trip_id'), isNull);
     });
 
-    test('syncStateFromBackend - handles cancelled trip', skip: 'Shared-preferences mock state appears to leak between tests in this file: this expectation and "clearState" disagree about the same key. Suspected harness issue, not notifier behaviour. See the file comment.', () async {
+    test('syncStateFromBackend - handles cancelled trip', () async {
       // Arrange
       await prefs.setString('access_token', 'test_token');
       await prefs.setString('active_trip_id', 'cancelled_trip_id');
@@ -355,8 +416,15 @@ void main() {
       await notifier.syncStateFromBackend('cancelled_trip_id');
       
       // Assert
-      expect(notifier.state, const RideState());
+      //
+      // This used to assert `const RideState()` AND showCancelledOverlay == true
+      // on adjacent lines, which cannot both hold -- the default is false. The
+      // test was wrong, not the notifier: discovering a cancelled trip clears the
+      // ride and raises the overlay for three seconds so the rider is told why
+      // their ride vanished.
+      expect(notifier.state, const RideState(showCancelledOverlay: true));
       expect(notifier.state.showCancelledOverlay, true);
+      expect(notifier.state.tripId, isNull);
       expect(prefs.getString('active_trip_id'), isNull);
     });
 
@@ -366,7 +434,9 @@ void main() {
       
       fakeRideService.getTripStatusResponse = {
         'status': 'success',
-        'data': {'status': 'started'}
+        // 'in_progress', not 'started': the backend's TripStatus choices are
+        // requested/accepted/reached/in_progress/completed/cancelled.
+        'data': {'status': 'in_progress'}
       };
       
       fakeRideService.getTripDetailsResponse = {
@@ -422,7 +492,7 @@ void main() {
       expect(prefs.getString('active_trip_id'), isNull);
     });
 
-    test('Scenario 3: App resume with active trip in progress', skip: 'Shared-preferences mock state appears to leak between tests in this file: this expectation and "clearState" disagree about the same key. Suspected harness issue, not notifier behaviour. See the file comment.', () async {
+    test('Scenario 3: App resume with active trip in progress', () async {
       // Arrange
       await prefs.setString('access_token', 'test_token');
       await prefs.setString('active_trip_id', 'active_trip_123');
@@ -488,7 +558,7 @@ void main() {
   });
 
   group('Phase 19: State Recovery Management Enhancements', () {
-    test('Background kill detection - app restarted with active trip', skip: 'Shared-preferences mock state appears to leak between tests in this file: this expectation and "clearState" disagree about the same key. Suspected harness issue, not notifier behaviour. See the file comment.', () async {
+    test('Background kill detection - app restarted with active trip', () async {
       // Arrange
       await prefs.setString('access_token', 'test_token');
       
@@ -514,7 +584,7 @@ void main() {
       expect(prefs.getString('active_trip_id'), 'bg_kill_trip_123');
     });
 
-    test('App focus/unfocus - state preservation and refresh', skip: 'Shared-preferences mock state appears to leak between tests in this file: this expectation and "clearState" disagree about the same key. Suspected harness issue, not notifier behaviour. See the file comment.', () async {
+    test('App focus/unfocus - state preservation and refresh', () async {
       // Arrange
       await prefs.setString('access_token', 'test_token');
       await prefs.setString('active_trip_id', 'focus_trip_123');
@@ -575,7 +645,7 @@ void main() {
       expect(paymentMethod, 'cash');
     });
 
-    test('Integration - all Phase 19 features work together', skip: 'Shared-preferences mock state appears to leak between tests in this file: this expectation and "clearState" disagree about the same key. Suspected harness issue, not notifier behaviour. See the file comment.', () async {
+    test('Integration - all Phase 19 features work together', () async {
       // Arrange: Simulate complex scenario
       await prefs.setString('access_token', 'test_token');
       
@@ -584,7 +654,10 @@ void main() {
         'status': 'success',
         'data': {
           'id': 'integration_trip_123',
-          'status': 'ride_started',
+          // Was 'ride_started', which is a WebSocket event type in
+          // consumers.py, not a TripStatus code. The fixture conflated the
+          // two, and the fall-through it hit is what hid the 'reached' bug.
+          'status': 'in_progress',
           'driver_name': 'Integration Driver',
           'vehicle_info': 'Test Vehicle'
         }

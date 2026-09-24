@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:latlong2/latlong.dart';
 import 'package:flutter/foundation.dart';
@@ -23,7 +25,52 @@ final rideNotifierProvider = NotifierProvider<RideNotifier, RideState>(
   RideNotifier.new,
 );
 
+/// Maps a backend trip status_code onto a rider-facing RideStatus.
+///
+/// The canonical list lives in the backend's TripStatus.status_code choices:
+/// requested, accepted, reached, in_progress, completed, cancelled.
+///
+/// Both recovery paths used to branch on 'arrived' and 'started', neither of
+/// which the backend ever sends, and silently fell through to the current status
+/// for anything unrecognised. A rider whose app restarted while the driver was
+/// waiting at the pickup point therefore recovered to RideStatus.none -- no
+/// active ride shown at all, while a driver sat outside. 'requested' was
+/// unmapped too, so recovering mid-search failed the same way. The live
+/// WebSocket handler had 'reached' right; only recovery was wrong.
+///
+/// Returns null for a status this app does not know, so callers can log it
+/// instead of pretending nothing changed.
+RideStatus? rideStatusFromBackendCode(String code) {
+  switch (code) {
+    case 'requested':
+      return RideStatus.searchingDriver;
+    case 'accepted':
+      return RideStatus.driverAccepted;
+    case 'reached':
+      return RideStatus.driverArrived;
+    case 'in_progress':
+      return RideStatus.rideStarted;
+    case 'completed':
+      return RideStatus.paymentPending;
+    case 'cancelled':
+      return RideStatus.cancelled;
+  }
+  return null;
+}
+
 class RideNotifier extends Notifier<RideState> {
+  /// Pending auto-dismiss of the "ride cancelled" overlay.
+  ///
+  /// Held so it can be cancelled on dispose. The two dismiss paths used bare
+  /// `Future.delayed`, which cannot be cancelled: if the rider left the screen --
+  /// or the provider was otherwise disposed -- within those three seconds, the
+  /// callback still fired and wrote to a disposed notifier, which Riverpod throws
+  /// on. Two cancellations in quick succession also left two timers racing to
+  /// clear the same flag.
+  Timer? _cancelledOverlayTimer;
+
+  bool _disposed = false;
+
   @override
   RideState build() {
     final wsService = ref.watch(webSocketServiceProvider);
@@ -33,9 +80,21 @@ class RideNotifier extends Notifier<RideState> {
 
     ref.onDispose(() {
       subscription.cancel();
+      _cancelledOverlayTimer?.cancel();
+      _disposed = true;
     });
 
     return const RideState();
+  }
+
+  /// Raises the cancelled overlay and schedules exactly one dismissal.
+  void _showCancelledOverlayBriefly() {
+    _cancelledOverlayTimer?.cancel();
+    state = state.copyWith(showCancelledOverlay: true);
+    _cancelledOverlayTimer = Timer(const Duration(seconds: 3), () {
+      if (_disposed) return;
+      state = state.copyWith(showCancelledOverlay: false);
+    });
   }
 
   Future<void> loadInitialState() async {
@@ -87,12 +146,12 @@ class RideNotifier extends Notifier<RideState> {
         } else {
           // Trip doesn't exist or error - clear stale ID
           await _clearActiveTripId();
-          clearState();
+          await clearState();
         }
       } else {
         // No trip locally or on backend
         await _clearActiveTripId();
-        clearState();
+        await clearState();
       }
     } catch (e) {
       // Network error or other exception
@@ -105,7 +164,7 @@ class RideNotifier extends Notifier<RideState> {
         await syncStateFromBackend(savedTripId);
       } else {
         await _clearActiveTripId();
-        clearState();
+        await clearState();
       }
     }
   }
@@ -117,7 +176,7 @@ class RideNotifier extends Notifier<RideState> {
     final token = prefs.getString('access_token');
 
     if (token == null) {
-      clearState();
+      await clearState();
       state = state.copyWith(isSyncing: false);
       return;
     }
@@ -136,7 +195,7 @@ class RideNotifier extends Notifier<RideState> {
     if (statusData == null ||
         statusData['status'] == 'error' ||
         statusData['data'] == null) {
-      clearState();
+      await clearState();
       state = state.copyWith(isSyncing: false);
       return;
     }
@@ -144,24 +203,22 @@ class RideNotifier extends Notifier<RideState> {
     final String tripStatus = statusData['data']['status'] ?? '';
 
     if (tripStatus == 'cancelled') {
-      clearState();
-      state = state.copyWith(showCancelledOverlay: true);
-      Future.delayed(const Duration(seconds: 3), () {
-        state = state.copyWith(showCancelledOverlay: false);
-      });
+      await clearState();
+      _showCancelledOverlayBriefly();
       return;
     }
 
-    RideStatus newStatus = state.status;
-    if (tripStatus == 'accepted') {
-      newStatus = RideStatus.driverAccepted;
-    } else if (tripStatus == 'arrived') {
-      newStatus = RideStatus.driverArrived;
-    } else if (tripStatus == 'started' || tripStatus == 'in_progress') {
-      newStatus = RideStatus.rideStarted;
-    } else if (tripStatus == 'completed') {
-      newStatus = RideStatus.paymentPending;
+    final mapped = rideStatusFromBackendCode(tripStatus);
+    if (mapped == null) {
+      // Do not silently keep the old status: that is how 'reached' produced a
+      // blank screen for a rider with a driver waiting outside.
+      debugPrint(
+        'Unrecognised trip status from backend: "$tripStatus" -- '
+        'rider state left at ${state.status}. This is a client/server '
+        'status-vocabulary mismatch and should be reported.',
+      );
     }
+    final RideStatus newStatus = mapped ?? state.status;
 
     Map<String, dynamic> mergedResponse = Map<String, dynamic>.from(
       state.rawResponse ?? {},
@@ -178,6 +235,13 @@ class RideNotifier extends Notifier<RideState> {
     }
 
     state = state.copyWith(
+      // The trip id arrives as this method's parameter and used to be dropped
+      // here. _saveActiveTripId() only keeps 'active_trip_id' when
+      // state.tripId is set, so recovering a ride deleted the very pointer it
+      // had just recovered from -- and LifecycleObserver then had nothing to
+      // re-persist when the app was backgrounded. A rider whose app was killed
+      // mid-ride lost the ride on the next offline start.
+      tripId: tripId,
       status: newStatus,
       rawResponse: mergedResponse,
       isSyncing: false,
@@ -194,7 +258,7 @@ class RideNotifier extends Notifier<RideState> {
 
     if (activeTripResponse['status'] != 'success' ||
         activeTripResponse['data'] == null) {
-      clearState();
+      await clearState();
       state = state.copyWith(isSyncing: false);
       return;
     }
@@ -204,24 +268,22 @@ class RideNotifier extends Notifier<RideState> {
     final String tripStatus = tripData['status'] ?? '';
 
     if (tripStatus == 'cancelled') {
-      clearState();
-      state = state.copyWith(showCancelledOverlay: true);
-      Future.delayed(const Duration(seconds: 3), () {
-        state = state.copyWith(showCancelledOverlay: false);
-      });
+      await clearState();
+      _showCancelledOverlayBriefly();
       return;
     }
 
-    RideStatus newStatus = state.status;
-    if (tripStatus == 'accepted') {
-      newStatus = RideStatus.driverAccepted;
-    } else if (tripStatus == 'arrived') {
-      newStatus = RideStatus.driverArrived;
-    } else if (tripStatus == 'started' || tripStatus == 'in_progress') {
-      newStatus = RideStatus.rideStarted;
-    } else if (tripStatus == 'completed') {
-      newStatus = RideStatus.paymentPending;
+    final mapped = rideStatusFromBackendCode(tripStatus);
+    if (mapped == null) {
+      // Do not silently keep the old status: that is how 'reached' produced a
+      // blank screen for a rider with a driver waiting outside.
+      debugPrint(
+        'Unrecognised trip status from backend: "$tripStatus" -- '
+        'rider state left at ${state.status}. This is a client/server '
+        'status-vocabulary mismatch and should be reported.',
+      );
     }
+    final RideStatus newStatus = mapped ?? state.status;
 
     Map<String, dynamic> mergedResponse = Map<String, dynamic>.from(
       state.rawResponse ?? {},
@@ -236,6 +298,11 @@ class RideNotifier extends Notifier<RideState> {
       mergedResponse['driver_rating'] = tripData['driver_rating'];
 
     state = state.copyWith(
+      // Same defect as syncStateFromBackend: tripId was parsed into a local,
+      // put into rawResponse['id'], and never placed in the state the rest of
+      // the app reads. RideNavigationHandler and LifecycleObserver both read
+      // state.tripId directly.
+      tripId: tripId,
       status: newStatus,
       rawResponse: mergedResponse,
       isSyncing: false,
@@ -435,10 +502,17 @@ class RideNotifier extends Notifier<RideState> {
     }
   }
 
-  void clearState() {
+  /// Clears ride state and the persisted active-trip pointer.
+  ///
+  /// Returns a Future so callers can await the *durable* part. It used to be
+  /// `void` while firing two un-awaited SharedPreferences writes, so a caller had
+  /// no way to know when 'active_trip_id' was actually gone -- and the two writes
+  /// raced each other. A cancel or completion followed closely by the app being
+  /// killed could leave the finished trip's id on disk.
+  Future<void> clearState() async {
     state = const RideState();
-    _saveState();
-    // Also explicitly clear the active trip ID
-    _clearActiveTripId();
+    // One write, not two racing ones: _saveState() would remove the key anyway
+    // for an empty state, but being explicit here is what callers depend on.
+    await _clearActiveTripId();
   }
 }

@@ -179,4 +179,53 @@ class RideState {
         return RideStatus.none;
     }
   }
+
+  /// Value equality.
+  ///
+  /// The class was marked @immutable but never defined `==`, so it fell back to
+  /// identity. NotifierProvider compares old and new state with `==` to decide
+  /// whether to notify, which meant every copyWith rebuilt every listener even
+  /// when nothing changed -- on the active-ride screen, once per driver-location
+  /// tick for the whole ride. It also made whole-state assertions in tests pass
+  /// only by `const` canonicalisation, which is how a self-contradictory
+  /// expectation survived in the recovery suite.
+  ///
+  /// The maps are compared with mapEquals; nothing mutates them in place, so a
+  /// shallow deep-compare is honest here.
+  @override
+  bool operator ==(Object other) {
+    if (identical(this, other)) return true;
+    return other is RideState &&
+        other.status == status &&
+        other.tripId == tripId &&
+        other.driverLocation == driverLocation &&
+        other.pickupLocation == pickupLocation &&
+        other.dropLocation == dropLocation &&
+        other.pickupAddress == pickupAddress &&
+        other.destinationAddress == destinationAddress &&
+        other.vehicleType == vehicleType &&
+        other.distance == distance &&
+        other.duration == duration &&
+        mapEquals(other.fareEstimates, fareEstimates) &&
+        mapEquals(other.rawResponse, rawResponse) &&
+        other.isSyncing == isSyncing &&
+        other.showCancelledOverlay == showCancelledOverlay;
+  }
+
+  @override
+  int get hashCode => Object.hash(
+        status,
+        tripId,
+        driverLocation,
+        pickupLocation,
+        dropLocation,
+        pickupAddress,
+        destinationAddress,
+        vehicleType,
+        distance,
+        duration,
+        isSyncing,
+        showCancelledOverlay,
+      );
+
 }

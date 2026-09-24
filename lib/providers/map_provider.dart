@@ -611,7 +611,9 @@ class MapProvider extends ChangeNotifier {
       }
     }
 
-    container?.read(rideNotifierProvider.notifier).clearState();
+    // Awaited: cancellation is exactly the case where the persisted
+    // active-trip pointer must be gone before the UI reports the ride over.
+    await container?.read(rideNotifierProvider.notifier).clearState();
     container?.read(webSocketServiceProvider).disconnectAll();
     notifyListeners();
   }
