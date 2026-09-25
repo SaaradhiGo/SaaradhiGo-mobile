@@ -471,6 +471,36 @@ class RideNotifier extends Notifier<RideState> {
         }
       });
     }
+
+    // A driver is on the way and we have no OTP. Go and ask for it.
+    //
+    // The OTP is pushed once, on accept, to the trip group and to the rider's
+    // personal group. That push is best-effort: channels_redis drops to a channel
+    // whose queue is full and group_send swallows it per channel, so a client that
+    // was not draining at that instant simply never sees the frame. Measured on an
+    // isolated load stack: at 50 concurrent rides 6 of 50 riders received the OTP
+    // on neither socket. At 100 rides in batches of 25, 2 did not.
+    //
+    // Without this, that rider stares at "----" where their OTP should be, with a
+    // driver waiting outside, and nothing in the app ever tries again -- the
+    // existing sync only runs on startup or resume, so the fix was to background
+    // the app and reopen it. `syncStateFromBackend` already fetches trip details
+    // and merges the OTP; it just was never called for this reason.
+    //
+    // Cheap and bounded: one extra request, only when a rider reaches a state that
+    // should have an OTP and does not.
+    const needsOtp = {
+      RideStatus.driverAccepted,
+      RideStatus.driverArrived,
+    };
+    final haveOtp = (mergedResponse['otp']?.toString() ?? '').isNotEmpty;
+    if (tripId != null && needsOtp.contains(newStatus) && !haveOtp) {
+      debugPrint(
+        'OTP missing after a $status push for trip $tripId -- refetching. '
+        'The push is best-effort; this is the documented pull fallback.',
+      );
+      syncStateFromBackend(tripId);
+    }
   }
 
   // Explicit methods for payment and rating transition
