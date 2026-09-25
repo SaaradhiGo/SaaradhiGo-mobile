@@ -20,10 +20,8 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:saaradhigo_rider/services/models/trip_model.dart';
 import 'package:saaradhigo_rider/services/ride_service.dart';
 import 'package:saaradhigo_rider/state/ride_notifier.dart';
-import 'package:saaradhigo_rider/state/ride_state.dart';
 
 class _CountingRideService implements RideService {
   int statusCalls = 0;
