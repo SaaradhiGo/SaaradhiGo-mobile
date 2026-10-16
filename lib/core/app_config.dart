@@ -99,6 +99,11 @@ class AppConfig {
   static const String authUpdate = '/auth/update/';
   static const String authProfile = '/auth/profile/';
 
+  // Safety. `/sos/` persists an SOSEvent and fans out to ops asynchronously;
+  // the driver app has used it since the safety work and the rider app now
+  // does too.
+  static const String sos = '/sos/';
+
   static const String riderNotifications = '/rider/notifications/';
   static const String rideHistory = '/ride/ride-history/';
   static const String activeRide = '/ride/active/';

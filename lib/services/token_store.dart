@@ -68,7 +68,18 @@ class TokenStore {
   }
 
   static Future<String?> _read(String key) async {
-    final secure = await _secure.read(key: key);
+    // Guarded for the same reason the write below is: secure storage can be
+    // unavailable. `flutter_secure_storage` throws MissingPluginException in a
+    // test binding and has been reported to throw on some Android keystore
+    // states — and an exception here read as "signed out", which is the exact
+    // outcome the fallback exists to prevent. The write was already guarded;
+    // the read was not.
+    String? secure;
+    try {
+      secure = await _secure.read(key: key);
+    } catch (_) {
+      secure = null;
+    }
     if (secure != null && secure.isNotEmpty) {
       return secure;
     }

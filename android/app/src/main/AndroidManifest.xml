@@ -41,8 +41,19 @@
         <meta-data
             android:name="flutterEmbedding"
             android:value="2" />
+        <!-- Google Maps Android SDK key.
+             The literal key that used to sit here was committed in the
+             initial commit and is therefore in git history and must be
+             treated as compromised: it needs rotating or restricting in
+             Google Cloud, which removing it from HEAD does not do.
+
+             It was also unused. This app renders maps with flutter_map over
+             OSM tiles and has no google_maps_flutter dependency, so nothing
+             reads this value. The placeholder is kept, supplied empty by
+             Gradle, so the wiring exists if the Maps SDK is ever adopted
+             without anyone re-committing a key. -->
         <meta-data android:name="com.google.android.geo.API_KEY"
-            android:value="AIzaSyC7t999s1L9nsUNDptQyihlQ2_wIUyVpLQ"/>
+            android:value="${MAPS_API_KEY}"/>
 
         <service
             android:name="id.flutter.flutter_background_service.BackgroundService"

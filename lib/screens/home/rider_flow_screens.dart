@@ -37,6 +37,8 @@ import '../../services/ride_service.dart';
 import '../../services/payment_service.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:provider/provider.dart' as p;
+import '../../utils/money.dart';
+import '../../widgets/safety_sheet.dart';
 
 class SetDestinationScreen extends StatelessWidget {
   const SetDestinationScreen({super.key});
@@ -719,6 +721,25 @@ class FullMapTrackingScreen extends StatefulWidget {
 }
 
 class _FullMapTrackingScreenState extends State<FullMapTrackingScreen> {
+  /// What the safety sheet needs: who the rider is with, and where they are.
+  ///
+  /// Read from the ride response the tracking screen is already rendering, so
+  /// raising an SOS costs no extra request at the moment it matters most.
+  TripSafetyContext _safetyContext(MapProvider mapProvider) {
+    final ride = mapProvider.rideRequestResponse;
+    double? toDouble(dynamic v) =>
+        v is num ? v.toDouble() : double.tryParse('${v ?? ''}');
+
+    return TripSafetyContext(
+      tripId: mapProvider.tripId ?? ride?['trip_id']?.toString(),
+      driverName: ride?['driver_name'] as String?,
+      vehicleNumber: ride?['vehicle_number'] as String?,
+      vehicleModel: ride?['vehicle_model'] as String?,
+      lat: toDouble(ride?['driver_lat'] ?? ride?['pickup_lat']),
+      lng: toDouble(ride?['driver_lng'] ?? ride?['pickup_long']),
+    );
+  }
+
   bool _canPop = false;
   bool _isNavigated = false;
   MapProvider? _mapProvider;
@@ -858,55 +879,24 @@ class _FullMapTrackingScreenState extends State<FullMapTrackingScreen> {
                     ],
                   ),
                 ),
+                // SOS.
+                //
+                // This button used to open a dialog that said "This will alert
+                // the nearest authorities and our support team", and on
+                // confirm showed the snackbar "Emergency Alert Sent! Support
+                // is on the way." It called no API. Nothing was sent, nobody
+                // was alerted, and the rider was told help was coming.
+                //
+                // It now opens the safety sheet, which POSTs to /sos/ (a
+                // durable row server-side, then an ops push and an SMS to the
+                // rider's emergency contact), offers 112 directly, and shows
+                // the failure if the POST does not succeed.
                 GestureDetector(
-                  onTap: () {
-                    showDialog(
-                      context: context,
-                      builder: (context) => AlertDialog(
-                        backgroundColor: const Color(0xFF1E1C18),
-                        title: const Text(
-                          'SOS Emergency',
-                          style: TextStyle(
-                            color: Colors.white,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                        content: const Text(
-                          'Are you in danger? This will alert the nearest authorities and our support team.',
-                          style: TextStyle(color: Colors.white70),
-                        ),
-                        actions: [
-                          TextButton(
-                            onPressed: () => Navigator.pop(context),
-                            child: const Text(
-                              'I\'m Safe',
-                              style: TextStyle(color: Colors.white54),
-                            ),
-                          ),
-                          ElevatedButton(
-                            onPressed: () {
-                              Navigator.pop(context);
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                const SnackBar(
-                                  backgroundColor: Colors.red,
-                                  content: Text(
-                                    'Emergency Alert Sent! Support is on the way.',
-                                  ),
-                                ),
-                              );
-                            },
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: Colors.red,
-                            ),
-                            child: const Text(
-                              'YES, CALL FOR HELP',
-                              style: TextStyle(color: Colors.white),
-                            ),
-                          ),
-                        ],
-                      ),
-                    );
-                  },
+                  key: const Key('tracking_sos_button'),
+                  onTap: () => showSafetySheet(
+                    context,
+                    trip: _safetyContext(mapProvider),
+                  ),
                   child: Container(
                     height: 58,
                     width: 58,
@@ -1241,7 +1231,10 @@ class _RidePaymentSummaryScreenState extends State<RidePaymentSummaryScreen> {
         final totalFareStr =
             rideData?['total_fare'] ?? rideData?['estimated_fare'] ?? '0.00';
         final totalFare = double.tryParse(totalFareStr.toString()) ?? 0.0;
-        final currency = rideData?['currency'] ?? '₹';
+        // The server sends an ISO 4217 CODE, not a symbol. Interpolating it
+        // directly rendered a rider's fare as "INR169.02" -- verified against
+        // deployed QA, which returns `"currency": "INR"` with every quote.
+        final currencyCode = rideData?['currency'] as String?;
 
         return Scaffold(
           backgroundColor: const Color(0xFF12110E),
@@ -1289,7 +1282,9 @@ class _RidePaymentSummaryScreenState extends State<RidePaymentSummaryScreen> {
                       ),
                       const SizedBox(height: 8),
                       Text(
-                        '$currency$totalFareStr',
+                        formatServerMoney(totalFareStr, currencyCode) ??
+                            formatMoney(totalFare, currencyCode) ??
+                            '',
                         style: GoogleFonts.inter(
                           color: Colors.white,
                           fontSize: 40,

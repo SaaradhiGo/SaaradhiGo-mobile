@@ -105,3 +105,79 @@ jobs:
           path: build/app/outputs/flutter-apk/app-debug.apk
           if-no-files-found: error
           retention-days: 14
+
+  # Proves the release-signing configuration is correct WITHOUT holding a
+  # keystore or a password.
+  #
+  # Two assertions, in the only order that means anything:
+  #
+  #   1. A release build with no signing material must FAIL. That is the
+  #      regression guard. The release build type used to fall back to the
+  #      Android DEBUG key silently, which produces an APK that installs and
+  #      runs and that Play rejects -- and nothing in test, analyze or even a
+  #      successful `flutter build apk` noticed.
+  #
+  #   2. The documented escape hatch must still work. `-PallowDebugSigning=true`
+  #      is how a developer builds a release APK locally, and if the guard
+  #      blocked that too it would just get deleted by the next person.
+  #
+  # No secret is used, referenced or needed here. When a real keystore is added
+  # as a secret, give it its own job -- do not weaken this one, because this is
+  # the job that proves the guard is still there.
+  release-config:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+
+      - name: Install dependencies
+        run: flutter pub get
+
+      - name: An unsigned release build must be refused
+        run: |
+          set +e
+          output=$(flutter build apk --release 2>&1)
+          code=$?
+          set -e
+          echo "$output" | tail -40
+
+          if [ $code -eq 0 ]; then
+            echo "::error::A release APK built with NO signing material. The \
+          guard in android/app/build.gradle.kts is not working, and this \
+          artifact is signed with the Android debug key."
+            exit 1
+          fi
+
+          if ! echo "$output" | grep -q "Release build refused"; then
+            echo "::error::The release build failed, but not with the \
+          signing guard's message. Something else is broken -- read the log \
+          above rather than assuming the guard fired."
+            exit 1
+          fi
+
+          echo "An unsigned release build was refused, with the expected message."
+
+      - name: A release build with the documented opt-out must succeed
+        run: flutter build apk --release -PallowDebugSigning=true
+
+      - name: Confirm the opt-out APK is debug-signed, and say so loudly
+        run: |
+          apk=build/app/outputs/flutter-apk/app-release.apk
+          ls -lh "$apk"
+          # `apksigner` ships with the Android SDK build-tools on the runner.
+          signer=$(find "$ANDROID_HOME" -name apksigner -type f | head -1)
+          if [ -n "$signer" ]; then
+            "$signer" verify --print-certs "$apk" | grep -i "Signer #1 certificate DN" || true
+            echo "NOTE: this APK is signed with the debug key and must never be distributed."
+          fi
