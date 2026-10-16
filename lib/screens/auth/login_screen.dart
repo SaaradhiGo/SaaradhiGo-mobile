@@ -12,8 +12,26 @@ class LoginScreen extends StatefulWidget {
   State<LoginScreen> createState() => _LoginScreenState();
 }
 
+/// Which credential the rider is using.
+///
+/// Mobile + OTP stays the default and the primary route: it is what the
+/// pilot's riders have, it needs no password, and it is how an account is
+/// created in the first place. Email + password is for someone who has set
+/// one, and for QA accounts that must be reachable without waiting on SMS.
+enum LoginMode { mobile, email }
+
 class _LoginScreenState extends State<LoginScreen> {
   final TextEditingController _phoneController = TextEditingController();
+  final TextEditingController _emailController = TextEditingController();
+  final TextEditingController _passwordController = TextEditingController();
+  final TextEditingController _mfaController = TextEditingController();
+
+  LoginMode _mode = LoginMode.mobile;
+  bool _showPassword = false;
+
+  /// Only shown once the server has asked for it, which it does only for an
+  /// operator account and only after the password was accepted.
+  bool _needsMfa = false;
 
   Future<void> _safePushToOtp(String phone) async {
     // Avoid web focus traversal crash by releasing focus before route change.
@@ -22,6 +40,73 @@ class _LoginScreenState extends State<LoginScreen> {
     await Future<void>.delayed(const Duration(milliseconds: 16));
     if (!mounted) return;
     context.push('/otp', extra: phone);
+  }
+
+  Future<void> _signInWithEmail() async {
+    final email = _emailController.text.trim();
+    final password = _passwordController.text;
+
+    if (email.isEmpty || !email.contains('@')) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Enter your email address')),
+      );
+      return;
+    }
+    if (password.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Enter your password')),
+      );
+      return;
+    }
+
+    final auth = Provider.of<AuthProvider>(context, listen: false);
+    final code = await auth.loginWithEmail(
+      email: email,
+      password: password,
+      mfaCode: _needsMfa ? _mfaController.text.trim() : null,
+    );
+
+    if (!mounted) return;
+
+    if (code == null) {
+      // Straight to the app. No OTP screen: the password WAS the proof.
+      context.go('/home');
+      return;
+    }
+
+    if (code == 'AUTH_MFA_REQUIRED' || code == 'AUTH_MFA_INVALID') {
+      setState(() => _needsMfa = true);
+    }
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(auth.error ?? 'Could not sign in')),
+    );
+  }
+
+  Future<void> _forgotPassword() async {
+    final email = _emailController.text.trim();
+    if (email.isEmpty || !email.contains('@')) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Enter your email address first, then tap again'),
+        ),
+      );
+      return;
+    }
+
+    final auth = Provider.of<AuthProvider>(context, listen: false);
+    await auth.requestPasswordReset(email);
+    if (!mounted) return;
+
+    // The same message whatever the server found. It deliberately does not
+    // confirm whether an account exists -- see the backend's
+    // password_views.FORGOT_MESSAGE.
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text(
+          'If that address belongs to an account, we have sent a reset link.',
+        ),
+      ),
+    );
   }
 
   Future<void> _requestOtp() async {
@@ -59,6 +144,9 @@ class _LoginScreenState extends State<LoginScreen> {
   @override
   void dispose() {
     _phoneController.dispose();
+    _emailController.dispose();
+    _passwordController.dispose();
+    _mfaController.dispose();
     super.dispose();
   }
 
@@ -145,15 +233,86 @@ class _LoginScreenState extends State<LoginScreen> {
                           ),
                         ),
                         const SizedBox(height: 42),
-                        const Text(
-                          'PHONE NUMBER',
-                          style: TextStyle(
+
+                        // Mobile | Email.
+                        //
+                        // Mobile is first and default: it is what a pilot
+                        // rider has, it needs no password, and it is the only
+                        // route that can CREATE an account. Email is for
+                        // someone who has set a password, and for QA accounts
+                        // that must be reachable without waiting on an SMS.
+                        Row(
+                          children: [
+                            _ModeTab(
+                              key: const Key('login_tab_mobile'),
+                              label: 'Mobile',
+                              selected: _mode == LoginMode.mobile,
+                              onTap: () => setState(() {
+                                _mode = LoginMode.mobile;
+                                _needsMfa = false;
+                              }),
+                            ),
+                            const SizedBox(width: 8),
+                            _ModeTab(
+                              key: const Key('login_tab_email'),
+                              label: 'Email',
+                              selected: _mode == LoginMode.email,
+                              onTap: () =>
+                                  setState(() => _mode = LoginMode.email),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 24),
+
+                        Text(
+                          _mode == LoginMode.mobile ? 'PHONE NUMBER' : 'EMAIL',
+                          style: const TextStyle(
                             color: Color(0xFFEEBD2B),
                             letterSpacing: 1.8,
                             fontWeight: FontWeight.w700,
                           ),
                         ),
                         const SizedBox(height: 8),
+
+                        if (_mode == LoginMode.email) ...[
+                          _EmailField(
+                            key: const Key('login_email_field'),
+                            controller: _emailController,
+                          ),
+                          const SizedBox(height: 12),
+                          _PasswordField(
+                            key: const Key('login_password_field'),
+                            controller: _passwordController,
+                            obscure: !_showPassword,
+                            onToggle: () => setState(
+                                () => _showPassword = !_showPassword),
+                          ),
+                          if (_needsMfa) ...[
+                            const SizedBox(height: 12),
+                            // Shown only for an operator account, and only
+                            // after the password was already accepted.
+                            _EmailField(
+                              key: const Key('login_mfa_field'),
+                              controller: _mfaController,
+                              hint: '6-digit authenticator code',
+                              keyboardType: TextInputType.number,
+                            ),
+                          ],
+                          Align(
+                            alignment: Alignment.centerRight,
+                            child: TextButton(
+                              key: const Key('login_forgot_password'),
+                              onPressed:
+                                  auth.isLoading ? null : _forgotPassword,
+                              child: const Text(
+                                'Forgot password?',
+                                style: TextStyle(color: Color(0xFFEEBD2B)),
+                              ),
+                            ),
+                          ),
+                        ],
+
+                        if (_mode == LoginMode.mobile)
                         Container(
                           height: 64,
                           decoration: BoxDecoration(
@@ -220,7 +379,12 @@ class _LoginScreenState extends State<LoginScreen> {
                           width: double.infinity,
                           height: 64,
                           child: ElevatedButton(
-                            onPressed: auth.isLoading ? null : _requestOtp,
+                            key: const Key('login_submit'),
+                            onPressed: auth.isLoading
+                                ? null
+                                : (_mode == LoginMode.mobile
+                                    ? _requestOtp
+                                    : _signInWithEmail),
                             style: ElevatedButton.styleFrom(
                               backgroundColor: const Color(0xFFEEBD2B),
                               foregroundColor: const Color(0xFF12110D),
@@ -236,9 +400,11 @@ class _LoginScreenState extends State<LoginScreen> {
                                       strokeWidth: 2.5,
                                     ),
                                   )
-                                : const Text(
-                                    'Continue',
-                                    style: TextStyle(
+                                : Text(
+                                    _mode == LoginMode.mobile
+                                        ? 'Continue'
+                                        : 'Sign in',
+                                    style: const TextStyle(
                                       fontSize: 20,
                                       fontWeight: FontWeight.w700,
                                     ),
@@ -402,4 +568,145 @@ class _MapGridPainter extends CustomPainter {
 
   @override
   bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
+}
+
+/// One of the two credential tabs.
+class _ModeTab extends StatelessWidget {
+  const _ModeTab({
+    super.key,
+    required this.label,
+    required this.selected,
+    required this.onTap,
+  });
+
+  final String label;
+  final bool selected;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return Expanded(
+      child: GestureDetector(
+        onTap: onTap,
+        child: Container(
+          padding: const EdgeInsets.symmetric(vertical: 13),
+          decoration: BoxDecoration(
+            color: selected
+                ? const Color(0xFFEEBD2B)
+                : Colors.white.withValues(alpha: 0.06),
+            border: Border.all(
+              color: selected ? const Color(0xFFEEBD2B) : Colors.white10,
+            ),
+            borderRadius: BorderRadius.circular(12),
+          ),
+          alignment: Alignment.center,
+          child: Text(
+            label,
+            style: TextStyle(
+              color: selected ? const Color(0xFF12110D) : Colors.white70,
+              fontSize: 15,
+              fontWeight: FontWeight.w700,
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// A dark text field matching the phone input's styling.
+class _EmailField extends StatelessWidget {
+  const _EmailField({
+    super.key,
+    required this.controller,
+    this.hint = 'you@example.com',
+    this.keyboardType = TextInputType.emailAddress,
+  });
+
+  final TextEditingController controller;
+  final String hint;
+  final TextInputType keyboardType;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      height: 64,
+      decoration: BoxDecoration(
+        color: Colors.white.withValues(alpha: 0.06),
+        border: Border.all(color: Colors.white10),
+        borderRadius: BorderRadius.circular(14),
+      ),
+      padding: const EdgeInsets.symmetric(horizontal: 16),
+      child: TextField(
+        controller: controller,
+        keyboardType: keyboardType,
+        // An email field must not be "helped": autocorrect turns an address
+        // into a word, and suggestions offer the last person's address on a
+        // shared phone.
+        autocorrect: false,
+        enableSuggestions: false,
+        style: const TextStyle(color: Colors.white, fontSize: 17),
+        decoration: InputDecoration(
+          border: InputBorder.none,
+          hintText: hint,
+          hintStyle: const TextStyle(color: Color(0xFF475569), fontSize: 16),
+        ),
+      ),
+    );
+  }
+}
+
+class _PasswordField extends StatelessWidget {
+  const _PasswordField({
+    super.key,
+    required this.controller,
+    required this.obscure,
+    required this.onToggle,
+  });
+
+  final TextEditingController controller;
+  final bool obscure;
+  final VoidCallback onToggle;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      height: 64,
+      decoration: BoxDecoration(
+        color: Colors.white.withValues(alpha: 0.06),
+        border: Border.all(color: Colors.white10),
+        borderRadius: BorderRadius.circular(14),
+      ),
+      padding: const EdgeInsets.only(left: 16, right: 4),
+      child: Row(
+        children: [
+          Expanded(
+            child: TextField(
+              controller: controller,
+              obscureText: obscure,
+              autocorrect: false,
+              enableSuggestions: false,
+              style: const TextStyle(color: Colors.white, fontSize: 17),
+              decoration: const InputDecoration(
+                border: InputBorder.none,
+                hintText: 'Password',
+                hintStyle: TextStyle(color: Color(0xFF475569), fontSize: 16),
+              ),
+            ),
+          ),
+          IconButton(
+            key: const Key('login_password_visibility'),
+            onPressed: onToggle,
+            icon: Icon(
+              obscure
+                  ? Icons.visibility_outlined
+                  : Icons.visibility_off_outlined,
+              color: const Color(0xFF94A3B8),
+              size: 20,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
 }

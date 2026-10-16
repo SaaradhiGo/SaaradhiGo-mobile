@@ -691,6 +691,67 @@ class AuthProvider extends ChangeNotifier {
     await _persistIfNeeded([profileUpdated, phoneUpdated]);
   }
 
+  /// Sign in with email + password.
+  ///
+  /// Returns null on success, or an error CODE for the caller to render:
+  ///   AUTH_MFA_REQUIRED  an operator must add a second factor
+  ///   AUTH_MFA_INVALID   the code was wrong
+  ///   anything else      one generic credential message
+  Future<String?> loginWithEmail({
+    required String email,
+    required String password,
+    String? mfaCode,
+  }) async {
+    _setLoading(true);
+    _setError(null);
+
+    final response = await _apiService.emailLogin(
+      email: email.trim(),
+      password: password,
+      mfaCode: mfaCode,
+    );
+
+    if (response == null) {
+      _setError('Could not reach SaaradhiGo. Check your connection.');
+      _setLoading(false);
+      return 'NETWORK';
+    }
+
+    final error = response['_error'];
+    if (error is Map) {
+      final code = (error['code'] ?? 'AUTH_FAILED').toString();
+      _setError(
+        code == 'AUTH_MFA_REQUIRED' || code == 'AUTH_MFA_INVALID'
+            ? (error['message'] ?? 'That code was not accepted.').toString()
+            : 'Invalid email or password.',
+      );
+      _setLoading(false);
+      return code;
+    }
+
+    // Same session handling as the OTP path, minus the phone capture: an
+    // email login does not tell us a phone number, and inventing one would
+    // overwrite whatever the profile already holds.
+    final profileUpdated =
+        _applyProfileFromUserPayload(_extractUserPayload(response));
+    await _persistIfNeeded([profileUpdated]);
+
+    _setLoading(false);
+    return null;
+  }
+
+  /// Ask for a reset link. Always reports success -- see the API comment.
+  Future<bool> requestPasswordReset(String email) async {
+    _setLoading(true);
+    _setError(null);
+    final ok = await _apiService.requestPasswordReset(email.trim());
+    if (!ok) {
+      _setError('Could not reach SaaradhiGo. Check your connection.');
+    }
+    _setLoading(false);
+    return ok;
+  }
+
   Future<Map<String, dynamic>?> requestOtp(String phone) async {
     _setLoading(true);
     _setError(null);

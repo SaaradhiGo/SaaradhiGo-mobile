@@ -95,6 +95,11 @@ class AppConfig {
   // API Endpoints
   static const String authOtp = '/auth/otp/';
   static const String authLogin = '/auth/login/';
+
+  // Email + password. Additive: phone + OTP above is unchanged and remains
+  // the primary route for a rider.
+  static const String authEmailLogin = '/auth/email/login/';
+  static const String authPasswordForgot = '/auth/password/forgot/';
   static const String authRefresh = '/auth/refresh/';
   static const String authUpdate = '/auth/update/';
   static const String authProfile = '/auth/profile/';

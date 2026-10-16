@@ -7,6 +7,17 @@ import 'token_store.dart';
 
 abstract class AuthApiClient {
   Future<Map<String, dynamic>?> requestOtp(String phoneNumber, String role);
+  /// Email + password sign-in. See the implementation for the contract.
+  Future<Map<String, dynamic>?> emailLogin({
+    required String email,
+    required String password,
+    String? mfaCode,
+  });
+
+  /// Ask for a password-reset link. True means the request was accepted; it
+  /// never reveals whether an account exists.
+  Future<bool> requestPasswordReset(String email);
+
   Future<Map<String, dynamic>?> verifyOtpAndLogin(
     String phoneNumber,
     String otp,
@@ -218,6 +229,77 @@ class ApiService implements AuthApiClient {
     } catch (e) {
       debugPrint('OTP Verify Error: $e');
       return null;
+    }
+  }
+
+  @override
+  /// Email + password sign-in.
+  ///
+  /// Returns the decoded envelope on success and null on any failure. The
+  /// server answers every credential failure with one message by design, so
+  /// there is nothing to distinguish here either -- the caller shows a single
+  /// "check your email and password" line.
+  ///
+  /// `mfaCode` is only ever needed by an operator account. A rider or driver
+  /// leaves it null and never sees the field.
+  Future<Map<String, dynamic>?> emailLogin({
+    required String email,
+    required String password,
+    String? mfaCode,
+  }) async {
+    try {
+      final response = await http.post(
+        Uri.parse('$baseUrl${AppConfig.authEmailLogin}'),
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode({
+          'email': email,
+          'password': password,
+          if (mfaCode != null && mfaCode.isNotEmpty) 'mfa_code': mfaCode,
+        }),
+      );
+
+      final decoded = jsonDecode(response.body);
+      if (decoded is! Map<String, dynamic>) return null;
+
+      if (response.statusCode != 200 || decoded['status'] != 'success') {
+        // Surface the error code so the UI can tell "needs a second factor"
+        // apart from "wrong password" -- the only distinction the server
+        // makes, and only after a correct password.
+        return {'_error': decoded['error'] ?? {'code': 'AUTH_FAILED'}};
+      }
+
+      final sessionData = decoded['data'];
+      if (sessionData is Map<String, dynamic>) {
+        final accessToken = sessionData['token'];
+        final refreshToken = sessionData['refresh_token'];
+        if (accessToken is String && refreshToken is String) {
+          await _saveTokens(accessToken, refreshToken);
+        }
+      }
+      return decoded;
+    } catch (e) {
+      debugPrint('Email login error: $e');
+      return null;
+    }
+  }
+
+  @override
+  /// Ask for a password-reset link.
+  ///
+  /// The server answers 200 with the same message whatever the address is, so
+  /// this returns true for "the request was accepted" and never reveals
+  /// whether an account exists.
+  Future<bool> requestPasswordReset(String email) async {
+    try {
+      final response = await http.post(
+        Uri.parse('$baseUrl${AppConfig.authPasswordForgot}'),
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode({'email': email}),
+      );
+      return response.statusCode == 200;
+    } catch (e) {
+      debugPrint('Password reset request error: $e');
+      return false;
     }
   }
 
