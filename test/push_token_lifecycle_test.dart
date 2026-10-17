@@ -205,6 +205,92 @@ void main() {
     });
   });
 
+  group('logout ends the session on the server too', () {
+    test('it blacklists the refresh token before clearing locally', () async {
+      // clearSession() used to be TokenStore.clear() alone, so a rider's
+      // logout was local only: the refresh token kept minting access tokens
+      // for its full 14-day life, and POST /auth/logout/ -- which is what
+      // clears fcm_token server-side -- was never called.
+      final api = serviceReturning({
+        'status': 'success',
+        'data': {'message': 'Logged out'},
+      });
+      await TokenStore.writeTokens(
+        accessToken: 'access-aaa',
+        refreshToken: 'refresh-bbb',
+      );
+
+      await api.clearSession();
+
+      final logout = captured.singleWhere(
+        (r) => r.url.path.endsWith(AppConfig.authLogout),
+      );
+      expect(logout.method, 'POST');
+      expect(bodyOf(logout)['refresh_token'], 'refresh-bbb');
+      expect(
+        logout.headers['Authorization'],
+        'Bearer access-aaa',
+        reason:
+            'the endpoint is authenticated, so it must be called while '
+            'the access token is still valid',
+      );
+    });
+
+    test('the local session is cleared afterwards', () async {
+      final api = serviceReturning({'status': 'success', 'data': {}});
+      await TokenStore.writeTokens(
+        accessToken: 'access-aaa',
+        refreshToken: 'refresh-bbb',
+      );
+
+      await api.clearSession();
+
+      expect(await TokenStore.readAccessToken(), isNull);
+      expect(await TokenStore.readRefreshToken(), isNull);
+    });
+
+    test('a rider with no signal can still log out', () async {
+      // The local clear is what the UI depends on; the server call is best
+      // effort and must not be able to strand someone signed in.
+      final api = ApiService(
+        client: MockClient((_) async {
+          throw http.ClientException('no network');
+        }),
+      );
+      await TokenStore.writeTokens(
+        accessToken: 'access-aaa',
+        refreshToken: 'refresh-bbb',
+      );
+
+      await expectLater(api.clearSession(), completes);
+      expect(await TokenStore.readAccessToken(), isNull);
+    });
+
+    test('a server refusal does not strand the session either', () async {
+      final api = serviceReturning({'status': 'error'}, status: 503);
+      await TokenStore.writeTokens(
+        accessToken: 'access-aaa',
+        refreshToken: 'refresh-bbb',
+      );
+
+      await api.clearSession();
+
+      expect(await TokenStore.readAccessToken(), isNull);
+    });
+
+    test('with no refresh token it clears locally and calls nothing', () async {
+      final api = serviceReturning({'status': 'success', 'data': {}});
+
+      await api.clearSession();
+
+      expect(
+        captured.where((r) => r.url.path.endsWith(AppConfig.authLogout)),
+        isEmpty,
+      );
+      expect(await TokenStore.readAccessToken(), isNull);
+    });
+  });
+
   group('no placeholder token survives anywhere in the app', () {
     test('lib/ contains no device-token placeholder', () {
       // A structural guard, because the defect was not one bad call site --

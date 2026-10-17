@@ -3,6 +3,7 @@ import 'package:http/http.dart' as http;
 import 'package:flutter/foundation.dart';
 import '../core/app_config.dart';
 import 'package:image_picker/image_picker.dart';
+import 'push_notification_service.dart';
 import 'token_store.dart';
 
 abstract class AuthApiClient {
@@ -476,8 +477,48 @@ class ApiService implements AuthApiClient {
     }
   }
 
+  /// End the session on the server, then locally.
+  ///
+  /// This used to be `TokenStore.clear()` alone, so a rider's logout was
+  /// local only. Two consequences, both real:
+  ///
+  ///   * the refresh token stayed valid for its full 14-day life, so a copy
+  ///     taken off a lost or sold phone kept minting access tokens long
+  ///     after the rider pressed Log out;
+  ///   * `POST /auth/logout/` is what clears `fcm_token` server-side, so
+  ///     dispatch kept addressing push notifications to that handset -- and
+  ///     to whoever held it next.
+  ///
+  /// The server call is best-effort and deliberately first, while the access
+  /// token is still valid. A rider with no signal must still be able to log
+  /// out, so a failure here is logged and ignored; the local clear is what
+  /// the UI depends on and it cannot throw.
   @override
   Future<void> clearSession() async {
+    try {
+      final refresh = await TokenStore.readRefreshToken();
+      if (refresh != null && refresh.isNotEmpty) {
+        await authedRequest(
+          (headers) => _client.post(
+            Uri.parse('$baseUrl${AppConfig.authLogout}'),
+            headers: headers,
+            body: jsonEncode({'refresh_token': refresh}),
+          ),
+        );
+      }
+    } catch (e) {
+      debugPrint('Server-side logout did not complete; clearing locally: $e');
+    }
+
+    // Drop this install's push token too, so the device stops holding a
+    // credential for a session that has ended. Independent of the call
+    // above on purpose.
+    try {
+      await PushNotificationService.deleteToken();
+    } catch (e) {
+      debugPrint('Could not delete the local push token: $e');
+    }
+
     await TokenStore.clear();
     _accessToken = null;
   }

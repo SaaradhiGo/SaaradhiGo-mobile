@@ -41,8 +41,9 @@ class AppConfig {
   /// configured is still refused, the flag is compile-time so a store build
   /// cannot acquire it later, and [environmentLabel] still reports QA so the
   /// badge stays on every screen.
-  static const bool allowNonProductionHost =
-      bool.fromEnvironment('ALLOW_NON_PRODUCTION_HOST');
+  static const bool allowNonProductionHost = bool.fromEnvironment(
+    'ALLOW_NON_PRODUCTION_HOST',
+  );
 
   /// Reads dotenv without throwing when no `.env` was ever loaded.
   static String _fromDotenv(String key) {
@@ -60,7 +61,8 @@ class AppConfig {
     return isProduction ? '' : devFallback;
   }
 
-  static String get baseUrl => _resolve(_defineBaseUrl, 'BASE_URL', _devBaseUrl);
+  static String get baseUrl =>
+      _resolve(_defineBaseUrl, 'BASE_URL', _devBaseUrl);
   static String get wsBaseUrl =>
       _resolve(_defineWsBaseUrl, 'WS_BASE_URL', _devWsBaseUrl);
 
@@ -77,11 +79,11 @@ class AppConfig {
   /// Why this build must refuse to start, or null when it is configured sanely.
   /// Only ever non-null in a RELEASE build.
   static String? get misconfiguration => evaluate(
-        isProduction: isProduction,
-        allowNonProductionHost: allowNonProductionHost,
-        api: baseUrl,
-        ws: wsBaseUrl,
-      );
+    isProduction: isProduction,
+    allowNonProductionHost: allowNonProductionHost,
+    api: baseUrl,
+    ws: wsBaseUrl,
+  );
 
   /// The decision itself, with every input passed in.
   ///
@@ -108,8 +110,9 @@ class AppConfig {
       // Deliberate QA build. The environment badge says so on every screen.
       return null;
     }
-    final offending = _nonProductionMarkers
-        .where((m) => api.contains(m) || ws.contains(m));
+    final offending = _nonProductionMarkers.where(
+      (m) => api.contains(m) || ws.contains(m),
+    );
     if (offending.isNotEmpty) {
       return 'This release build points at a non-production host '
           '("${offending.first}"). Rebuild with the production URLs.';
@@ -123,7 +126,9 @@ class AppConfig {
     if (api.isEmpty) return 'UNCONFIGURED';
     for (final marker in _nonProductionMarkers) {
       if (api.contains(marker)) {
-        return marker == 'dev.' ? 'QA' : marker.replaceAll('.', '').toUpperCase();
+        return marker == 'dev.'
+            ? 'QA'
+            : marker.replaceAll('.', '').toUpperCase();
       }
     }
     return 'PRODUCTION';
@@ -140,6 +145,12 @@ class AppConfig {
   static const String authEmailLogin = '/auth/email/login/';
   static const String authPasswordForgot = '/auth/password/forgot/';
   static const String authRefresh = '/auth/refresh/';
+
+  // Server-side logout. Blacklists the refresh token and clears the stored
+  // FCM token. Without calling it, a logout is local only: the refresh token
+  // keeps minting access tokens for its full 14-day life, and dispatch keeps
+  // addressing push to a handset whose session has ended.
+  static const String authLogout = '/auth/logout/';
   static const String authUpdate = '/auth/update/';
   static const String authProfile = '/auth/profile/';
 
@@ -170,10 +181,12 @@ class AppConfig {
   // that is not in the repository. The environment defaults to sandbox, which is
   // the safe direction to fail: a build that forgets the flag cannot take real
   // money.
-  static const String _defineCashfreeAppId =
-      String.fromEnvironment('CASHFREE_APP_ID');
-  static const String _defineCashfreeEnv =
-      String.fromEnvironment('CASHFREE_ENVIRONMENT');
+  static const String _defineCashfreeAppId = String.fromEnvironment(
+    'CASHFREE_APP_ID',
+  );
+  static const String _defineCashfreeEnv = String.fromEnvironment(
+    'CASHFREE_ENVIRONMENT',
+  );
 
   static String get cashfreeAppId => _defineCashfreeAppId.isNotEmpty
       ? _defineCashfreeAppId

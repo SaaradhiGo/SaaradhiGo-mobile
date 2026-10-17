@@ -61,6 +61,20 @@ class PushNotificationService {
     }
   }
 
+  /// Invalidate this install's token at logout.
+  ///
+  /// The server clears its own copy inside `POST /auth/logout/`, which is the
+  /// half that stops dispatch addressing this handset. This is the device
+  /// half: it stops the install holding a credential for a session that has
+  /// ended, which matters on a shared or resold phone. Never throws.
+  static Future<void> deleteToken() async {
+    try {
+      await _messaging.deleteToken();
+    } catch (e) {
+      debugPrint('Error deleting FCM token: $e');
+    }
+  }
+
   static Future<String?> getToken() async {
     try {
       // Ensure we have permissions before requesting token
