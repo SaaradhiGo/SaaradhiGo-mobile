@@ -52,6 +52,12 @@ jobs:
       - name: Test
         run: flutter test --reporter expanded
 
+      # Run again, named, so that a failure of either of these two reads as
+      # "the Android release configuration regressed" in the job list rather
+      # than as one line among a hundred app tests. They cost a second.
+      - name: Android release configuration and Android 14+ location checks
+        run: flutter test test/release_signing_test.dart test/android_manifest_test.dart
+
   # A build is a different gate from a test.
   #
   # `flutter test` runs on the Dart VM and proves nothing about whether the app
