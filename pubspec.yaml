@@ -58,6 +58,11 @@ dev_dependencies:
   build_runner: ^2.13.0
   riverpod_generator: ^4.0.3
 
+  # test/session_revocation_test.dart installs a secure store that THROWS,
+  # which is the case the logged-out guarantee depends on and which
+  # FlutterSecureStorage.setMockInitialValues cannot express.
+  flutter_secure_storage_platform_interface: ^1.1.2
+
 flutter:
   uses-material-design: true
   assets:
