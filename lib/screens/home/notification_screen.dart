@@ -79,6 +79,14 @@ class _NotificationScreenState extends State<NotificationScreen> {
             );
           }
 
+          // A failure and an empty inbox are different things, and used to
+          // look identical: the provider returned an empty list for an
+          // expired token, a network error or a parse problem, and this
+          // screen said "No notifications yet".
+          if (provider.error != null && provider.notifications.isEmpty) {
+            return _buildErrorState(provider);
+          }
+
           if (provider.notifications.isEmpty) {
             return _buildEmptyState();
           }
@@ -118,6 +126,46 @@ class _NotificationScreenState extends State<NotificationScreen> {
             ),
           );
         },
+      ),
+    );
+  }
+
+  Widget _buildErrorState(NotificationProvider provider) {
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(24),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            const Icon(Icons.cloud_off, size: 56, color: Colors.white38),
+            const SizedBox(height: 16),
+            const Text(
+              'Could not load notifications',
+              style: TextStyle(
+                color: Colors.white,
+                fontSize: 18,
+                fontWeight: FontWeight.w600,
+              ),
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: 8),
+            Text(
+              provider.error!,
+              style: const TextStyle(color: Colors.white54),
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: 20),
+            ElevatedButton.icon(
+              onPressed: () => provider.fetchNotifications(),
+              icon: const Icon(Icons.refresh),
+              label: const Text('Try again'),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFFEEBD2B),
+                foregroundColor: Colors.black,
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }

@@ -5,8 +5,22 @@ import 'models/notification_model.dart';
 import '../core/app_config.dart';
 
 class NotificationService {
+  NotificationService({http.Client? client})
+    : _client = client ?? http.Client();
+
+  final http.Client _client;
+
   static final String _baseUrl = AppConfig.baseUrl;
 
+  /// Fetch a page of notifications.
+  ///
+  /// Returns `notifications`, `hasNext` and **`statusCode`**. The status is
+  /// new and it matters: this used to answer `{notifications: [], hasNext:
+  /// false}` for every non-200, so an expired access token was
+  /// indistinguishable from an empty inbox. Access tokens live 15 minutes, so
+  /// a rider opening this screen after a short pause was reliably told they
+  /// had no notifications. `statusCode == 0` means the request never
+  /// completed.
   Future<Map<String, dynamic>> fetchNotifications(
     String token, {
     int page = 1,
@@ -14,7 +28,7 @@ class NotificationService {
     final String url = '$_baseUrl${AppConfig.riderNotifications}?page=$page';
 
     try {
-      final response = await http.get(
+      final response = await _client.get(
         Uri.parse(url),
         headers: {
           'Content-Type': 'application/json',
@@ -48,17 +62,36 @@ class NotificationService {
           hasNext = false;
         }
 
+        // Each row is parsed defensively: one malformed notification must
+        // not empty the whole list, which is what an exception here did --
+        // the caller caught it and showed "no notifications".
+        final parsed = <NotificationModel>[];
+        for (final json in results) {
+          try {
+            parsed.add(NotificationModel.fromJson(json));
+          } catch (e) {
+            debugPrint('Skipping an unparseable notification: $e');
+          }
+        }
+
         return {
-          'notifications': results
-              .map((json) => NotificationModel.fromJson(json))
-              .toList(),
+          'notifications': parsed,
           'hasNext': hasNext,
+          'statusCode': response.statusCode,
         };
       }
-      return {'notifications': <NotificationModel>[], 'hasNext': false};
+      return {
+        'notifications': <NotificationModel>[],
+        'hasNext': false,
+        'statusCode': response.statusCode,
+      };
     } catch (e) {
       debugPrint('Fetch Notifications error: $e');
-      return {'notifications': <NotificationModel>[], 'hasNext': false};
+      return {
+        'notifications': <NotificationModel>[],
+        'hasNext': false,
+        'statusCode': 0,
+      };
     }
   }
 
