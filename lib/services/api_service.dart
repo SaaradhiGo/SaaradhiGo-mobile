@@ -42,10 +42,26 @@ abstract class AuthApiClient {
 class ApiService implements AuthApiClient {
   static String baseUrl = AppConfig.baseUrl;
 
-  // Singleton pattern
+  // Singleton pattern.
+  //
+  // `client` exists so a test can replay a REAL captured server response
+  // through this class's own parsing — see
+  // test/auth_contract_conformance_test.dart. Without an injectable client
+  // the only way to test the parsing is to re-implement it in the test,
+  // which is precisely the mistake that let the driver app ship a login that
+  // could never work: its fixtures used the same wrong key names its code
+  // used, so tests and code agreed and both disagreed with the server.
+  //
+  // Passing nothing returns the singleton and behaves exactly as before.
   static final ApiService _instance = ApiService._internal();
-  factory ApiService() => _instance;
-  ApiService._internal();
+
+  factory ApiService({http.Client? client}) =>
+      client == null ? _instance : ApiService._internal(client: client);
+
+  ApiService._internal({http.Client? client})
+      : _client = client ?? http.Client();
+
+  final http.Client _client;
 
   String? _accessToken;
   Future<String>? _inflightRefresh;
@@ -77,7 +93,7 @@ class ApiService implements AuthApiClient {
       if (refresh == null || refresh.isEmpty) {
         throw Exception('no refresh token');
       }
-      final response = await http.post(
+      final response = await _client.post(
         Uri.parse('$baseUrl${AppConfig.authRefresh}'),
         headers: {'Content-Type': 'application/json'},
         body: jsonEncode({'refresh_token': refresh}),
@@ -164,7 +180,7 @@ class ApiService implements AuthApiClient {
     String role,
   ) async {
     try {
-      final response = await http.post(
+      final response = await _client.post(
         Uri.parse('$baseUrl${AppConfig.authOtp}'),
         headers: {'Content-Type': 'application/json'},
         body: jsonEncode({'phone_number': phoneNumber, 'role': role}),
@@ -197,7 +213,7 @@ class ApiService implements AuthApiClient {
     String deviceToken,
   ) async {
     try {
-      final response = await http.post(
+      final response = await _client.post(
         Uri.parse('$baseUrl${AppConfig.authLogin}'),
         headers: {'Content-Type': 'application/json'},
         body: jsonEncode({
@@ -248,7 +264,7 @@ class ApiService implements AuthApiClient {
     String? mfaCode,
   }) async {
     try {
-      final response = await http.post(
+      final response = await _client.post(
         Uri.parse('$baseUrl${AppConfig.authEmailLogin}'),
         headers: {'Content-Type': 'application/json'},
         body: jsonEncode({
@@ -291,7 +307,7 @@ class ApiService implements AuthApiClient {
   /// whether an account exists.
   Future<bool> requestPasswordReset(String email) async {
     try {
-      final response = await http.post(
+      final response = await _client.post(
         Uri.parse('$baseUrl${AppConfig.authPasswordForgot}'),
         headers: {'Content-Type': 'application/json'},
         body: jsonEncode({'email': email}),
@@ -352,7 +368,7 @@ class ApiService implements AuthApiClient {
         final streamedResponse = await request.send();
         response = await http.Response.fromStream(streamedResponse);
       } else {
-        response = await http.patch(
+        response = await _client.patch(
           uri,
           headers: {
             'Content-Type': 'application/json',
@@ -391,7 +407,7 @@ class ApiService implements AuthApiClient {
   @override
   Future<Map<String, dynamic>?> getProfile() async {
     final response = await authedRequest(
-      (headers) => http.get(
+      (headers) => _client.get(
         Uri.parse('$baseUrl${AppConfig.authProfile}'),
         headers: headers,
       ),

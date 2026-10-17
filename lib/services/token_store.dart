@@ -50,8 +50,20 @@ class TokenStore {
     required String accessToken,
     required String refreshToken,
   }) async {
-    await _secure.write(key: _kAccess, value: accessToken);
-    await _secure.write(key: _kRefresh, value: refreshToken);
+    // Guarded for the same reason the read is: secure storage can be
+    // unavailable (MissingPluginException in a test binding, and reported
+    // keystore failures on some Android builds). Unguarded, the throw
+    // happened BEFORE the SharedPreferences dual-write, so a secure-storage
+    // fault did not degrade to the fallback -- it failed the whole login and
+    // the user saw "invalid OTP".
+    //
+    // The prefs write always happens, so a session still survives.
+    try {
+      await _secure.write(key: _kAccess, value: accessToken);
+      await _secure.write(key: _kRefresh, value: refreshToken);
+    } catch (_) {
+      // Best effort. The prefs copy below is what keeps the user signed in.
+    }
 
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString(_kAccess, accessToken);
@@ -60,8 +72,15 @@ class TokenStore {
 
   /// Wipe both stores. Called on logout / 401-after-refresh-fails.
   static Future<void> clear() async {
-    await _secure.delete(key: _kAccess);
-    await _secure.delete(key: _kRefresh);
+    // Same guard, and it matters more here: a logout that throws partway
+    // through would leave the tokens in SharedPreferences, so the next launch
+    // would restore a session the user believed they had ended.
+    try {
+      await _secure.delete(key: _kAccess);
+      await _secure.delete(key: _kRefresh);
+    } catch (_) {
+      // Fall through -- the prefs copy below must still be removed.
+    }
     final prefs = await SharedPreferences.getInstance();
     await prefs.remove(_kAccess);
     await prefs.remove(_kRefresh);
