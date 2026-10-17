@@ -40,6 +40,31 @@ import 'package:provider/provider.dart' as p;
 import '../../utils/money.dart';
 import '../../widgets/safety_sheet.dart';
 
+/// Cancel, and tell the rider when the server did not confirm it.
+///
+/// `cancelRideRequest` now returns false and KEEPS the ride on screen when
+/// the server refuses or the request times out, because in that case the trip
+/// really is still live and a driver really may still arrive. Every call site
+/// used to ignore the result, which is how a failed cancellation became a
+/// silent one.
+Future<bool> _cancelRideAndReport(BuildContext context) async {
+  final provider = context.read<MapProvider>();
+  final confirmed = await provider.cancelRideRequest();
+  if (!confirmed && context.mounted) {
+    ScaffoldMessenger.maybeOf(context)?.showSnackBar(
+      const SnackBar(
+        duration: Duration(seconds: 6),
+        backgroundColor: Color(0xFFB00020),
+        content: Text(
+          'We could not cancel your ride. It is still active — please try '
+          'again.',
+        ),
+      ),
+    );
+  }
+  return confirmed;
+}
+
 class SetDestinationScreen extends StatelessWidget {
   const SetDestinationScreen({super.key});
 
@@ -146,9 +171,13 @@ class _SearchingDriverScreenState extends State<SearchingDriverScreen> {
         if (didPop) return;
         final shouldPop = await _showCancelConfirmation(context);
         if (shouldPop && mounted && context.mounted) {
-          context.read<MapProvider>().cancelRideRequest();
+          // Only leave the screen if the ride is really cancelled. Popping
+          // on a failed cancellation is what showed a rider an empty screen
+          // while a driver was still on the way.
+          final confirmed = await _cancelRideAndReport(context);
+          if (!confirmed || !mounted) return;
           setState(() => _canPop = true);
-          Navigator.of(context).pop();
+          if (context.mounted) Navigator.of(context).pop();
         }
       },
       child: _DarkMapScaffold(
@@ -328,7 +357,9 @@ class _DriverFoundScreenState extends State<DriverFoundScreen> {
             if (didPop) return;
             final shouldPop = await _showCancelConfirmation(context);
             if (shouldPop && mounted && context.mounted) {
-              context.read<MapProvider>().cancelRideRequest();
+              // Leave the screen only if the ride is really cancelled.
+              final confirmed = await _cancelRideAndReport(context);
+              if (!confirmed || !mounted || !context.mounted) return;
               setState(() => _canPop = true);
               Navigator.of(context).pop();
             }
@@ -681,10 +712,10 @@ class _DriverFoundScreenState extends State<DriverFoundScreen> {
 
   void _showCancelDialog(BuildContext context) {
     // This is no longer used individually, but kept if needed for specific flows
-    _showCancelConfirmation(context).then((shouldCancel) {
+    _showCancelConfirmation(context).then((shouldCancel) async {
       if (shouldCancel && context.mounted) {
-        context.read<MapProvider>().cancelRideRequest();
-        context.pop();
+        final confirmed = await _cancelRideAndReport(context);
+        if (confirmed && context.mounted) context.pop();
       }
     });
   }
@@ -839,7 +870,9 @@ class _FullMapTrackingScreenState extends State<FullMapTrackingScreen> {
             if (didPop) return;
             final shouldPop = await _showCancelConfirmation(context);
             if (shouldPop && mounted && context.mounted) {
-              context.read<MapProvider>().cancelRideRequest();
+              // Leave the screen only if the ride is really cancelled.
+              final confirmed = await _cancelRideAndReport(context);
+              if (!confirmed || !mounted || !context.mounted) return;
               setState(() => _canPop = true);
               Navigator.of(context).pop();
             }
@@ -1195,17 +1228,20 @@ class _RidePaymentSummaryScreenState extends State<RidePaymentSummaryScreen> {
           if (verifyResult != null &&
               (verifyResult['status'] == 'success' ||
                   verifyResult['status'] == 'paid')) {
+            // The trip is COMPLETE and PAID. Tear down local state; do not
+            // ask the server to cancel a ride that just succeeded.
             final mapProvider = p.Provider.of<MapProvider>(
               context,
               listen: false,
             );
-            mapProvider.cancelRideRequest();
+            await mapProvider.clearRideStateLocally();
             if (mounted) context.push('/rate-driver');
           } else {
-            if (mounted)
+            if (mounted) {
               ScaffoldMessenger.of(context).showSnackBar(
                 const SnackBar(content: Text('Payment verification failed.')),
               );
+            }
           }
         }
       } catch (e) {

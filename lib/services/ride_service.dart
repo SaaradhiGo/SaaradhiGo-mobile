@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'package:web_socket_channel/web_socket_channel.dart';
@@ -279,6 +280,12 @@ class RideService {
     }
   }
 
+  /// How long to wait for a cancellation to be confirmed.
+  ///
+  /// Short on purpose: an unconfirmed cancellation leaves the ride on
+  /// screen, so the rider needs to be told quickly rather than held.
+  static const cancelTimeout = Duration(seconds: 12);
+
   /// The reasons `POST /ride/trip/<id>/cancel/` accepts for a RIDER.
   ///
   /// Deliberately not shared with the driver endpoint's set: they differ, and
@@ -326,14 +333,20 @@ class RideService {
         requestBody['note'] = note;
       }
 
-      final response = await _client.post(
-        Uri.parse(url),
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': 'Bearer $token',
-        },
-        body: jsonEncode(requestBody),
-      );
+      // Bounded, because the caller now treats an unconfirmed cancellation
+      // as "the trip is still live" and keeps the ride on screen. Without a
+      // timeout a dead connection would leave the rider staring at a
+      // spinner instead of being told to retry.
+      final response = await _client
+          .post(
+            Uri.parse(url),
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': 'Bearer $token',
+            },
+            body: jsonEncode(requestBody),
+          )
+          .timeout(cancelTimeout);
       if (response.statusCode == 200 || response.statusCode == 201) {
         return true;
       }

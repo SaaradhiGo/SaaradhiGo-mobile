@@ -607,33 +607,79 @@ class MapProvider extends ChangeNotifier {
   /// remaining piece; the flag and the error log exist now.
   bool cancelMayNotHaveReachedServer = false;
 
-  Future<void> cancelRideRequest() async {
-    final currentTripId = tripId;
-    cancelMayNotHaveReachedServer = false;
-    if (currentTripId != null) {
-      try {
-        final token = await TokenStore.readAccessToken() ?? '';
-        if (token.isNotEmpty) {
-          final accepted = await _rideService.cancelTrip(token, currentTripId);
-          if (!accepted) {
-            cancelMayNotHaveReachedServer = true;
-            debugPrint(
-              'Cancellation was NOT accepted for trip $currentTripId; the '
-              'trip may still be live and a driver may still be dispatched.',
-            );
-          }
-        }
-      } catch (e) {
-        cancelMayNotHaveReachedServer = true;
-        debugPrint('Error cancelling trip on backend: $e');
-      }
-    }
-
-    // Awaited: cancellation is exactly the case where the persisted
-    // active-trip pointer must be gone before the UI reports the ride over.
+  /// Tear down local ride state WITHOUT asking the server to cancel.
+  ///
+  /// For a ride that is over on the server's terms -- completed and paid --
+  /// where the app just needs to stop showing it.
+  ///
+  /// This existed only as a side effect of `cancelRideRequest`, and the
+  /// payment-success path called that to get it. Once cancellation became
+  /// server-confirmed, that call started trying to CANCEL a trip that had
+  /// just been paid for: the server would refuse it, the rider would be told
+  /// "we could not cancel your ride", and the completed ride would stay on
+  /// screen. Two different intents were sharing one method; now they do not.
+  Future<void> clearRideStateLocally() async {
     await container?.read(rideNotifierProvider.notifier).clearState();
     container?.read(webSocketServiceProvider).disconnectAll();
     notifyListeners();
+  }
+
+  /// Cancel the booked ride. Returns true only when the SERVER confirmed it.
+  ///
+  /// SERVER CONFIRMATION COMES FIRST, AND THAT IS THE POINT
+  /// ------------------------------------------------------
+  /// This used to clear local state unconditionally. Combined with the
+  /// missing `reason` -- which made the server refuse every cancellation --
+  /// the rider was shown "cancelled" for a trip that was still live, with a
+  /// driver still being dispatched to them. Clearing first turns a failed
+  /// cancellation into a silent one.
+  ///
+  /// So nothing local is torn down until the server says the trip is
+  /// cancelled. When it refuses, or the request times out, the trip state is
+  /// LEFT INTACT: the ride really is still live, the driver really may still
+  /// arrive, and the rider needs to keep seeing it so they can retry. A
+  /// rider looking at a ride they tried to cancel is uncomfortable; a rider
+  /// looking at an empty screen while a driver drives to them is worse.
+  ///
+  /// There is one exception. With no `tripId` there is nothing booked
+  /// server-side -- the rider is cancelling a local search -- so there is
+  /// nothing to confirm and the local teardown is the whole operation.
+  Future<bool> cancelRideRequest() async {
+    final currentTripId = tripId;
+    cancelMayNotHaveReachedServer = false;
+
+    if (currentTripId != null) {
+      var accepted = false;
+      try {
+        final token = await TokenStore.readAccessToken() ?? '';
+        if (token.isNotEmpty) {
+          accepted = await _rideService.cancelTrip(token, currentTripId);
+        }
+      } catch (e) {
+        debugPrint('Error cancelling trip on backend: $e');
+      }
+
+      if (!accepted) {
+        // Recoverable state preserved deliberately: the trip pointer, the
+        // socket and the ride state all stay as they are.
+        cancelMayNotHaveReachedServer = true;
+        debugPrint(
+          'Cancellation was NOT confirmed for trip $currentTripId; the trip '
+          'is still live and the local state is kept so the rider can see '
+          'it and retry.',
+        );
+        notifyListeners();
+        return false;
+      }
+    }
+
+    // Confirmed by the server, or there was nothing booked to confirm.
+    // Awaited: the persisted active-trip pointer must be gone before the UI
+    // reports the ride over.
+    await container?.read(rideNotifierProvider.notifier).clearState();
+    container?.read(webSocketServiceProvider).disconnectAll();
+    notifyListeners();
+    return true;
   }
 
   Future<void> updateRidingPolyline() async {
