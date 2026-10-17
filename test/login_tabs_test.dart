@@ -57,9 +57,18 @@ class _FakeAuthApiClient implements AuthApiClient {
   Future<Map<String, dynamic>?> verifyOtpAndLogin(
     String phoneNumber,
     String otp,
-    String deviceToken,
+    String? deviceToken,
   ) async =>
       null;
+
+  @override
+  Future<bool> registerPushToken(String token) async {
+    registeredPushTokens.add(token);
+    return true;
+  }
+
+  /// Tokens the app asked the server to store after an FCM rotation.
+  final List<String> registeredPushTokens = <String>[];
 
   @override
   Future<Map<String, dynamic>?> updateProfile({

@@ -7,6 +7,7 @@ import 'token_store.dart';
 
 abstract class AuthApiClient {
   Future<Map<String, dynamic>?> requestOtp(String phoneNumber, String role);
+
   /// Email + password sign-in. See the implementation for the contract.
   Future<Map<String, dynamic>?> emailLogin({
     required String email,
@@ -18,11 +19,24 @@ abstract class AuthApiClient {
   /// never reveals whether an account exists.
   Future<bool> requestPasswordReset(String email);
 
+  /// [deviceToken] is the FCM token, or null when this device has none.
+  ///
+  /// Null must be passed through as an ABSENT key, not a placeholder. The
+  /// login view only writes `fcm_token` when the key is present, so omitting
+  /// it preserves whatever good token the server already had -- while a
+  /// placeholder overwrites it with something that can never receive
+  /// anything, and dispatch then counts this rider as push-capable.
   Future<Map<String, dynamic>?> verifyOtpAndLogin(
     String phoneNumber,
     String otp,
-    String deviceToken,
+    String? deviceToken,
   );
+
+  /// Register a push token obtained outside a login -- after FCM rotates it.
+  ///
+  /// `fcm_token` is write-only on the profile serializer, so PATCH
+  /// /auth/update/ is the supported way to set it.
+  Future<bool> registerPushToken(String token);
   Future<Map<String, dynamic>?> updateProfile({
     String? profilePicPath,
     required String fullName,
@@ -59,7 +73,7 @@ class ApiService implements AuthApiClient {
       client == null ? _instance : ApiService._internal(client: client);
 
   ApiService._internal({http.Client? client})
-      : _client = client ?? http.Client();
+    : _client = client ?? http.Client();
 
   final http.Client _client;
 
@@ -210,17 +224,21 @@ class ApiService implements AuthApiClient {
   Future<Map<String, dynamic>?> verifyOtpAndLogin(
     String phoneNumber,
     String otp,
-    String deviceToken,
+    String? deviceToken,
   ) async {
     try {
+      // The key is omitted, never sent as a placeholder. The caller used to
+      // default it to the literal 'dummy_token' whenever FCM was
+      // unavailable, which the backend stored verbatim.
+      final body = <String, dynamic>{'phone_number': phoneNumber, 'otp': otp};
+      if (deviceToken != null && deviceToken.isNotEmpty) {
+        body['device_token'] = deviceToken;
+      }
+
       final response = await _client.post(
         Uri.parse('$baseUrl${AppConfig.authLogin}'),
         headers: {'Content-Type': 'application/json'},
-        body: jsonEncode({
-          'phone_number': phoneNumber,
-          'otp': otp,
-          'device_token': deviceToken,
-        }),
+        body: jsonEncode(body),
       );
 
       if (response.statusCode != 200) {
@@ -281,7 +299,9 @@ class ApiService implements AuthApiClient {
         // Surface the error code so the UI can tell "needs a second factor"
         // apart from "wrong password" -- the only distinction the server
         // makes, and only after a correct password.
-        return {'_error': decoded['error'] ?? {'code': 'AUTH_FAILED'}};
+        return {
+          '_error': decoded['error'] ?? {'code': 'AUTH_FAILED'},
+        };
       }
 
       final sessionData = decoded['data'];
@@ -404,6 +424,38 @@ class ApiService implements AuthApiClient {
   // Get Profile — wrapped via authedRequest so an expired access token
   // is silently refreshed instead of producing a black-hole null return
   // that the UI used to interpret as "logged out".
+  /// Tell the server about a rotated FCM token.
+  ///
+  /// FCM replaces a token on reinstall, on device restore and after a long
+  /// idle period. `PushNotificationService` used to listen to
+  /// `onTokenRefresh` and only `debugPrint` the new value, so a rotated
+  /// rider token was never registered -- the server kept a dead one until
+  /// the next login, and every push to this rider silently went nowhere.
+  ///
+  /// Best effort: a failure costs push until the next login, and must never
+  /// surface to a rider who did not ask for anything.
+  @override
+  Future<bool> registerPushToken(String token) async {
+    if (token.isEmpty) return false;
+    final response = await authedRequest(
+      (headers) => _client.patch(
+        Uri.parse('$baseUrl${AppConfig.authUpdate}'),
+        headers: headers,
+        body: jsonEncode({'fcm_token': token}),
+      ),
+    );
+    if (response == null) return false;
+    // The token itself is never logged: anyone holding one can push to that
+    // device.
+    final ok = response.statusCode >= 200 && response.statusCode < 300;
+    debugPrint(
+      ok
+          ? 'Push token registered with the server'
+          : 'Push token registration failed (${response.statusCode})',
+    );
+    return ok;
+  }
+
   @override
   Future<Map<String, dynamic>?> getProfile() async {
     final response = await authedRequest(

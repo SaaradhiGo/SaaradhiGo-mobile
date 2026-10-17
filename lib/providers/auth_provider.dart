@@ -732,8 +732,9 @@ class AuthProvider extends ChangeNotifier {
     // Same session handling as the OTP path, minus the phone capture: an
     // email login does not tell us a phone number, and inventing one would
     // overwrite whatever the profile already holds.
-    final profileUpdated =
-        _applyProfileFromUserPayload(_extractUserPayload(response));
+    final profileUpdated = _applyProfileFromUserPayload(
+      _extractUserPayload(response),
+    );
     await _persistIfNeeded([profileUpdated]);
 
     _setLoading(false);
@@ -763,7 +764,7 @@ class AuthProvider extends ChangeNotifier {
     return response;
   }
 
-  Future<bool> verifyOtp(String phone, String otp, String deviceToken) async {
+  Future<bool> verifyOtp(String phone, String otp, String? deviceToken) async {
     _setLoading(true);
     _setError(null);
     final response = await _apiService.verifyOtpAndLogin(

@@ -2,6 +2,7 @@ import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../state/ride_notifier.dart';
+import 'api_service.dart';
 
 class PushNotificationService {
   static final FirebaseMessaging _messaging = FirebaseMessaging.instance;
@@ -43,8 +44,17 @@ class PushNotificationService {
             .updateFromNotification(initialMessage.data);
       }
 
+      // Register the rotation with the server.
+      //
+      // This used to only debugPrint the new value. FCM replaces a token on
+      // reinstall, on device restore and after a long idle period, so the
+      // server kept a dead token until the rider next logged in -- and every
+      // push in between went nowhere, silently. The token is never printed:
+      // anyone holding one can push to that device.
       _messaging.onTokenRefresh.listen((newToken) {
-        debugPrint('FCM Token Refreshed: $newToken');
+        if (newToken.isEmpty) return;
+        debugPrint('FCM token rotated; registering with the server');
+        ApiService().registerPushToken(newToken);
       });
     } catch (e) {
       debugPrint('Error initializing PushNotificationService: $e');
