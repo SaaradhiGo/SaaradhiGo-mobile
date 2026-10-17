@@ -16,6 +16,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../state/ride_notifier.dart';
 import '../state/ride_state.dart';
 import '../services/websocket_service.dart';
+import '../services/token_store.dart';
 
 enum LocationStatus { unknown, loading, confirmed, failed }
 
@@ -597,16 +598,33 @@ class MapProvider extends ChangeNotifier {
         );
   }
 
+  /// True when the last cancellation did not reach the server.
+  ///
+  /// The local state is cleared either way, so the rider is never stranded
+  /// in a ride they cannot leave -- but if the server did not accept the
+  /// cancellation the trip is still live and a driver may still arrive, so
+  /// that is not something to swallow. Surfacing this in the UI is the
+  /// remaining piece; the flag and the error log exist now.
+  bool cancelMayNotHaveReachedServer = false;
+
   Future<void> cancelRideRequest() async {
     final currentTripId = tripId;
+    cancelMayNotHaveReachedServer = false;
     if (currentTripId != null) {
       try {
-        final prefs = await SharedPreferences.getInstance();
-        final token = prefs.getString('access_token') ?? '';
+        final token = await TokenStore.readAccessToken() ?? '';
         if (token.isNotEmpty) {
-          await _rideService.cancelTrip(token, currentTripId);
+          final accepted = await _rideService.cancelTrip(token, currentTripId);
+          if (!accepted) {
+            cancelMayNotHaveReachedServer = true;
+            debugPrint(
+              'Cancellation was NOT accepted for trip $currentTripId; the '
+              'trip may still be live and a driver may still be dispatched.',
+            );
+          }
         }
       } catch (e) {
+        cancelMayNotHaveReachedServer = true;
         debugPrint('Error cancelling trip on backend: $e');
       }
     }

@@ -7,6 +7,13 @@ import '../core/app_config.dart';
 import '../utils/log_redaction.dart';
 
 class RideService {
+  /// `client` exists so tests can drive this class's own parsing and request
+  /// bodies instead of re-describing them. Passing nothing behaves exactly
+  /// as before.
+  RideService({http.Client? client}) : _client = client ?? http.Client();
+
+  final http.Client _client;
+
   WebSocketChannel? _rideRequestChannel;
   WebSocketChannel? _tripChannel;
 
@@ -17,7 +24,7 @@ class RideService {
     String url = '${AppConfig.baseUrl}${AppConfig.rideHistory}';
 
     try {
-      final response = await http.get(
+      final response = await _client.get(
         Uri.parse(url),
         headers: {
           'Content-Type': 'application/json',
@@ -121,7 +128,7 @@ class RideService {
     int tripId,
   ) async {
     try {
-      final response = await http.post(
+      final response = await _client.post(
         Uri.parse('${AppConfig.baseUrl}/payments/create-order/'),
         headers: {
           'Content-Type': 'application/json',
@@ -166,7 +173,7 @@ class RideService {
     String signature,
   ) async {
     try {
-      final response = await http.post(
+      final response = await _client.post(
         Uri.parse('${AppConfig.baseUrl}/payments/verify/'),
         headers: {
           'Content-Type': 'application/json',
@@ -194,7 +201,7 @@ class RideService {
     String tripId,
   ) async {
     try {
-      final response = await http.get(
+      final response = await _client.get(
         Uri.parse('${AppConfig.baseUrl}/ride/trip/$tripId/'),
         headers: {
           'Content-Type': 'application/json',
@@ -217,7 +224,7 @@ class RideService {
     String tripId,
   ) async {
     try {
-      final response = await http.get(
+      final response = await _client.get(
         Uri.parse('${AppConfig.baseUrl}/ride/trip/$tripId/details/'),
         headers: {
           'Content-Type': 'application/json',
@@ -237,7 +244,7 @@ class RideService {
 
   Future<Map<String, dynamic>?> fetchActiveTrip(String token) async {
     try {
-      final response = await http.get(
+      final response = await _client.get(
         Uri.parse('${AppConfig.baseUrl}${AppConfig.activeRide}'),
         headers: {
           'Content-Type': 'application/json',
@@ -272,6 +279,23 @@ class RideService {
     }
   }
 
+  /// The reasons `POST /ride/trip/<id>/cancel/` accepts for a RIDER.
+  ///
+  /// Deliberately not shared with the driver endpoint's set: they differ, and
+  /// sending one app's vocabulary to the other's endpoint is a 400.
+  static const riderCancelReasons = <String>{
+    'no_show',
+    'wrong_location',
+    'too_long',
+    'safety',
+    'other',
+  };
+
+  static String _validCancelReason(String? reason) {
+    final candidate = reason?.trim() ?? '';
+    return riderCancelReasons.contains(candidate) ? candidate : 'other';
+  }
+
   Future<bool> cancelTrip(
     String token,
     String tripId, {
@@ -280,15 +304,29 @@ class RideService {
   }) async {
     final url = '${AppConfig.baseUrl}/ride/trip/$tripId/cancel/';
     try {
-      final Map<String, dynamic> requestBody = {};
-      if (reason != null) {
-        requestBody['reason'] = reason;
-      }
+      // `reason` is REQUIRED by the server, which validates it against
+      // {no_show, wrong_location, too_long, safety, other} and answers
+      // INVALID_REASON 400 for anything else -- including an absent field.
+      //
+      // Every caller in this app invokes `cancelTrip(token, tripId)` with no
+      // reason, so the body was `{}` and every rider cancellation was
+      // refused. The failure was caught and debugPrinted while the app went
+      // on to clear its local state, so the rider was shown "cancelled"
+      // while the trip stayed live on the server and a driver could still be
+      // dispatched to them.
+      //
+      // 'other' is the honest default for a rider cancelling a search with
+      // no reason UI. Note the rider vocabulary is NOT the driver's: the
+      // driver endpoint accepts `vehicle_issue` and `personal`, which this
+      // one rejects.
+      final Map<String, dynamic> requestBody = {
+        'reason': _validCancelReason(reason),
+      };
       if (note != null) {
         requestBody['note'] = note;
       }
 
-      final response = await http.post(
+      final response = await _client.post(
         Uri.parse(url),
         headers: {
           'Content-Type': 'application/json',
