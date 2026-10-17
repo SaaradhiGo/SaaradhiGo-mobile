@@ -4,6 +4,7 @@ import 'package:web_socket_channel/web_socket_channel.dart';
 import 'package:flutter/foundation.dart';
 import 'models/trip_model.dart';
 import '../core/app_config.dart';
+import '../utils/log_redaction.dart';
 
 class RideService {
   WebSocketChannel? _rideRequestChannel;
@@ -128,7 +129,14 @@ class RideService {
         },
         body: jsonEncode({'trip_id': tripId}),
       );
-      debugPrint(response.body);
+      // NOT the raw body. This response carries the Cashfree
+      // `payment_session_id` -- the credential the checkout SDK opens a
+      // payment with -- and logging it in full puts a payment session into
+      // logcat.
+      debugPrint(
+        'Create order: ${response.statusCode} '
+        '${redactedBody(response.body)}',
+      );
       if (response.statusCode == 201 || response.statusCode == 200) {
         return jsonDecode(response.body);
       }
@@ -141,7 +149,7 @@ class RideService {
         return errorData; // Return error data so UI can show message
       } catch (_) {
         debugPrint(
-          'Create Trip Payment Order Error: ${response.statusCode} - ${response.body}',
+          'Create Trip Payment Order Error: ${response.statusCode} - ${redactedBody(response.body)}',
         );
       }
       return null;
@@ -291,7 +299,10 @@ class RideService {
       if (response.statusCode == 200 || response.statusCode == 201) {
         return true;
       }
-      debugPrint('Cancel Trip failed: ${response.statusCode} ${response.body}');
+      debugPrint(
+        'Cancel Trip failed: ${response.statusCode} '
+        '${redactedBody(response.body)}',
+      );
       return false;
     } catch (e) {
       debugPrint('Cancel Trip error: $e');
