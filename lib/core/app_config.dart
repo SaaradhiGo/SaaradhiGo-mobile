@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 
 /// Build-time configuration for the rider app.
@@ -28,6 +29,20 @@ class AppConfig {
   static const String _devWsBaseUrl = 'wss://dev.api.saaradhigo.in/ws';
 
   static const bool isProduction = bool.fromEnvironment('dart.vm.product');
+
+  /// Lets a RELEASE build point at a non-production server on purpose.
+  ///
+  /// A QA acceptance build has to be a real release build -- minified, shrunk,
+  /// signed, the same code path a rider runs -- while talking to the QA API.
+  /// Without this flag [misconfiguration] refuses exactly that build, so QA
+  /// would have to certify a debug binary and hope.
+  ///
+  /// It does not weaken the guard it opens: a release build with NO server
+  /// configured is still refused, the flag is compile-time so a store build
+  /// cannot acquire it later, and [environmentLabel] still reports QA so the
+  /// badge stays on every screen.
+  static const bool allowNonProductionHost =
+      bool.fromEnvironment('ALLOW_NON_PRODUCTION_HOST');
 
   /// Reads dotenv without throwing when no `.env` was ever loaded.
   static String _fromDotenv(String key) {
@@ -61,13 +76,37 @@ class AppConfig {
 
   /// Why this build must refuse to start, or null when it is configured sanely.
   /// Only ever non-null in a RELEASE build.
-  static String? get misconfiguration {
+  static String? get misconfiguration => evaluate(
+        isProduction: isProduction,
+        allowNonProductionHost: allowNonProductionHost,
+        api: baseUrl,
+        ws: wsBaseUrl,
+      );
+
+  /// The decision itself, with every input passed in.
+  ///
+  /// Separated from [misconfiguration] because the inputs there are
+  /// compile-time constants: `dart.vm.product` is false under `flutter test`,
+  /// so the release branches could only ever be exercised by building a
+  /// release binary and looking at it. A guard nobody can test is a guard
+  /// nobody can trust.
+  @visibleForTesting
+  static String? evaluate({
+    required bool isProduction,
+    required bool allowNonProductionHost,
+    required String api,
+    required String ws,
+  }) {
     if (!isProduction) return null;
-    final api = baseUrl;
-    final ws = wsBaseUrl;
     if (api.isEmpty || ws.isEmpty) {
+      // Checked BEFORE the opt-in: ALLOW_NON_PRODUCTION_HOST means "QA on
+      // purpose", not "no host at all".
       return 'This release build was compiled without BASE_URL and WS_BASE_URL. '
           'Rebuild with --dart-define for the target environment.';
+    }
+    if (allowNonProductionHost) {
+      // Deliberate QA build. The environment badge says so on every screen.
+      return null;
     }
     final offending = _nonProductionMarkers
         .where((m) => api.contains(m) || ws.contains(m));
