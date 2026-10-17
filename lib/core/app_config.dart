@@ -159,6 +159,13 @@ class AppConfig {
   // does too.
   static const String sos = '/sos/';
 
+  // Support tickets. The endpoints already existed and the driver app has
+  // used them since its support work; the rider's Help & Support screen was
+  // decorative -- tiles with no handlers -- so a rider with a problem could
+  // reach a screen that looks like support and do nothing from it.
+  static const String supportTickets = '/support/tickets/';
+  static const String supportCreateTicket = '/support/tickets/create/';
+
   static const String riderNotifications = '/rider/notifications/';
   static const String rideHistory = '/ride/ride-history/';
   static const String activeRide = '/ride/active/';

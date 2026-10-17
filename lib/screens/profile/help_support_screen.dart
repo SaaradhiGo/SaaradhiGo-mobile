@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 
 import 'package:google_fonts/google_fonts.dart';
 import 'package:go_router/go_router.dart';
+import '../../services/support_service.dart';
+import 'report_problem_screen.dart';
 
 class HelpSupportScreen extends StatelessWidget {
   const HelpSupportScreen({super.key});
@@ -19,6 +21,15 @@ class HelpSupportScreen extends StatelessWidget {
       return;
     }
     context.go('/home?tab=3');
+  }
+
+  /// Open the ticket form, preselecting what the rider tapped.
+  static void _report(BuildContext context, SupportIssueType type) {
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (_) => ReportProblemScreen(initialIssueType: type),
+      ),
+    );
   }
 
   @override
@@ -120,36 +131,54 @@ class HelpSupportScreen extends StatelessWidget {
                           crossAxisSpacing: 20,
                           childAspectRatio: 1.70,
                         ),
-                    children: const [
+                    children: [
                       _MiniTile(
                         icon: Icons.directions_car,
                         label: 'Ride Issues',
+                        onTap: () =>
+                            _report(context, SupportIssueType.fareDispute),
                       ),
                       _MiniTile(
                         icon: Icons.account_balance_wallet,
                         label: 'Payment & Wallet',
+                        onTap: () => _report(context, SupportIssueType.payment),
                       ),
-                      _MiniTile(icon: Icons.person, label: 'Account & App'),
+                      _MiniTile(
+                        icon: Icons.person,
+                        label: 'Account & App',
+                        onTap: () => _report(context, SupportIssueType.account),
+                      ),
                       _MiniTile(
                         icon: Icons.shield,
                         label: 'Safety',
-                        iconBackground: Color(0x338B6508),
+                        iconBackground: const Color(0x338B6508),
+                        onTap: () => _report(context, SupportIssueType.safety),
                       ),
                     ],
                   ),
                   const SizedBox(height: 32),
                   const _HelpSectionLabel('Contact Us'),
                   const SizedBox(height: 16),
-                  const _ContactTile(
-                    icon: Icons.chat_bubble,
-                    title: 'Live Chat',
-                    subtitle: 'Usually responds in minutes',
+                  // "Live Chat" promised something that does not exist --
+                  // there is no chat service behind this app. Replaced with
+                  // the ticket flow, which is real, and described honestly:
+                  // support replies in the app rather than instantly.
+                  _ContactTile(
+                    icon: Icons.edit_note,
+                    title: 'Report a problem',
+                    subtitle: 'Support replies in the app',
+                    onTap: () => _report(context, SupportIssueType.other),
                   ),
                   const SizedBox(height: 12),
-                  const _ContactTile(
+                  _ContactTile(
                     icon: Icons.mail,
                     title: 'Email Support',
-                    subtitle: 'support@saaradhigo.com',
+                    // Was support@saaradhigo.com. The platform runs on
+                    // saaradhigo.in -- api.saaradhigo.in, and
+                    // PLATFORM_CONTACT_DOMAIN -- so the .com address was a
+                    // dead end for anyone who typed it in.
+                    subtitle: 'support@saaradhigo.in',
+                    onTap: () => _report(context, SupportIssueType.other),
                   ),
                 ],
               ),
@@ -254,42 +283,51 @@ class _MiniTile extends StatelessWidget {
     required this.icon,
     required this.label,
     this.iconBackground,
+    this.onTap,
   });
 
   final IconData icon;
   final String label;
   final Color? iconBackground;
 
+  /// These tiles had no handler at all, so a rider could tap "Safety" on a
+  /// screen called Help & Support and nothing would happen.
+  final VoidCallback? onTap;
+
   @override
   Widget build(BuildContext context) {
-    return Container(
-      decoration: BoxDecoration(
-        color: const Color(0xFF24211C),
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: const Color(0x0DFFFFFF)),
-      ),
-      padding: const EdgeInsets.all(16),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Container(
-            padding: const EdgeInsets.all(8),
-            decoration: BoxDecoration(
-              color: iconBackground ?? const Color(0x1AEEBD2B),
-              borderRadius: BorderRadius.circular(10),
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(20),
+      child: Container(
+        decoration: BoxDecoration(
+          color: const Color(0xFF24211C),
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(color: const Color(0x0DFFFFFF)),
+        ),
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Container(
+              padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                color: iconBackground ?? const Color(0x1AEEBD2B),
+                borderRadius: BorderRadius.circular(10),
+              ),
+              child: Icon(icon, color: const Color(0xFFEEBD2B), size: 20),
             ),
-            child: Icon(icon, color: const Color(0xFFEEBD2B), size: 20),
-          ),
-          const Spacer(),
-          Text(
-            label,
-            style: GoogleFonts.inter(
-              color: Colors.white,
-              fontSize: 14,
-              fontWeight: FontWeight.w600,
+            const Spacer(),
+            Text(
+              label,
+              style: GoogleFonts.inter(
+                color: Colors.white,
+                fontSize: 14,
+                fontWeight: FontWeight.w600,
+              ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
@@ -300,11 +338,13 @@ class _ContactTile extends StatelessWidget {
     required this.icon,
     required this.title,
     required this.subtitle,
+    this.onTap,
   });
 
   final IconData icon;
   final String title;
   final String subtitle;
+  final VoidCallback? onTap;
 
   @override
   Widget build(BuildContext context) {
