@@ -166,6 +166,11 @@ class AppConfig {
   static const String supportTickets = '/support/tickets/';
   static const String supportCreateTicket = '/support/tickets/create/';
 
+  // Rate a completed trip. Live the whole time; neither app could submit
+  // one, so every driver average sat at its default and the figure both
+  // apps display was unchangeable.
+  static const String rateTrip = '/ride/rate-trip/';
+
   static const String riderNotifications = '/rider/notifications/';
   static const String rideHistory = '/ride/ride-history/';
   static const String activeRide = '/ride/active/';
