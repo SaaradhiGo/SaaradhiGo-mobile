@@ -74,6 +74,14 @@ class AppConfig {
     'localhost',
     '127.0.0.1',
     '10.0.2.2',
+    // Railway's generated hostnames, e.g. backend-qa-811d.up.railway.app.
+    // The QA backend is reachable ONLY at one of these today, and the string
+    // 'qa.' above does not match 'backend-qa-811d' -- a hyphen, not a dot. So
+    // a release build aimed at the real QA server passed this guard as though
+    // it were production, and the QA badge keyed off the same judgement. Any
+    // railway.app host is by definition not the production domain, which is
+    // api.saaradhigo.in.
+    'railway.app',
   ];
 
   /// Why this build must refuse to start, or null when it is configured sanely.
@@ -121,14 +129,39 @@ class AppConfig {
   }
 
   /// Short label for the environment, shown on any build that is not production.
-  static String get environmentLabel {
-    final api = baseUrl;
+  /// What each non-production marker should SAY on the badge.
+  ///
+  /// The label used to be derived from the marker itself by stripping dots
+  /// and upper-casing, which only ever read well for 'dev.'. Everything else
+  /// produced something a tester cannot act on: the QA build on Railway
+  /// showed 'RAILWAYAPP', and a build against the loopback address would
+  /// have announced itself as '127001'. The badge exists to tell whoever is
+  /// holding the phone which server they are talking to, so it says that.
+  static const Map<String, String> _environmentLabels = <String, String>{
+    'dev.': 'QA',
+    'qa.': 'QA',
+    'railway.app': 'QA',
+    'staging.': 'STAGING',
+    'localhost': 'LOCAL',
+    '127.0.0.1': 'LOCAL',
+    '10.0.2.2': 'LOCAL',
+  };
+
+  static String get environmentLabel => labelForHost(baseUrl);
+
+  /// The badge text for a given API base URL.
+  ///
+  /// Separated from [environmentLabel] for the same reason [evaluate] is
+  /// separated from [misconfiguration]: the getter reads a compile-time
+  /// constant, so the only way to test what the badge actually renders for a
+  /// given server is to pass the server in.
+  static String labelForHost(String api) {
     if (api.isEmpty) return 'UNCONFIGURED';
     for (final marker in _nonProductionMarkers) {
       if (api.contains(marker)) {
-        return marker == 'dev.'
-            ? 'QA'
-            : marker.replaceAll('.', '').toUpperCase();
+        // A marker with no entry is still non-production; say so rather
+        // than falling through to 'PRODUCTION', which would be a lie.
+        return _environmentLabels[marker] ?? 'NON-PRODUCTION';
       }
     }
     return 'PRODUCTION';

@@ -87,7 +87,15 @@ class PushNotificationService {
       if (settings.authorizationStatus == AuthorizationStatus.authorized ||
           settings.authorizationStatus == AuthorizationStatus.provisional) {
         String? token = await _messaging.getToken();
-        debugPrint('FCM Token retrieved: $token');
+        // NOT the token. A push token is a credential: anyone holding it can
+        // send this device notifications, and logcat is readable by adb and
+        // by crash reporters. The API client already redacts `fcm_token` in
+        // request bodies; printing it here put it straight back in the log.
+        debugPrint(
+          token == null
+              ? 'FCM token unavailable'
+              : 'FCM token retrieved (${token.length} chars)',
+        );
         return token;
       } else {
         debugPrint(

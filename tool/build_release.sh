@@ -41,8 +41,22 @@ set -euo pipefail
 
 PROD_API="https://api.saaradhigo.in/api/v1"
 PROD_WS="wss://api.saaradhigo.in/ws"
-QA_API="https://dev.api.saaradhigo.in/api/v1"
-QA_WS="wss://dev.api.saaradhigo.in/ws"
+# QA SERVER ADDRESS
+#
+# These pointed at dev.api.saaradhigo.in, which RESOLVES (16.112.4.47) and
+# then times out on connect -- nothing serves it. Every QA artifact built
+# here was therefore an app that could not reach a backend at all, and the
+# failure looks exactly like a backend outage from the phone.
+#
+# The QA backend is served at the Railway-generated hostname below, which
+# was verified reachable (HTTP 200 on /healthz) when this was changed.
+#
+# Overridable, so pointing a build at a different QA server does not mean
+# editing this file: SAARADHIGO_QA_API=... ./tool/build_release.sh qa-apk
+# When dev.api.saaradhigo.in is finally pointed at the QA service, set it
+# back here and delete this note.
+QA_API="${SAARADHIGO_QA_API:-https://backend-qa-811d.up.railway.app/api/v1}"
+QA_WS="${SAARADHIGO_QA_WS:-wss://backend-qa-811d.up.railway.app/ws}"
 
 # Optional, never printed. Passed through only when set in the environment.
 #
