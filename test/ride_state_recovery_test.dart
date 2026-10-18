@@ -73,6 +73,23 @@ class _FakeRideService implements RideService {
   }) async =>
       true;
 
+  /// Same reason as `cancelTrip` above: this fake `implements RideService`,
+  /// so every method added to the real service has to appear here or the
+  /// whole file stops compiling. `unconfirmed` is the honest default -- no
+  /// test here chooses cash, and a fake must not claim a payment happened.
+  @override
+  Future<CashSwitchOutcome> selectCashPayment(
+    String token,
+    String tripId, {
+    int maxAttempts = 2,
+  }) async => const CashSwitchOutcome(status: CashSwitchStatus.unconfirmed);
+
+  @override
+  Future<CashSwitchOutcome> verifyCashSelection(
+    String token,
+    String tripId,
+  ) async => const CashSwitchOutcome(status: CashSwitchStatus.unconfirmed);
+
   @override
   Future<void> requestRide({
     required String token,

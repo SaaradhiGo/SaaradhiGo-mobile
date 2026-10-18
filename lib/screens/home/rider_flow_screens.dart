@@ -992,6 +992,123 @@ class _RidePaymentSummaryScreenState extends State<RidePaymentSummaryScreen> {
     });
   }
 
+  /// Choosing cash is a SERVER action, not a screen change.
+  ///
+  /// This used to be `context.push('/rate-driver')` and nothing else. The
+  /// trip's payment stayed exactly as it was -- typically an online payment
+  /// row in `pending` -- while the rider was moved on to the rating screen
+  /// as though the fare were handled. Nobody owed anything on the record,
+  /// the driver had no cash payment to confirm, and the trip never settled.
+  ///
+  /// So: switch the trip on the server, read what the server says the trip's
+  /// payment is now, and only then decide where the rider goes. A refusal or
+  /// an unanswered request keeps them on this screen, because the fare is
+  /// still outstanding and they are the only one who can retry.
+  Future<void> _payWithCash(
+    double fare,
+    String? currencyCode,
+    dynamic rideData,
+  ) async {
+    if (_isProcessing) return;
+    setState(() => _isProcessing = true);
+
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final token = prefs.getString('access_token');
+      if (!mounted) return;
+      if (token == null) {
+        _showCashError('Please sign in again to pay for this trip.');
+        return;
+      }
+
+      final tripIdStr =
+          context.read<MapProvider>().tripId ??
+          rideData?['trip_id']?.toString() ??
+          rideData?['id']?.toString();
+      if (tripIdStr == null) {
+        _showCashError('No active trip found. Please refresh and try again.');
+        return;
+      }
+
+      final outcome = await _rideService.selectCashPayment(token, tripIdStr);
+      if (!mounted) return;
+
+      switch (outcome.status) {
+        case CashSwitchStatus.awaitingCollection:
+          // The trip now carries a PENDING cash payment. The money has not
+          // moved: the driver confirms collection. Say that, rather than
+          // anything that reads as "paid".
+          final amount =
+              formatMoney(fare, currencyCode) ?? fare.toStringAsFixed(2);
+          await _finishCashSelection(
+            'Pay $amount to your driver in cash. '
+            'They will confirm it once collected.',
+          );
+          return;
+
+        case CashSwitchStatus.alreadyPaid:
+          // The earlier online payment went through, usually moments before
+          // this tap. Collecting cash as well would charge the rider twice.
+          await _finishCashSelection(
+            outcome.message ?? 'This trip is already paid. No cash is due.',
+          );
+          return;
+
+        case CashSwitchStatus.refused:
+          // The server rejected it and the trip is unchanged. Its own
+          // message is more specific than anything this screen could invent.
+          _showCashError(
+            outcome.message ??
+                'Cash is not available for this trip. Please contact support.',
+          );
+          return;
+
+        case CashSwitchStatus.unconfirmed:
+          // We do not know what happened, so nothing may be claimed and the
+          // rider stays here with the fare still on screen.
+          _showCashError(
+            'Could not switch to cash. Check your connection and try again '
+            '-- this trip has not been paid.',
+          );
+          return;
+      }
+    } catch (e) {
+      debugPrint('Pay with cash error: $e');
+      if (mounted) {
+        _showCashError(
+          'Could not switch to cash. Please try again -- this trip has not '
+          'been paid.',
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _isProcessing = false);
+    }
+  }
+
+  /// The ride is over and the payment question is answered, so the local
+  /// ride state goes. `clearRideStateLocally` -- never `cancelRideRequest`,
+  /// which would ask the server to cancel a completed trip.
+  Future<void> _finishCashSelection(String message) async {
+    final mapProvider = p.Provider.of<MapProvider>(context, listen: false);
+    await mapProvider.clearRideStateLocally();
+    if (!mounted) return;
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(message),
+        duration: const Duration(seconds: 5),
+      ),
+    );
+    context.push('/rate-driver');
+  }
+
+  void _showCashError(String message) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(message), backgroundColor: Colors.redAccent),
+    );
+  }
+
+
   void _processPayment(
     double fare,
     WalletProvider walletProvider,
@@ -1395,9 +1512,9 @@ class _RidePaymentSummaryScreenState extends State<RidePaymentSummaryScreen> {
                 const SizedBox(height: 16),
                 Center(
                   child: TextButton(
-                    onPressed: () {
-                      context.push('/rate-driver');
-                    },
+                    onPressed: _isProcessing
+                        ? null
+                        : () => _payWithCash(totalFare, currencyCode, rideData),
                     child: Text(
                       'Pay with Cash instead?',
                       style: GoogleFonts.inter(

@@ -360,4 +360,263 @@ class RideService {
       return false;
     }
   }
+
+  /// How long to wait for `POST /payments/switch/` to answer.
+  ///
+  /// Bounded for the same reason cancellation is: an unanswered switch is
+  /// NOT a cash payment, and the rider has to be told rather than held on a
+  /// spinner while the fare is owed.
+  static const cashSwitchTimeout = Duration(seconds: 12);
+
+  /// How long to wait for the verification read that follows an unanswered
+  /// switch. Shorter: it is a single indexed read, and it runs when the
+  /// connection has already proven slow.
+  static const cashVerifyTimeout = Duration(seconds: 8);
+
+  /// What the server says about a trip after the rider chose cash.
+  ///
+  /// `awaitingCollection` is deliberately not called "paid". Choosing cash
+  /// settles nothing: the server writes a `pending` cash payment and the
+  /// DRIVER confirms collection afterwards. Anything in this app that
+  /// treats selection as settlement is wrong.
+  Future<CashSwitchOutcome> selectCashPayment(
+    String token,
+    String tripId, {
+    int maxAttempts = 2,
+  }) async {
+    CashSwitchOutcome outcome = await _postCashSwitch(token, tripId);
+
+    for (var attempt = 1; attempt < maxAttempts; attempt++) {
+      if (outcome.status != CashSwitchStatus.unconfirmed) return outcome;
+
+      // NEVER retry a switch blindly. `POST /payments/switch/` is not
+      // idempotent: each accepted call marks the current payment row failed
+      // and creates a replacement, so a blind retry after a timeout that had
+      // in fact succeeded leaves two payment rows and a trip whose real
+      // state nobody can read off the screen.
+      //
+      // So a retry is allowed ONLY after a read has proven the first attempt
+      // did not land. If the read says it did land, that answer is returned
+      // as-is and no second POST is ever sent.
+      final verified = await verifyCashSelection(token, tripId);
+      if (verified.status != CashSwitchStatus.unconfirmed) return verified;
+
+      outcome = await _postCashSwitch(token, tripId);
+    }
+
+    if (outcome.status != CashSwitchStatus.unconfirmed) return outcome;
+
+    // The last attempt was also unanswered. One final read, so that a
+    // response lost on the way back is not reported to the rider as a
+    // failure when the server actually did switch the trip.
+    return verifyCashSelection(token, tripId);
+  }
+
+  Future<CashSwitchOutcome> _postCashSwitch(String token, String tripId) async {
+    final parsedTripId = int.tryParse(tripId.trim());
+    if (parsedTripId == null) {
+      return const CashSwitchOutcome(
+        status: CashSwitchStatus.refused,
+        code: 'INVALID_TRIP_ID',
+        message: 'This trip cannot be paid in cash. Please contact support.',
+      );
+    }
+
+    try {
+      final response = await _client
+          .post(
+            Uri.parse('${AppConfig.baseUrl}/payments/switch/'),
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': 'Bearer $token',
+            },
+            // The server requires an integer trip_id and one of
+            // cash/upi/wallet/online, and answers MISSING_FIELDS or
+            // INVALID_METHOD otherwise.
+            body: jsonEncode({
+              'trip_id': parsedTripId,
+              'new_method': 'cash',
+            }),
+          )
+          .timeout(cashSwitchTimeout);
+
+      return _readSwitchResponse(response);
+    } catch (e) {
+      // A timeout, a dropped connection, a malformed response: all mean the
+      // same thing here, which is that we do not know what the server did.
+      debugPrint('Switch to cash: unconfirmed ($e)');
+      return const CashSwitchOutcome(status: CashSwitchStatus.unconfirmed);
+    }
+  }
+
+  CashSwitchOutcome _readSwitchResponse(http.Response response) {
+    Map<String, dynamic>? body;
+    try {
+      final decoded = jsonDecode(response.body);
+      if (decoded is Map<String, dynamic>) body = decoded;
+    } catch (_) {
+      body = null;
+    }
+
+    final payload = _unwrap(body);
+    final error = body?['error'];
+    final code = (error is Map ? error['code'] : null)?.toString();
+    final message = (error is Map ? error['message'] : null)?.toString();
+
+    if (response.statusCode == 200 || response.statusCode == 201) {
+      final paymentStatus = payload?['status']?.toString();
+      final paymentId = payload?['payment_id'];
+
+      // A 200 whose body we cannot read is not a confirmation. Saying
+      // "unconfirmed" sends the caller to the verification read, which
+      // answers the question properly.
+      if (paymentStatus == null) {
+        debugPrint('Switch to cash: 200 with no payment status');
+        return const CashSwitchOutcome(status: CashSwitchStatus.unconfirmed);
+      }
+
+      // The server writes `pending` for cash. `completed` would mean the
+      // money is already in -- not something this call can cause, but if it
+      // ever says so, believe it rather than asking for cash twice.
+      if (paymentStatus == 'completed') {
+        return const CashSwitchOutcome(status: CashSwitchStatus.alreadyPaid);
+      }
+
+      return CashSwitchOutcome(
+        status: CashSwitchStatus.awaitingCollection,
+        paymentId: paymentId is int ? paymentId : int.tryParse('$paymentId'),
+      );
+    }
+
+    // 409 ALREADY_PAID: the rider completed the online checkout just before
+    // tapping cash, and the gateway has confirmed it. The trip is paid; it
+    // must not be collected in cash as well.
+    if (response.statusCode == 409 || code == 'ALREADY_PAID') {
+      return CashSwitchOutcome(
+        status: CashSwitchStatus.alreadyPaid,
+        code: code,
+        message: message,
+      );
+    }
+
+    // A server fault is not a refusal -- the trip may or may not have been
+    // switched -- so it is treated as unknown, not as "no".
+    if (response.statusCode >= 500) {
+      debugPrint('Switch to cash: server fault ${response.statusCode}');
+      return const CashSwitchOutcome(status: CashSwitchStatus.unconfirmed);
+    }
+
+    debugPrint(
+      'Switch to cash refused: ${response.statusCode} '
+      '${redactedBody(response.body)}',
+    );
+    return CashSwitchOutcome(
+      status: CashSwitchStatus.refused,
+      code: code,
+      message: message,
+    );
+  }
+
+  /// Read the trip back and decide what actually happened.
+  ///
+  /// This is what makes an unanswered switch safe: the server's own view of
+  /// `payment_method` and `payment_status` is the only thing that settles
+  /// whether the rider owes cash, has already paid, or is still where they
+  /// started.
+  Future<CashSwitchOutcome> verifyCashSelection(
+    String token,
+    String tripId,
+  ) async {
+    try {
+      final response = await _client
+          .get(
+            Uri.parse('${AppConfig.baseUrl}/ride/trip/$tripId/'),
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': 'Bearer $token',
+            },
+          )
+          .timeout(cashVerifyTimeout);
+
+      if (response.statusCode != 200) {
+        debugPrint('Verify cash selection: HTTP ${response.statusCode}');
+        return const CashSwitchOutcome(status: CashSwitchStatus.unconfirmed);
+      }
+
+      final decoded = jsonDecode(response.body);
+      final trip = _unwrap(decoded is Map<String, dynamic> ? decoded : null);
+      if (trip == null) {
+        return const CashSwitchOutcome(status: CashSwitchStatus.unconfirmed);
+      }
+
+      final paymentStatus = trip['payment_status']?.toString();
+      final paymentMethod = trip['payment_method']?.toString();
+
+      // Settled beats selected: if the trip is paid, nobody should be asked
+      // for cash, whichever method got it there.
+      if (paymentStatus == 'completed' || paymentStatus == 'paid') {
+        return const CashSwitchOutcome(status: CashSwitchStatus.alreadyPaid);
+      }
+
+      if (paymentMethod == 'cash') {
+        return const CashSwitchOutcome(
+          status: CashSwitchStatus.awaitingCollection,
+        );
+      }
+
+      // The trip is not on cash and is not paid, so the switch did not land.
+      return const CashSwitchOutcome(status: CashSwitchStatus.unconfirmed);
+    } catch (e) {
+      debugPrint('Verify cash selection error: $e');
+      return const CashSwitchOutcome(status: CashSwitchStatus.unconfirmed);
+    }
+  }
+
+  /// Both `{...}` and `{status: success, data: {...}}` come back from this
+  /// API depending on the view, so neither shape is assumed.
+  static Map<String, dynamic>? _unwrap(Map<String, dynamic>? body) {
+    if (body == null) return null;
+    final data = body['data'];
+    if (data is Map<String, dynamic>) return data;
+    return body;
+  }
+}
+
+/// What the server did about the rider's choice of cash.
+enum CashSwitchStatus {
+  /// A pending cash payment exists. The rider now owes the driver cash, and
+  /// the DRIVER confirms collection. This is not "paid".
+  awaitingCollection,
+
+  /// The trip is already settled -- typically the online payment the rider
+  /// was trying to move away from went through. Do not collect cash.
+  alreadyPaid,
+
+  /// The server refused and the trip is unchanged: wrong state, not the
+  /// rider's trip, no payment row. Retrying as-is will be refused again.
+  refused,
+
+  /// Unknown. Nothing may be claimed about this trip's payment, and the
+  /// rider must not be shown a success screen.
+  unconfirmed,
+}
+
+class CashSwitchOutcome {
+  const CashSwitchOutcome({
+    required this.status,
+    this.code,
+    this.message,
+    this.paymentId,
+  });
+
+  final CashSwitchStatus status;
+  final String? code;
+  final String? message;
+  final int? paymentId;
+
+  /// True only when the server has placed the trip in a state the rider can
+  /// act on. Never true for [CashSwitchStatus.unconfirmed].
+  bool get isSettledOrOwed =>
+      status == CashSwitchStatus.awaitingCollection ||
+      status == CashSwitchStatus.alreadyPaid;
 }
