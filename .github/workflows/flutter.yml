@@ -98,8 +98,24 @@ jobs:
       - name: Install dependencies
         run: flutter pub get
 
+      # The APK must be told which server to talk to.
+      #
+      # A bare `flutter build apk --debug` compiles in AppConfig's fallback,
+      # `https://dev.api.saaradhigo.in`, a host that resolves but never
+      # answers, so the artifact cannot be used for QA at all. Confirmed on
+      # the driver app by installing the CI artifact and watching every
+      # request time out after 10s; this app shares the same pattern.
+      #
+      # Note the conventions differ from the driver app: here the REST base
+      # has NO trailing slash and the WS base ends in `/ws`.
       - name: Build debug APK
-        run: flutter build apk --debug
+        env:
+          QA_API: ${{ vars.SAARADHIGO_QA_API_BASE || 'https://backend-qa-811d.up.railway.app/api/v1' }}
+          QA_WS: ${{ vars.SAARADHIGO_QA_WS_BASE || 'wss://backend-qa-811d.up.railway.app/ws' }}
+        run: |
+          flutter build apk --debug \
+            --dart-define=BASE_URL="$QA_API" \
+            --dart-define=WS_BASE_URL="$QA_WS"
 
       - name: Report artifact size
         # A sudden jump in size is usually an accidentally bundled asset.
