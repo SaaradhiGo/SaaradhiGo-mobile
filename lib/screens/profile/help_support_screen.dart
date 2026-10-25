@@ -174,10 +174,10 @@ class HelpSupportScreen extends StatelessWidget {
                     icon: Icons.mail,
                     title: 'Email Support',
                     // Was support@saaradhigo.com. The platform runs on
-                    // saaradhigo.in -- api.saaradhigo.in, and
+                    // saaradhigo.com -- api.saaradhigo.com, and
                     // PLATFORM_CONTACT_DOMAIN -- so the .com address was a
                     // dead end for anyone who typed it in.
-                    subtitle: 'support@saaradhigo.in',
+                    subtitle: 'support@saaradhigo.com',
                     onTap: () => _report(context, SupportIssueType.other),
                   ),
                 ],

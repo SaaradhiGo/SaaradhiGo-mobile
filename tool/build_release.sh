@@ -39,8 +39,8 @@
 
 set -euo pipefail
 
-PROD_API="https://api.saaradhigo.in/api/v1"
-PROD_WS="wss://api.saaradhigo.in/ws"
+PROD_API="https://api.saaradhigo.com/api/v1"
+PROD_WS="wss://api.saaradhigo.com/ws"
 # QA SERVER ADDRESS
 #
 # These pointed at dev.api.saaradhigo.in, which RESOLVES (16.112.4.47) and
@@ -53,7 +53,7 @@ PROD_WS="wss://api.saaradhigo.in/ws"
 #
 # Overridable, so pointing a build at a different QA server does not mean
 # editing this file: SAARADHIGO_QA_API=... ./tool/build_release.sh qa-apk
-# When dev.api.saaradhigo.in is finally pointed at the QA service, set it
+# When api.saaradhigo.com is finally pointed at the production service, set it
 # back here and delete this note.
 QA_API="${SAARADHIGO_QA_API:-https://backend-qa-811d.up.railway.app/api/v1}"
 QA_WS="${SAARADHIGO_QA_WS:-wss://backend-qa-811d.up.railway.app/ws}"

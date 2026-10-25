@@ -55,8 +55,8 @@ void main() {
         AppConfig.evaluate(
           isProduction: true,
           allowNonProductionHost: false,
-          api: 'https://api.saaradhigo.in/api/v1',
-          ws: 'wss://api.saaradhigo.in/ws',
+          api: 'https://api.saaradhigo.com/api/v1',
+          ws: 'wss://api.saaradhigo.com/ws',
         ),
         isNull,
       );
@@ -102,7 +102,7 @@ void main() {
 
     test('a production host reads PRODUCTION', () {
       expect(
-        AppConfig.labelForHost('https://api.saaradhigo.in/api/v1'),
+        AppConfig.labelForHost('https://api.saaradhigo.com/api/v1'),
         'PRODUCTION',
       );
     });

@@ -20,10 +20,10 @@ library;
 import 'package:flutter_test/flutter_test.dart';
 import 'package:saaradhigo_rider/core/app_config.dart';
 
-const _prodApi = 'https://api.saaradhigo.in/api/v1';
-const _prodWs = 'wss://api.saaradhigo.in/ws';
-const _qaApi = 'https://dev.api.saaradhigo.in/api/v1';
-const _qaWs = 'wss://dev.api.saaradhigo.in/ws';
+const _prodApi = 'https://api.saaradhigo.com/api/v1';
+const _prodWs = 'wss://api.saaradhigo.com/ws';
+const _qaApi = 'https://backend-qa-811d.up.railway.app/api/v1';
+const _qaWs = 'wss://backend-qa-811d.up.railway.app/ws';
 
 String? evaluate({
   bool isProduction = true,
@@ -70,9 +70,9 @@ void main() {
   group('a release build pointed at a non-production host', () {
     test('is refused for every marker', () {
       for (final host in const [
-        'https://dev.api.saaradhigo.in/api/v1',
-        'https://staging.api.saaradhigo.in/api/v1',
-        'https://qa.api.saaradhigo.in/api/v1',
+        'https://dev.api.saaradhigo.com/api/v1',
+        'https://staging.api.saaradhigo.com/api/v1',
+        'https://qa.api.saaradhigo.com/api/v1',
         'http://localhost:8000/api/v1',
         'http://127.0.0.1:8000/api/v1',
         'http://10.0.2.2:8000/api/v1',
@@ -88,8 +88,16 @@ void main() {
       expect(evaluate(ws: _qaWs), isNotNull);
     });
 
-    test('names the host it objected to', () {
-      expect(evaluate(api: _qaApi), contains('dev.'));
+    test('names the marker it objected to', () {
+      // It used to assert 'dev.', which was the marker that matched the old
+      // QA host dev.api.saaradhigo.in. QA now answers on a Railway hostname,
+      // so the marker is 'railway.app'. The point of the test is that the
+      // message names WHY the build was refused rather than just refusing --
+      // an engineer reading a crash needs to know which rule they tripped.
+      expect(evaluate(api: _qaApi), contains('railway.app'));
+      // And a host matching an older marker still names that one.
+      expect(evaluate(api: 'https://dev.api.saaradhigo.com/api/v1'),
+          contains('dev.'));
     });
   });
 

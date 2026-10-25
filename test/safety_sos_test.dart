@@ -170,7 +170,7 @@ void main() {
       expect(message, contains('17.445000,78.380000'));
       // No public live-tracking endpoint exists. A link that 404s during an
       // emergency is worse than no link.
-      expect(message, isNot(contains('saaradhigo.in/track')));
+      expect(message, isNot(contains('saaradhigo.com/track')));
     });
 
     test('omits what it does not know rather than printing null', () {

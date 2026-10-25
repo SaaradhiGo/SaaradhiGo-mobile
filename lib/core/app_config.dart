@@ -19,14 +19,25 @@ import 'package:flutter_dotenv/flutter_dotenv.dart';
 /// from the APK -- which made it the wrong place for a key in the first place.
 ///
 /// Build with:
-///   flutter build apk --dart-define=BASE_URL=https://api.saaradhigo.in/api/v1 \
-///                     --dart-define=WS_BASE_URL=wss://api.saaradhigo.in/ws
+///   flutter build apk --dart-define=BASE_URL=https://api.saaradhigo.com/api/v1 \
+///                     --dart-define=WS_BASE_URL=wss://api.saaradhigo.com/ws
 class AppConfig {
   static const String _defineBaseUrl = String.fromEnvironment('BASE_URL');
   static const String _defineWsBaseUrl = String.fromEnvironment('WS_BASE_URL');
 
-  static const String _devBaseUrl = 'https://dev.api.saaradhigo.in/api/v1';
-  static const String _devWsBaseUrl = 'wss://dev.api.saaradhigo.in/ws';
+  // THE QA SERVER, BY THE ONLY HOSTNAME THAT ANSWERS.
+  //
+  // These were dev.api.saaradhigo.in, which resolves (16.112.4.47) and
+  // then times out on 443 -- a debug build looked configured and failed
+  // every call. The official domain is saaradhigo.com now, but
+  // api.saaradhigo.com has no DNS record yet, so pointing the default at
+  // it would be the same trap with a new spelling. The Railway hostname
+  // is what actually serves QA, and `railway.app` is in the
+  // non-production markers below, so a release build aimed here is still
+  // refused unless it opts in.
+  static const String _devBaseUrl =
+      'https://backend-qa-811d.up.railway.app/api/v1';
+  static const String _devWsBaseUrl = 'wss://backend-qa-811d.up.railway.app/ws';
 
   static const bool isProduction = bool.fromEnvironment('dart.vm.product');
 
@@ -80,7 +91,7 @@ class AppConfig {
     // a release build aimed at the real QA server passed this guard as though
     // it were production, and the QA badge keyed off the same judgement. Any
     // railway.app host is by definition not the production domain, which is
-    // api.saaradhigo.in.
+    // api.saaradhigo.com.
     'railway.app',
   ];
 
