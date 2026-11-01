@@ -116,6 +116,7 @@ class MarketConfig {
     required this.cities,
     this.notices = const [],
     this.promosAvailable = false,
+    this.referralsAvailable = false,
     this.isBuiltIn = false,
   });
 
@@ -141,6 +142,12 @@ class MarketConfig {
   /// document without the key (an older backend) reads as false, which is
   /// exactly how the app behaved before promos existed.
   final bool promosAvailable;
+
+  /// `referrals_available` from app-config (named with `app=rider`): true only
+  /// while a referral offer is live for riders in this market. The referral
+  /// entry (menu item and the sign-up code field) is hidden unless it is true;
+  /// a document without the key reads as false.
+  final bool referralsAvailable;
   final bool isBuiltIn;
 
   /// `+91`, `+1`: what the phone field shows and E.164 numbers start with.
@@ -286,6 +293,7 @@ class MarketConfig {
       cities: cities,
       notices: notices,
       promosAvailable: data['promos_available'] == true,
+      referralsAvailable: data['referrals_available'] == true,
     );
   }
 }

@@ -6,10 +6,17 @@ import 'dart:io';
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:google_fonts/google_fonts.dart';
 import 'package:image_picker/image_picker.dart';
+import '../../core/market/market_config_store.dart';
 import '../../providers/auth_provider.dart';
+import '../../services/referral_service.dart';
+import '../../services/token_store.dart';
 
 class ProfileSetupScreen extends StatefulWidget {
-  const ProfileSetupScreen({super.key});
+  const ProfileSetupScreen({super.key, this.referralService, this.marketStore});
+
+  /// Injected by tests; the app uses the real service.
+  final ReferralService? referralService;
+  final MarketConfigStore? marketStore;
 
   @override
   State<ProfileSetupScreen> createState() => _ProfileSetupScreenState();
@@ -26,6 +33,9 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen> {
   final TextEditingController _streetNameController = TextEditingController();
   final TextEditingController _cityController = TextEditingController();
   final TextEditingController _zipCodeController = TextEditingController();
+  final TextEditingController _referralController = TextEditingController();
+  MarketConfigStore get _market =>
+      widget.marketStore ?? MarketConfigStore.instance;
 
   XFile? _selectedImage;
   final ImagePicker _picker = ImagePicker();
@@ -215,7 +225,17 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen> {
     final success = await authProvider.updateProfile(profileData);
 
     if (success) {
-      if (mounted) context.go('/home');
+      // The referral code is optional and never blocks sign-up: whatever
+      // happens to it, the rider still goes on to the app.
+      final referralNote = await _attachReferral();
+      if (mounted) {
+        if (referralNote != null) {
+          ScaffoldMessenger.of(
+            context,
+          ).showSnackBar(SnackBar(content: Text(referralNote)));
+        }
+        context.go('/home');
+      }
     } else {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -228,6 +248,24 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen> {
           ),
         );
       }
+    }
+  }
+
+  /// Tries to use the typed referral code. Returns a message to show when it
+  /// could not be used, null when there was nothing to do or it worked.
+  Future<String?> _attachReferral() async {
+    final code = _referralController.text.trim();
+    if (code.isEmpty) return null;
+    try {
+      final token = await TokenStore.readAccessToken();
+      if (token == null || token.isEmpty) return null;
+      final result = await (widget.referralService ?? ReferralService()).attach(
+        token,
+        code,
+      );
+      return result.ok ? 'Referral code added' : result.message;
+    } catch (_) {
+      return null;
     }
   }
 
@@ -486,6 +524,24 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen> {
                   readOnly: true,
                   onTap: () => _selectDate(context),
                   suffixIcon: Icons.calendar_today,
+                ),
+
+                // Hidden unless a referral offer is live for riders here.
+                ListenableBuilder(
+                  listenable: _market,
+                  builder: (context, _) => _market.current.referralsAvailable
+                      ? Padding(
+                          padding: const EdgeInsets.only(top: 16),
+                          child: KeyedSubtree(
+                            key: const Key('referral_field'),
+                            child: _buildTextField(
+                              'Referral code (optional)',
+                              "Enter a friend's code",
+                              controller: _referralController,
+                            ),
+                          ),
+                        )
+                      : const SizedBox.shrink(),
                 ),
 
                 const SizedBox(height: 32),
