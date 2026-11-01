@@ -28,6 +28,13 @@ const String kCashNotAvailable = 'CASH_NOT_AVAILABLE';
 const String kCashNotAvailableMessage =
     "Cash isn't available for this ride. Please choose another payment method.";
 
+/// The booking-socket variant. Booking has no payment choice yet (every ride is
+/// booked as cash and paid online after the trip if the rider wants), so there
+/// is no "other method" to point to: say only what the rider can do.
+const String kCashNotAvailableAtBookingMessage =
+    "Cash isn't available for this ride right now. Please contact support if "
+    'you need help.';
+
 /// "Rides are paused in Hyderabad right now" / "We're not in your area yet".
 String bookingRefusalMessage(String code, {String? city}) {
   final hasCity = city != null && city.trim().isNotEmpty;

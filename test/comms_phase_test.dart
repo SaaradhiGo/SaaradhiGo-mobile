@@ -72,10 +72,8 @@ Map<String, dynamic> prefsPayload({
 }
 
 class _PrefsBackend {
-  _PrefsBackend({
-    Map<String, dynamic>? initial,
-    this.putStatus = 200,
-  }) : current = initial ?? prefsPayload();
+  _PrefsBackend({Map<String, dynamic>? initial, this.putStatus = 200})
+    : current = initial ?? prefsPayload();
 
   Map<String, dynamic> current;
   int putStatus;
@@ -198,7 +196,11 @@ void main() {
       final backend = _PrefsBackend();
       await _pumpPrefs(tester, backend);
 
-      expect(backend.puts, isEmpty, reason: 'consent is never saved unprompted');
+      expect(
+        backend.puts,
+        isEmpty,
+        reason: 'consent is never saved unprompted',
+      );
       for (final key in [
         'pref_push_promotional',
         'pref_sms_promotional',
@@ -214,29 +216,33 @@ void main() {
       expect(find.textContaining('fraud'), findsNothing);
     });
 
-    testWidgets('ride and account updates in the app and by push are fixed on', (
-      tester,
-    ) async {
-      final backend = _PrefsBackend();
-      await _pumpPrefs(tester, backend);
+    testWidgets(
+      'ride and account updates in the app and by push are fixed on',
+      (tester) async {
+        final backend = _PrefsBackend();
+        await _pumpPrefs(tester, backend);
 
-      for (final key in ['pref_in_app_transactional', 'pref_push_transactional']) {
-        final s = _switchOf(tester, key);
-        expect(s.value, isTrue, reason: key);
-        expect(s.onChanged, isNull, reason: '$key is disabled');
-      }
-      expect(
-        find.text('Always on. Needed for your rides and your safety.'),
-        findsNWidgets(2),
-      );
-      await tester.tap(
-        find.byKey(const Key('pref_in_app_transactional')),
-        warnIfMissed: false,
-      );
-      await tester.pumpAndSettle();
-      expect(backend.puts, isEmpty);
-      expect(_switchOf(tester, 'pref_in_app_transactional').value, isTrue);
-    });
+        for (final key in [
+          'pref_in_app_transactional',
+          'pref_push_transactional',
+        ]) {
+          final s = _switchOf(tester, key);
+          expect(s.value, isTrue, reason: key);
+          expect(s.onChanged, isNull, reason: '$key is disabled');
+        }
+        expect(
+          find.text('Always on. Needed for your rides and your safety.'),
+          findsNWidgets(2),
+        );
+        await tester.tap(
+          find.byKey(const Key('pref_in_app_transactional')),
+          warnIfMissed: false,
+        );
+        await tester.pumpAndSettle();
+        expect(backend.puts, isEmpty);
+        expect(_switchOf(tester, 'pref_in_app_transactional').value, isTrue);
+      },
+    );
 
     testWidgets('a toggle is saved as one explicit PUT and sticks', (
       tester,
@@ -264,7 +270,9 @@ void main() {
       await _pumpPrefs(tester, backend);
       expect(find.text('WhatsApp'), findsOneWidget);
 
-      await tester.ensureVisible(find.byKey(const Key('pref_whatsapp_transactional')));
+      await tester.ensureVisible(
+        find.byKey(const Key('pref_whatsapp_transactional')),
+      );
       await tester.tap(find.byKey(const Key('pref_whatsapp_transactional')));
       await tester.pumpAndSettle();
 
@@ -281,12 +289,17 @@ void main() {
       await _pumpPrefs(tester, backend);
 
       expect(find.text('WhatsApp'), findsNothing);
-      expect(find.byKey(const Key('pref_whatsapp_transactional')), findsNothing);
+      expect(
+        find.byKey(const Key('pref_whatsapp_transactional')),
+        findsNothing,
+      );
       expect(find.byKey(const Key('pref_whatsapp_promotional')), findsNothing);
       expect(find.byKey(const Key('pref_push_promotional')), findsOneWidget);
     });
 
-    testWidgets('a failed save puts the switch back and says so', (tester) async {
+    testWidgets('a failed save puts the switch back and says so', (
+      tester,
+    ) async {
       final backend = _PrefsBackend(putStatus: 500);
       await _pumpPrefs(tester, backend);
 
@@ -305,15 +318,24 @@ void main() {
       expect(find.byKey(const Key('prefs_error')), findsNothing);
     });
 
-    testWidgets('the switch moves at once, before the PUT answers', (tester) async {
+    testWidgets('the switch moves at once, before the PUT answers', (
+      tester,
+    ) async {
       await _phone(tester);
       final gate = Future<void>.delayed(const Duration(seconds: 2));
       final client = MockClient((request) async {
         if (request.method == 'GET') return _json(200, _ok(prefsPayload()));
         await gate;
-        return _json(200, _ok(prefsPayload(overrides: {
-          'sms': {'promotional': true},
-        })));
+        return _json(
+          200,
+          _ok(
+            prefsPayload(
+              overrides: {
+                'sms': {'promotional': true},
+              },
+            ),
+          ),
+        );
       });
       await tester.pumpWidget(
         MaterialApp(
@@ -332,73 +354,91 @@ void main() {
       expect(_switchOf(tester, 'pref_sms_promotional').value, isTrue);
     });
 
-    test('the rider app calls the canonical endpoint, not the older rider one', () async {
-      final seen = <Uri>[];
-      final service = NotificationPreferencesService(
-        client: MockClient((r) async {
-          seen.add(r.url);
-          return _json(200, _ok(prefsPayload()));
-        }),
-      );
-      await service.fetch('t');
-      await service.save('t', channel: 'push', category: 'promotional', optedIn: true);
-      expect(seen, hasLength(2));
-      for (final u in seen) {
-        expect(u.path, endsWith('/notifications/preferences/'));
-        expect(u.path, isNot(contains('/rider/')));
-      }
-    });
+    test(
+      'the rider app calls the canonical endpoint, not the older rider one',
+      () async {
+        final seen = <Uri>[];
+        final service = NotificationPreferencesService(
+          client: MockClient((r) async {
+            seen.add(r.url);
+            return _json(200, _ok(prefsPayload()));
+          }),
+        );
+        await service.fetch('t');
+        await service.save(
+          't',
+          channel: 'push',
+          category: 'promotional',
+          optedIn: true,
+        );
+        expect(seen, hasLength(2));
+        for (final u in seen) {
+          expect(u.path, endsWith('/notifications/preferences/'));
+          expect(u.path, isNot(contains('/rider/')));
+        }
+      },
+    );
   });
 
   group('R8 cash not available', () {
-    test('a switch to cash refused with CASH_NOT_AVAILABLE is neutral, and sent once', () async {
-      var posts = 0;
-      final service = RideService(
-        client: MockClient((request) async {
-          posts++;
-          return _json(400, {
-            'status': 'error',
-            'error': {
-              'code': 'CASH_NOT_AVAILABLE',
-              'message': "Cash isn't available for your account. Please pay online.",
-              'field': 'new_method',
-              'issue': 'Cash not available',
-            },
-          });
-        }),
-      );
+    test(
+      'a switch to cash refused with CASH_NOT_AVAILABLE is neutral, and sent once',
+      () async {
+        var posts = 0;
+        final service = RideService(
+          client: MockClient((request) async {
+            posts++;
+            return _json(400, {
+              'status': 'error',
+              'error': {
+                'code': 'CASH_NOT_AVAILABLE',
+                'message':
+                    "Cash isn't available for your account. Please pay online.",
+                'field': 'new_method',
+                'issue': 'Cash not available',
+              },
+            });
+          }),
+        );
 
-      final outcome = await service.selectCashPayment('t', '991');
+        final outcome = await service.selectCashPayment('t', '991');
 
-      expect(outcome.status, CashSwitchStatus.refused);
-      expect(outcome.code, 'CASH_NOT_AVAILABLE');
-      expect(outcome.message, kCashNotAvailableMessage);
-      expect(
-        outcome.message,
-        "Cash isn't available for this ride. Please choose another payment method.",
-      );
-      expect(posts, 1, reason: 'a refusal is not retried');
-      expect(outcome.message!.toLowerCase(), isNot(contains('fraud')));
-      expect(outcome.message!.toLowerCase(), isNot(contains('review')));
-    });
+        expect(outcome.status, CashSwitchStatus.refused);
+        expect(outcome.code, 'CASH_NOT_AVAILABLE');
+        expect(outcome.message, kCashNotAvailableMessage);
+        expect(
+          outcome.message,
+          "Cash isn't available for this ride. Please choose another payment method.",
+        );
+        expect(posts, 1, reason: 'a refusal is not retried');
+        expect(outcome.message!.toLowerCase(), isNot(contains('fraud')));
+        expect(outcome.message!.toLowerCase(), isNot(contains('review')));
+      },
+    );
 
-    test('a booking refused on the socket shows the message and leaves searching', () async {
-      final container = ProviderContainer();
-      addTearDown(container.dispose);
-      final notifier = container.read(rideNotifierProvider.notifier);
-      notifier.updateFromWebSocket({
-        'type': 'error',
-        'code': 'CASH_NOT_AVAILABLE',
-        'message': "Cash isn't available for your account. Please pay online.",
-      });
-      await Future<void>.delayed(Duration.zero);
+    test(
+      'a booking refused on the socket shows the message and leaves searching',
+      () async {
+        final container = ProviderContainer();
+        addTearDown(container.dispose);
+        final notifier = container.read(rideNotifierProvider.notifier);
+        notifier.updateFromWebSocket({
+          'type': 'error',
+          'code': 'CASH_NOT_AVAILABLE',
+          'message':
+              "Cash isn't available for your account. Please pay online.",
+        });
+        await Future<void>.delayed(Duration.zero);
 
-      final refusal = BookingRefusalState.instance.latest;
-      expect(refusal, isNotNull);
-      expect(refusal!.code, 'CASH_NOT_AVAILABLE');
-      expect(refusal.message, kCashNotAvailableMessage);
-      expect(container.read(rideNotifierProvider).status, RideStatus.none);
-    });
+        final refusal = BookingRefusalState.instance.latest;
+        expect(refusal, isNotNull);
+        expect(refusal!.code, 'CASH_NOT_AVAILABLE');
+        // Booking has no payment choice, so it never says "choose another".
+        expect(refusal.message, kCashNotAvailableAtBookingMessage);
+        expect(refusal.message, isNot(contains('another payment method')));
+        expect(container.read(rideNotifierProvider).status, RideStatus.none);
+      },
+    );
 
     testWidgets('the message card shows the neutral sentence', (tester) async {
       await _phone(tester);
@@ -424,7 +464,10 @@ void main() {
       expect(held.pendingReview, '100.00');
       expect(held.currency, 'INR');
 
-      expect(Wallet.fromJson(balancePayload(held: '0.00')).hasPendingReview, isFalse);
+      expect(
+        Wallet.fromJson(balancePayload(held: '0.00')).hasPendingReview,
+        isFalse,
+      );
       // The shape before the API sent the key.
       final older = Wallet.fromJson({'balance': '500.00'});
       expect(older.hasPendingReview, isFalse);
@@ -469,35 +512,37 @@ void main() {
       await tester.pump(const Duration(milliseconds: 100));
     }
 
-    testWidgets('a held reward reads Pending review and the recovery line is labelled', (
-      tester,
-    ) async {
-      await pumpWallet(tester, Wallet.fromJson(balancePayload()), [
-        Transaction.fromJson(recoveryLine()),
-        Transaction.fromJson(ordinaryLine()),
-      ]);
-      expect(find.byKey(const Key('wallet_pending_review')), findsOneWidget);
-      expect(
-        find.text('Pending review: ₹100.00 (not spendable yet)'),
-        findsOneWidget,
-      );
-      expect(find.text('Recovery of reward (reviewed)'), findsOneWidget);
-      expect(find.text('-₹100.00'), findsOneWidget);
-      expect(find.textContaining('raud'), findsNothing);
-    });
+    testWidgets(
+      'a held reward reads Pending review and the recovery line is labelled',
+      (tester) async {
+        await pumpWallet(tester, Wallet.fromJson(balancePayload()), [
+          Transaction.fromJson(recoveryLine()),
+          Transaction.fromJson(ordinaryLine()),
+        ]);
+        expect(find.byKey(const Key('wallet_pending_review')), findsOneWidget);
+        expect(
+          find.text('Pending review: ₹100.00 (not spendable yet)'),
+          findsOneWidget,
+        );
+        expect(find.text('Recovery of reward (reviewed)'), findsOneWidget);
+        expect(find.text('-₹100.00'), findsOneWidget);
+        expect(find.textContaining('raud'), findsNothing);
+      },
+    );
 
-    testWidgets('nothing held and no recovery: the wallet reads as it always did', (
-      tester,
-    ) async {
-      await pumpWallet(
-        tester,
-        Wallet.fromJson(balancePayload(held: '0.00')),
-        [Transaction.fromJson(ordinaryLine())],
-      );
-      expect(find.byKey(const Key('wallet_pending_review')), findsNothing);
-      expect(find.textContaining('Pending review'), findsNothing);
-      expect(find.textContaining('Recovery of reward'), findsNothing);
-    });
+    testWidgets(
+      'nothing held and no recovery: the wallet reads as it always did',
+      (tester) async {
+        await pumpWallet(
+          tester,
+          Wallet.fromJson(balancePayload(held: '0.00')),
+          [Transaction.fromJson(ordinaryLine())],
+        );
+        expect(find.byKey(const Key('wallet_pending_review')), findsNothing);
+        expect(find.textContaining('Pending review'), findsNothing);
+        expect(find.textContaining('Recovery of reward'), findsNothing);
+      },
+    );
   });
 }
 
