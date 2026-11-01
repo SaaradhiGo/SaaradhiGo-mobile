@@ -4,6 +4,7 @@ import 'package:http/http.dart' as http;
 import 'package:flutter/foundation.dart';
 import 'models/wallet_model.dart';
 import '../core/app_config.dart';
+import '../utils/log_redaction.dart';
 
 class WalletService {
   final String baseUrl = AppConfig.baseUrl;
@@ -97,7 +98,7 @@ class WalletService {
         return errorData; // Return error data so UI can show message
       } catch (_) {
         debugPrint(
-          'Create TopUp Order Error: ${response.statusCode} - ${response.body}',
+          'Create TopUp Order Error: ${response.statusCode} - ${redactedBody(response.body)}',
         );
       }
       return null;

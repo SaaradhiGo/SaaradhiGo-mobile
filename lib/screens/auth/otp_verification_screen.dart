@@ -113,12 +113,15 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen> {
 
     final authProvider = Provider.of<AuthProvider>(context, listen: false);
 
-    String deviceToken = 'dummy_token';
+    // Null, not a placeholder. This defaulted to the literal 'dummy_token'
+    // whenever FCM was unavailable -- no Play Services, permission declined,
+    // no network at launch -- and the backend stored it. The row then held a
+    // token that could never receive anything, while dispatch's filter
+    // counted this rider as push-capable. An absent key leaves a previously
+    // good token alone, which is what the login view is written to do.
+    String? deviceToken;
     try {
-      final fcmToken = await PushNotificationService.getToken();
-      if (fcmToken != null) {
-        deviceToken = fcmToken;
-      }
+      deviceToken = await PushNotificationService.getToken();
     } catch (e) {
       debugPrint('Error handling FCM token: $e');
     }

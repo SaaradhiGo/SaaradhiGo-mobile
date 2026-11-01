@@ -1,0 +1,7 @@
+# Shell scripts must keep LF endings.
+#
+# core.autocrlf=true is set on the machine these were written on, so a fresh
+# Windows clone would otherwise check tool/*.sh out with CRLF -- and bash
+# fails on the carriage returns with errors like `$'\r': command not found`,
+# which is a confusing way to discover that a release build script is broken.
+*.sh text eol=lf

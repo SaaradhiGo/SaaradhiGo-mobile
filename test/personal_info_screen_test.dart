@@ -9,6 +9,32 @@ import 'package:saaradhigo_rider/services/api_service.dart';
 import 'support/screen_test_harness.dart';
 
 class _FakeAuthApiClient implements AuthApiClient {
+  // Email auth. Recorded so a test can assert what the provider sent, and
+  // scripted so a test can drive the error branches.
+  String? emailLoginEmail;
+  String? emailLoginPassword;
+  String? emailLoginMfaCode;
+  Map<String, dynamic>? emailLoginResponse;
+  String? passwordResetEmail;
+  bool passwordResetResult = true;
+
+  @override
+  Future<Map<String, dynamic>?> emailLogin({
+    required String email,
+    required String password,
+    String? mfaCode,
+  }) async {
+    emailLoginEmail = email;
+    emailLoginPassword = password;
+    emailLoginMfaCode = mfaCode;
+    return emailLoginResponse;
+  }
+
+  @override
+  Future<bool> requestPasswordReset(String email) async {
+    passwordResetEmail = email;
+    return passwordResetResult;
+  }
   _FakeAuthApiClient({
     this.updateProfileResponse,
     this.updateProfileDelay = Duration.zero,
@@ -61,10 +87,19 @@ class _FakeAuthApiClient implements AuthApiClient {
   Future<Map<String, dynamic>?> verifyOtpAndLogin(
     String phoneNumber,
     String otp,
-    String deviceToken,
+    String? deviceToken,
   ) async {
     return null;
   }
+  @override
+  Future<bool> registerPushToken(String token) async {
+    registeredPushTokens.add(token);
+    return true;
+  }
+
+  /// Tokens the app asked the server to store after an FCM rotation.
+  final List<String> registeredPushTokens = <String>[];
+
 }
 
 GoRouter _buildRouter({String initialLocation = '/personal-info'}) {

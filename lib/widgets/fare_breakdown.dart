@@ -17,18 +17,19 @@ library;
 
 import 'package:flutter/material.dart';
 
+import '../utils/money.dart';
+
 /// Formats a money value that may arrive as a String, an int or a double.
 ///
 /// DRF serialises Decimal as a String by default, so a breakdown field is
 /// usually `"42.50"` and occasionally a number. The previous version of this
 /// widget compared `fareBreakdown['discount'] > 0` directly, which throws at
 /// runtime the moment the server sends the String it actually sends.
-String? _money(dynamic raw, {String currency = '₹'}) {
-  if (raw == null) return null;
-  final value = raw is num ? raw.toDouble() : double.tryParse(raw.toString());
-  if (value == null) return null;
-  return '$currency${value.toStringAsFixed(2)}';
-}
+/// [currencyCode] is an ISO 4217 code from the quote, not a symbol. The
+/// parameter used to be `String currency = '₹'` -- a symbol with a hardcoded
+/// Indian default -- which is the same mistake the booking screen made.
+String? _money(dynamic raw, {String? currencyCode}) =>
+    formatMoney(raw, currencyCode);
 
 /// True only when [raw] parses to a number strictly greater than zero.
 bool _isPositive(dynamic raw) {
@@ -119,14 +120,18 @@ class FareBreakdown extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final breakdown = fareData?['fare_breakdown'] as Map<String, dynamic>?;
-    final total = _money(
+    // One currency for the whole panel: every line in a quote is denominated
+    // in the currency of that quote.
+    final currencyCode = fareData?['currency'] as String?;
+    final total = formatServerMoney(
       fareData?['total_fare'] ?? fareData?['estimated_fare'],
+      currencyCode,
     );
 
     final lines = <Widget>[];
 
     void add(String label, dynamic raw, {String? note, Color? color}) {
-      final formatted = _money(raw);
+      final formatted = _money(raw, currencyCode: currencyCode);
       if (formatted == null) return;
       lines.add(FareLine(label, formatted, note: note,
           color: color ?? Colors.white));
@@ -198,7 +203,7 @@ class FareBreakdown extends StatelessWidget {
       if (adjustments is List) {
         for (final raw in adjustments) {
           if (raw is! Map) continue;
-          final amount = _money(raw['amount']);
+          final amount = _money(raw['amount'], currencyCode: currencyCode);
           if (amount == null) continue;
           final label = (raw['label'] ?? raw['code'] ?? 'Adjustment').toString();
           final code = (raw['code'] ?? '').toString();
@@ -226,7 +231,7 @@ class FareBreakdown extends StatelessWidget {
         lines.add(
           FareLine(
             'Promo discount',
-            '-${_money(breakdown['discount'])}',
+            '-${_money(breakdown['discount'], currencyCode: currencyCode)}',
             color: const Color(0xFFEEBD2B),
           ),
         );

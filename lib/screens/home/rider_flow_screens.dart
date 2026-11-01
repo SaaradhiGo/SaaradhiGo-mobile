@@ -37,6 +37,33 @@ import '../../services/ride_service.dart';
 import '../../services/payment_service.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:provider/provider.dart' as p;
+import '../../utils/money.dart';
+import '../../widgets/safety_sheet.dart';
+
+/// Cancel, and tell the rider when the server did not confirm it.
+///
+/// `cancelRideRequest` now returns false and KEEPS the ride on screen when
+/// the server refuses or the request times out, because in that case the trip
+/// really is still live and a driver really may still arrive. Every call site
+/// used to ignore the result, which is how a failed cancellation became a
+/// silent one.
+Future<bool> _cancelRideAndReport(BuildContext context) async {
+  final provider = context.read<MapProvider>();
+  final confirmed = await provider.cancelRideRequest();
+  if (!confirmed && context.mounted) {
+    ScaffoldMessenger.maybeOf(context)?.showSnackBar(
+      const SnackBar(
+        duration: Duration(seconds: 6),
+        backgroundColor: Color(0xFFB00020),
+        content: Text(
+          'We could not cancel your ride. It is still active — please try '
+          'again.',
+        ),
+      ),
+    );
+  }
+  return confirmed;
+}
 
 class SetDestinationScreen extends StatelessWidget {
   const SetDestinationScreen({super.key});
@@ -144,9 +171,13 @@ class _SearchingDriverScreenState extends State<SearchingDriverScreen> {
         if (didPop) return;
         final shouldPop = await _showCancelConfirmation(context);
         if (shouldPop && mounted && context.mounted) {
-          context.read<MapProvider>().cancelRideRequest();
+          // Only leave the screen if the ride is really cancelled. Popping
+          // on a failed cancellation is what showed a rider an empty screen
+          // while a driver was still on the way.
+          final confirmed = await _cancelRideAndReport(context);
+          if (!confirmed || !mounted) return;
           setState(() => _canPop = true);
-          Navigator.of(context).pop();
+          if (context.mounted) Navigator.of(context).pop();
         }
       },
       child: _DarkMapScaffold(
@@ -326,7 +357,9 @@ class _DriverFoundScreenState extends State<DriverFoundScreen> {
             if (didPop) return;
             final shouldPop = await _showCancelConfirmation(context);
             if (shouldPop && mounted && context.mounted) {
-              context.read<MapProvider>().cancelRideRequest();
+              // Leave the screen only if the ride is really cancelled.
+              final confirmed = await _cancelRideAndReport(context);
+              if (!confirmed || !mounted || !context.mounted) return;
               setState(() => _canPop = true);
               Navigator.of(context).pop();
             }
@@ -679,10 +712,10 @@ class _DriverFoundScreenState extends State<DriverFoundScreen> {
 
   void _showCancelDialog(BuildContext context) {
     // This is no longer used individually, but kept if needed for specific flows
-    _showCancelConfirmation(context).then((shouldCancel) {
+    _showCancelConfirmation(context).then((shouldCancel) async {
       if (shouldCancel && context.mounted) {
-        context.read<MapProvider>().cancelRideRequest();
-        context.pop();
+        final confirmed = await _cancelRideAndReport(context);
+        if (confirmed && context.mounted) context.pop();
       }
     });
   }
@@ -719,6 +752,25 @@ class FullMapTrackingScreen extends StatefulWidget {
 }
 
 class _FullMapTrackingScreenState extends State<FullMapTrackingScreen> {
+  /// What the safety sheet needs: who the rider is with, and where they are.
+  ///
+  /// Read from the ride response the tracking screen is already rendering, so
+  /// raising an SOS costs no extra request at the moment it matters most.
+  TripSafetyContext _safetyContext(MapProvider mapProvider) {
+    final ride = mapProvider.rideRequestResponse;
+    double? toDouble(dynamic v) =>
+        v is num ? v.toDouble() : double.tryParse('${v ?? ''}');
+
+    return TripSafetyContext(
+      tripId: mapProvider.tripId ?? ride?['trip_id']?.toString(),
+      driverName: ride?['driver_name'] as String?,
+      vehicleNumber: ride?['vehicle_number'] as String?,
+      vehicleModel: ride?['vehicle_model'] as String?,
+      lat: toDouble(ride?['driver_lat'] ?? ride?['pickup_lat']),
+      lng: toDouble(ride?['driver_lng'] ?? ride?['pickup_long']),
+    );
+  }
+
   bool _canPop = false;
   bool _isNavigated = false;
   MapProvider? _mapProvider;
@@ -818,7 +870,9 @@ class _FullMapTrackingScreenState extends State<FullMapTrackingScreen> {
             if (didPop) return;
             final shouldPop = await _showCancelConfirmation(context);
             if (shouldPop && mounted && context.mounted) {
-              context.read<MapProvider>().cancelRideRequest();
+              // Leave the screen only if the ride is really cancelled.
+              final confirmed = await _cancelRideAndReport(context);
+              if (!confirmed || !mounted || !context.mounted) return;
               setState(() => _canPop = true);
               Navigator.of(context).pop();
             }
@@ -858,55 +912,24 @@ class _FullMapTrackingScreenState extends State<FullMapTrackingScreen> {
                     ],
                   ),
                 ),
+                // SOS.
+                //
+                // This button used to open a dialog that said "This will alert
+                // the nearest authorities and our support team", and on
+                // confirm showed the snackbar "Emergency Alert Sent! Support
+                // is on the way." It called no API. Nothing was sent, nobody
+                // was alerted, and the rider was told help was coming.
+                //
+                // It now opens the safety sheet, which POSTs to /sos/ (a
+                // durable row server-side, then an ops push and an SMS to the
+                // rider's emergency contact), offers 112 directly, and shows
+                // the failure if the POST does not succeed.
                 GestureDetector(
-                  onTap: () {
-                    showDialog(
-                      context: context,
-                      builder: (context) => AlertDialog(
-                        backgroundColor: const Color(0xFF1E1C18),
-                        title: const Text(
-                          'SOS Emergency',
-                          style: TextStyle(
-                            color: Colors.white,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                        content: const Text(
-                          'Are you in danger? This will alert the nearest authorities and our support team.',
-                          style: TextStyle(color: Colors.white70),
-                        ),
-                        actions: [
-                          TextButton(
-                            onPressed: () => Navigator.pop(context),
-                            child: const Text(
-                              'I\'m Safe',
-                              style: TextStyle(color: Colors.white54),
-                            ),
-                          ),
-                          ElevatedButton(
-                            onPressed: () {
-                              Navigator.pop(context);
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                const SnackBar(
-                                  backgroundColor: Colors.red,
-                                  content: Text(
-                                    'Emergency Alert Sent! Support is on the way.',
-                                  ),
-                                ),
-                              );
-                            },
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: Colors.red,
-                            ),
-                            child: const Text(
-                              'YES, CALL FOR HELP',
-                              style: TextStyle(color: Colors.white),
-                            ),
-                          ),
-                        ],
-                      ),
-                    );
-                  },
+                  key: const Key('tracking_sos_button'),
+                  onTap: () => showSafetySheet(
+                    context,
+                    trip: _safetyContext(mapProvider),
+                  ),
                   child: Container(
                     height: 58,
                     width: 58,
@@ -968,6 +991,123 @@ class _RidePaymentSummaryScreenState extends State<RidePaymentSummaryScreen> {
       context.read<WalletProvider>().refreshWallet();
     });
   }
+
+  /// Choosing cash is a SERVER action, not a screen change.
+  ///
+  /// This used to be `context.push('/rate-driver')` and nothing else. The
+  /// trip's payment stayed exactly as it was -- typically an online payment
+  /// row in `pending` -- while the rider was moved on to the rating screen
+  /// as though the fare were handled. Nobody owed anything on the record,
+  /// the driver had no cash payment to confirm, and the trip never settled.
+  ///
+  /// So: switch the trip on the server, read what the server says the trip's
+  /// payment is now, and only then decide where the rider goes. A refusal or
+  /// an unanswered request keeps them on this screen, because the fare is
+  /// still outstanding and they are the only one who can retry.
+  Future<void> _payWithCash(
+    double fare,
+    String? currencyCode,
+    dynamic rideData,
+  ) async {
+    if (_isProcessing) return;
+    setState(() => _isProcessing = true);
+
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final token = prefs.getString('access_token');
+      if (!mounted) return;
+      if (token == null) {
+        _showCashError('Please sign in again to pay for this trip.');
+        return;
+      }
+
+      final tripIdStr =
+          context.read<MapProvider>().tripId ??
+          rideData?['trip_id']?.toString() ??
+          rideData?['id']?.toString();
+      if (tripIdStr == null) {
+        _showCashError('No active trip found. Please refresh and try again.');
+        return;
+      }
+
+      final outcome = await _rideService.selectCashPayment(token, tripIdStr);
+      if (!mounted) return;
+
+      switch (outcome.status) {
+        case CashSwitchStatus.awaitingCollection:
+          // The trip now carries a PENDING cash payment. The money has not
+          // moved: the driver confirms collection. Say that, rather than
+          // anything that reads as "paid".
+          final amount =
+              formatMoney(fare, currencyCode) ?? fare.toStringAsFixed(2);
+          await _finishCashSelection(
+            'Pay $amount to your driver in cash. '
+            'They will confirm it once collected.',
+          );
+          return;
+
+        case CashSwitchStatus.alreadyPaid:
+          // The earlier online payment went through, usually moments before
+          // this tap. Collecting cash as well would charge the rider twice.
+          await _finishCashSelection(
+            outcome.message ?? 'This trip is already paid. No cash is due.',
+          );
+          return;
+
+        case CashSwitchStatus.refused:
+          // The server rejected it and the trip is unchanged. Its own
+          // message is more specific than anything this screen could invent.
+          _showCashError(
+            outcome.message ??
+                'Cash is not available for this trip. Please contact support.',
+          );
+          return;
+
+        case CashSwitchStatus.unconfirmed:
+          // We do not know what happened, so nothing may be claimed and the
+          // rider stays here with the fare still on screen.
+          _showCashError(
+            'Could not switch to cash. Check your connection and try again '
+            '-- this trip has not been paid.',
+          );
+          return;
+      }
+    } catch (e) {
+      debugPrint('Pay with cash error: $e');
+      if (mounted) {
+        _showCashError(
+          'Could not switch to cash. Please try again -- this trip has not '
+          'been paid.',
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _isProcessing = false);
+    }
+  }
+
+  /// The ride is over and the payment question is answered, so the local
+  /// ride state goes. `clearRideStateLocally` -- never `cancelRideRequest`,
+  /// which would ask the server to cancel a completed trip.
+  Future<void> _finishCashSelection(String message) async {
+    final mapProvider = p.Provider.of<MapProvider>(context, listen: false);
+    await mapProvider.clearRideStateLocally();
+    if (!mounted) return;
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(message),
+        duration: const Duration(seconds: 5),
+      ),
+    );
+    context.push('/rate-driver');
+  }
+
+  void _showCashError(String message) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(message), backgroundColor: Colors.redAccent),
+    );
+  }
+
 
   void _processPayment(
     double fare,
@@ -1205,17 +1345,20 @@ class _RidePaymentSummaryScreenState extends State<RidePaymentSummaryScreen> {
           if (verifyResult != null &&
               (verifyResult['status'] == 'success' ||
                   verifyResult['status'] == 'paid')) {
+            // The trip is COMPLETE and PAID. Tear down local state; do not
+            // ask the server to cancel a ride that just succeeded.
             final mapProvider = p.Provider.of<MapProvider>(
               context,
               listen: false,
             );
-            mapProvider.cancelRideRequest();
+            await mapProvider.clearRideStateLocally();
             if (mounted) context.push('/rate-driver');
           } else {
-            if (mounted)
+            if (mounted) {
               ScaffoldMessenger.of(context).showSnackBar(
                 const SnackBar(content: Text('Payment verification failed.')),
               );
+            }
           }
         }
       } catch (e) {
@@ -1241,7 +1384,10 @@ class _RidePaymentSummaryScreenState extends State<RidePaymentSummaryScreen> {
         final totalFareStr =
             rideData?['total_fare'] ?? rideData?['estimated_fare'] ?? '0.00';
         final totalFare = double.tryParse(totalFareStr.toString()) ?? 0.0;
-        final currency = rideData?['currency'] ?? '₹';
+        // The server sends an ISO 4217 CODE, not a symbol. Interpolating it
+        // directly rendered a rider's fare as "INR169.02" -- verified against
+        // deployed QA, which returns `"currency": "INR"` with every quote.
+        final currencyCode = rideData?['currency'] as String?;
 
         return Scaffold(
           backgroundColor: const Color(0xFF12110E),
@@ -1289,7 +1435,9 @@ class _RidePaymentSummaryScreenState extends State<RidePaymentSummaryScreen> {
                       ),
                       const SizedBox(height: 8),
                       Text(
-                        '$currency$totalFareStr',
+                        formatServerMoney(totalFareStr, currencyCode) ??
+                            formatMoney(totalFare, currencyCode) ??
+                            '',
                         style: GoogleFonts.inter(
                           color: Colors.white,
                           fontSize: 40,
@@ -1364,9 +1512,9 @@ class _RidePaymentSummaryScreenState extends State<RidePaymentSummaryScreen> {
                 const SizedBox(height: 16),
                 Center(
                   child: TextButton(
-                    onPressed: () {
-                      context.push('/rate-driver');
-                    },
+                    onPressed: _isProcessing
+                        ? null
+                        : () => _payWithCash(totalFare, currencyCode, rideData),
                     child: Text(
                       'Pay with Cash instead?',
                       style: GoogleFonts.inter(
