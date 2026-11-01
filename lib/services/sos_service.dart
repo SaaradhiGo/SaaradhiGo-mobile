@@ -27,6 +27,7 @@
 /// direct dial alongside it.
 library;
 
+import '../core/market/market_config_store.dart';
 import 'dart:async';
 import 'dart:convert';
 
@@ -64,11 +65,16 @@ class SosResult {
   /// never contains a stack trace or a URL.
   final String? message;
 
-  static const SosResult _noToken = SosResult(
+  static SosResult get _noToken => SosResult(
     ok: false,
-    message: 'You are signed out. Please sign in again, or call 112 directly.',
+    message:
+        'You are signed out. Please sign in again, or call $_emergencyNumber directly.',
   );
 }
+
+/// The market's emergency number (112 until another market is configured).
+String get _emergencyNumber =>
+    MarketConfigStore.instance.current.emergency.number;
 
 class SosService {
   SosService({http.Client? client}) : _client = client ?? http.Client();
@@ -128,20 +134,20 @@ class SosService {
       return SosResult(
         ok: false,
         message: 'We could not alert our team (error '
-            '${response.statusCode}). Please call 112.',
+            '${response.statusCode}). Please call $_emergencyNumber.',
       );
     } on TimeoutException {
-      return const SosResult(
+      return SosResult(
         ok: false,
-        message: 'No response from our team. Please call 112 now.',
+        message: 'No response from our team. Please call $_emergencyNumber now.',
       );
     } on Object catch (error) {
       // Deliberately broad: in an emergency any failure must still produce the
       // dialler, not an unhandled exception.
       if (kDebugMode) debugPrint('SOS failed: $error');
-      return const SosResult(
+      return SosResult(
         ok: false,
-        message: 'We could not reach our team. Please call 112 now.',
+        message: 'We could not reach our team. Please call $_emergencyNumber now.',
       );
     }
   }

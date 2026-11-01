@@ -3,6 +3,8 @@ import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 import '../core/app_config.dart';
+import '../core/market/booking_refusal.dart';
+import 'package:latlong2/latlong.dart';
 
 class FareService {
   Future<Map<String, dynamic>?> estimateFare({
@@ -43,10 +45,26 @@ class FareService {
         if (data['status'] == 'success') {
           return data['data'];
         }
+      } else {
+        // CITY_PAUSED / CITY_NOT_LIVE: tell the rider plainly, not a silent empty list.
+        _reportRefusal(response.body, LatLng(pickupLat, pickupLng));
       }
     } catch (e) {
       debugPrint('Error estimating fare: $e');
     }
     return null;
+  }
+
+  void _reportRefusal(String body, LatLng pickup) {
+    try {
+      final decoded = json.decode(body);
+      final error = decoded is Map ? decoded['error'] : null;
+      final code = error is Map ? error['code']?.toString() : null;
+      if (isBookingRefusalCode(code)) {
+        BookingRefusalState.instance.report(code!, pickup: pickup);
+      }
+    } catch (_) {
+      // Not our envelope: leave it to the existing no-estimate handling.
+    }
   }
 }

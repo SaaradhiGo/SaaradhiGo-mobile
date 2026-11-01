@@ -1,3 +1,4 @@
+import '../../core/market/market_config_store.dart';
 import 'package:flutter/material.dart';
 
 class Wallet {
@@ -82,7 +83,7 @@ class Transaction {
   }
 
   String get formattedAmount {
-    return '${isCredit ? '+' : '-'}₹$amount';
+    return '${isCredit ? '+' : '-'}${MarketConfigStore.instance.current.currencySymbol}$amount';
   }
 
   Color get statusColor {

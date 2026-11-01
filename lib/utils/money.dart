@@ -31,6 +31,8 @@
 /// therefore touches the symbol and never the digits.
 library;
 
+import '../core/market/market_config_store.dart';
+
 /// ISO 4217 code -> the symbol a rider should see.
 ///
 /// Mirrors `base/money.py` on the backend, which is the authority. Kept small
@@ -52,6 +54,10 @@ const Set<String> _suffixCurrencies = <String>{};
 /// that omits `currency` therefore behaves exactly as the app did before.
 const String kDefaultCurrency = 'INR';
 
+/// The currency to assume when the server names none: the market's (app-config),
+/// which is INR until another market is configured.
+String get _marketCurrency => MarketConfigStore.instance.current.currencyCode;
+
 /// The symbol for an ISO code, or the code itself when it is unknown.
 ///
 /// An unknown code returns the code followed by a non-breaking space, never
@@ -68,7 +74,7 @@ String currencySymbol(String? code) {
 /// renders with the wrong symbol is better than a booking screen that throws.
 String normaliseCurrency(String? code) {
   final trimmed = (code ?? '').trim().toUpperCase();
-  if (trimmed.isEmpty) return kDefaultCurrency;
+  if (trimmed.isEmpty) return _marketCurrency;
   return trimmed;
 }
 

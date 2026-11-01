@@ -1,3 +1,4 @@
+import '../../core/market/market_config_store.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
@@ -91,7 +92,7 @@ class PaymentStatusScreen extends StatelessWidget {
 
   Widget _buildAmount() {
     return Text(
-      '₹${amount?.toStringAsFixed(2) ?? '0.00'}',
+      '${MarketConfigStore.instance.current.currencySymbol}${amount?.toStringAsFixed(2) ?? '0.00'}',
       style: const TextStyle(
         fontSize: 36,
         fontWeight: FontWeight.bold,
@@ -112,7 +113,7 @@ class PaymentStatusScreen extends StatelessWidget {
 
   Widget _buildNewBalance() {
     return Text(
-      'New Balance: ₹${newBalance?.toStringAsFixed(2) ?? "0.00"}',
+      'New Balance: ${MarketConfigStore.instance.current.currencySymbol}${newBalance?.toStringAsFixed(2) ?? "0.00"}',
       style: TextStyle(
         fontSize: 16,
         color: Colors.white.withValues(alpha: 0.9),

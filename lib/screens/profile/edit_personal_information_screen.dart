@@ -1,3 +1,4 @@
+import '../../core/market/market_config_store.dart';
 import 'package:cached_network_image_ce/cached_network_image.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
@@ -24,7 +25,8 @@ class _EditPersonalInformationScreenState
   static const Color _primaryColor = Color(0xFFEEBD2B);
   static const String _fallbackFullName = 'John Doe';
   static const String _fallbackEmail = 'johndoe@example.com';
-  static const String _fallbackCountryCode = '+91';
+  String get _fallbackCountryCode =>
+      MarketConfigStore.instance.current.dialPrefix;
   static const String _fallbackPhoneNumber = '9876543210';
   static const String _fallbackGender = 'Male';
   static const String _fallbackAvatarUrl = 'https://via.placeholder.com/150';
@@ -47,7 +49,7 @@ class _EditPersonalInformationScreenState
   final ImagePicker _imagePicker = ImagePicker();
 
   String _selectedGender = _fallbackGender;
-  String _countryCode = _fallbackCountryCode;
+  late String _countryCode = _fallbackCountryCode;
   String _phoneNumber = _fallbackPhoneNumber;
   String? _localAvatarPath;
   bool _isSubmitting = false;
