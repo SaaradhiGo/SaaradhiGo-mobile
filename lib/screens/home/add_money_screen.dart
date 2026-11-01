@@ -1,3 +1,4 @@
+import '../components/market_overlays.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:go_router/go_router.dart';
@@ -39,13 +40,17 @@ class _AddMoneyScreenState extends State<AddMoneyScreen> {
     if (amount < 100) {
       ScaffoldMessenger.of(
         context,
-      ).showSnackBar(const SnackBar(content: Text('Minimum amount is ₹100')));
+      ).showSnackBar(
+        SnackBar(content: Text('Minimum amount is ${marketOf(context).currencySymbol}100')),
+      );
       return;
     }
     if (amount > 2000) {
       ScaffoldMessenger.of(
         context,
-      ).showSnackBar(const SnackBar(content: Text('Maximum amount is ₹2000')));
+      ).showSnackBar(
+        SnackBar(content: Text('Maximum amount is ${marketOf(context).currencySymbol}2000')),
+      );
       return;
     }
 
@@ -78,7 +83,7 @@ class _AddMoneyScreenState extends State<AddMoneyScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final formatter = NumberFormat.currency(symbol: '₹', decimalDigits: 2);
+    final formatter = NumberFormat.currency(symbol: marketOf(context).currencySymbol, decimalDigits: 2);
 
     return Scaffold(
       backgroundColor: const Color(0xFF12110E),
@@ -151,7 +156,7 @@ class _AddMoneyScreenState extends State<AddMoneyScreen> {
                       fontWeight: FontWeight.w700,
                     ),
                     decoration: InputDecoration(
-                      prefixText: '₹ ',
+                      prefixText: '${marketOf(context).currencySymbol} ',
                       prefixStyle: GoogleFonts.inter(
                         color: const Color(0xFFEEBD2B),
                         fontSize: 40,
@@ -198,7 +203,7 @@ class _AddMoneyScreenState extends State<AddMoneyScreen> {
                             ),
                           ),
                           child: Text(
-                            '+ ₹$amount',
+                            '+ ${marketOf(context).currencySymbol}$amount',
                             style: GoogleFonts.inter(
                               color: const Color(0xFFEEBD2B),
                               fontSize: 14,

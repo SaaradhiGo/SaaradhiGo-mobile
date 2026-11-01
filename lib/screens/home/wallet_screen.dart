@@ -1,3 +1,4 @@
+import '../components/market_overlays.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:go_router/go_router.dart';
@@ -336,7 +337,10 @@ class _WalletBalanceCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final formatter = NumberFormat.currency(symbol: '₹', decimalDigits: 2);
+    final formatter = NumberFormat.currency(
+      symbol: marketOf(context).currencySymbol,
+      decimalDigits: 2,
+    );
 
     return Container(
       width: double.infinity,

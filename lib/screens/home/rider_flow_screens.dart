@@ -15,6 +15,8 @@
 //
 // Deleting them is a reasonable future change; doing it silently as part of a
 // lint cleanup is not, which is why this comment exists instead.
+import '../../core/market/market_config_store.dart';
+import '../components/market_overlays.dart';
 import 'dart:async';
 import 'dart:convert';
 
@@ -902,7 +904,8 @@ class _FullMapTrackingScreenState extends State<FullMapTrackingScreen> {
                         ),
                       ),
                       Text(
-                        mapProvider.distance ?? '-- km',
+                        marketOf(context).displayDistance(mapProvider.distance) ??
+                            marketOf(context).distancePlaceholder,
                         style: GoogleFonts.inter(
                           color: Colors.white70,
                           fontSize: 13,
@@ -1125,7 +1128,7 @@ class _RidePaymentSummaryScreenState extends State<RidePaymentSummaryScreen> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  'Your wallet balance (₹${walletProvider.balance.toStringAsFixed(2)}) is less than the fare (₹${fare.toStringAsFixed(2)}).',
+                  'Your wallet balance (${MarketConfigStore.instance.current.currencySymbol}${walletProvider.balance.toStringAsFixed(2)}) is less than the fare (${MarketConfigStore.instance.current.currencySymbol}${fare.toStringAsFixed(2)}).',
                 ),
                 const SizedBox(height: 16),
                 const Text('Would you like to:'),
@@ -1454,7 +1457,7 @@ class _RidePaymentSummaryScreenState extends State<RidePaymentSummaryScreen> {
                   id: 'wallet',
                   title: 'Pay from Wallet',
                   subtitle:
-                      'Current Balance: ₹${walletProvider.balance.toStringAsFixed(2)}',
+                      'Current Balance: ${MarketConfigStore.instance.current.currencySymbol}${walletProvider.balance.toStringAsFixed(2)}',
                   icon: Icons.account_balance_wallet,
                   isSelected: _selectedPaymentMethod == 'wallet',
                   onTap: () =>

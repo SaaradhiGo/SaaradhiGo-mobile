@@ -1,3 +1,4 @@
+import '../components/market_overlays.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:go_router/go_router.dart';
@@ -379,7 +380,7 @@ class _HistoryRideCard extends StatelessWidget {
                 ],
               ),
               Text(
-                '₹$fare',
+                '${marketOf(context).currencySymbol}$fare',
                 style: GoogleFonts.inter(
                   color: const Color(0xFFEEBD2B),
                   fontSize: 18,

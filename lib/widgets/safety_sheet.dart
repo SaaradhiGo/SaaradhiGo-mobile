@@ -21,11 +21,17 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:url_launcher/url_launcher.dart';
 
+import '../core/market/market_config_store.dart';
 import '../services/sos_service.dart';
 
 /// India's single emergency number. One constant, named, because a literal
 /// '112' three screens deep is how a market launch ships the wrong number.
 const String kIndiaEmergencyNumber = '112';
+
+/// What the sheet actually dials: the configured market's number (112 for
+/// India, which is also the built-in default).
+String get _emergencyNumber =>
+    MarketConfigStore.instance.current.emergency.number;
 
 /// Everything the sheet needs. Passed in rather than read from a provider so
 /// the sheet is testable without the whole app graph.
@@ -139,7 +145,7 @@ class _SafetySheetState extends State<SafetySheet> {
   }
 
   Future<void> _call112() async {
-    final uri = Uri.parse('tel:$kIndiaEmergencyNumber');
+    final uri = Uri.parse('tel:$_emergencyNumber');
     // No `canLaunchUrl` gate: on a device without a dialler there is nothing
     // better to do than try, and a false negative here costs a rider the call.
     await launchUrl(uri, mode: LaunchMode.externalApplication);
@@ -197,9 +203,9 @@ class _SafetySheetState extends State<SafetySheet> {
               ),
             ),
             const SizedBox(height: 4),
-            const Text(
+            Text(
               'Our team is alerted immediately. For police, fire or '
-              'ambulance, call 112.',
+              'ambulance, call $_emergencyNumber.',
               style: TextStyle(color: Color(0xFF94A3B8), fontSize: 13),
             ),
             const SizedBox(height: 18),
@@ -209,7 +215,7 @@ class _SafetySheetState extends State<SafetySheet> {
               key: const Key('safety_call_112'),
               onPressed: _call112,
               icon: const Icon(Icons.call),
-              label: const Text('Call 112'),
+              label: Text('Call $_emergencyNumber'),
               style: ElevatedButton.styleFrom(
                 backgroundColor: const Color(0xFFDC2626),
                 foregroundColor: Colors.white,
@@ -318,7 +324,8 @@ class _ResultBanner extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            result.message ?? 'We could not alert our team. Please call 112.',
+            result.message ??
+                'We could not alert our team. Please call $_emergencyNumber.',
             style: const TextStyle(color: Colors.white, fontSize: 13),
           ),
           const SizedBox(height: 8),
@@ -326,8 +333,8 @@ class _ResultBanner extends StatelessWidget {
             key: const Key('sos_failure_call_112'),
             onPressed: onCall,
             icon: const Icon(Icons.call, color: Colors.white),
-            label: const Text('Call 112 now',
-                style: TextStyle(color: Colors.white)),
+            label: Text('Call $_emergencyNumber now',
+                style: const TextStyle(color: Colors.white)),
           ),
         ],
       ),

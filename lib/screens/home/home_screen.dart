@@ -506,9 +506,9 @@ class _HomeTab extends StatelessWidget {
                             : 'current',
                       );
                     } catch (e) {
-                      // Check if error is due to pickup location outside Hyderabad
+                      // Check if error is due to pickup location outside our service area
                       if (e.toString().contains(
-                        'Pickup location outside Hyderabad',
+                        'Pickup location outside our service area',
                       )) {
                         // Show ComingSoonOverlay
                         if (context.mounted) {
@@ -577,9 +577,9 @@ class _HomeTab extends StatelessWidget {
                               '${trip.destinationLat},${trip.destinationLng}',
                         );
                       } catch (e) {
-                        // Check if error is due to pickup location outside Hyderabad
+                        // Check if error is due to pickup location outside our service area
                         if (e.toString().contains(
-                          'Pickup location outside Hyderabad',
+                          'Pickup location outside our service area',
                         )) {
                           // Show ComingSoonOverlay
                           if (context.mounted) {
@@ -1247,8 +1247,8 @@ class _LocationCardState extends State<_LocationCard> {
               dropPlaceId: suggestion.placeId,
             );
           } catch (e) {
-            // Check if error is due to pickup location outside Hyderabad
-            if (e.toString().contains('Pickup location outside Hyderabad')) {
+            // Check if error is due to pickup location outside our service area
+            if (e.toString().contains('Pickup location outside our service area')) {
               // Show ComingSoonOverlay
               if (mounted) {
                 showDialog(

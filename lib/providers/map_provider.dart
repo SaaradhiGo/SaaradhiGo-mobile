@@ -397,10 +397,10 @@ class MapProvider extends ChangeNotifier {
         return;
       }
 
-      // Validate pickup location is within Hyderabad service area
+      // Validate the pickup location is within the service area
       final pickupLatLng = _pickupLocation!.latLng;
-      if (!ServiceAreaService.isPickupWithinHyderabad(pickupLatLng)) {
-        debugPrint('Pickup location outside Hyderabad: $pickupLatLng');
+      if (!ServiceAreaService.isPickupWithinServiceArea(pickupLatLng)) {
+        debugPrint('Pickup location outside our service area: $pickupLatLng');
         // Show the coming soon overlay
         triggerComingSoonOverlay();
         return;
@@ -460,11 +460,11 @@ class MapProvider extends ChangeNotifier {
   Future<void> _calculateRoute() async {
     if (_pickupLocation == null || _dropLocation == null) return;
 
-    // Validate pickup location is within Hyderabad service area
+    // Validate the pickup location is within the service area
     final pickupLatLng = _pickupLocation!.latLng;
-    if (!ServiceAreaService.isPickupWithinHyderabad(pickupLatLng)) {
+    if (!ServiceAreaService.isPickupWithinServiceArea(pickupLatLng)) {
       debugPrint(
-        '_calculateRoute: Pickup location outside Hyderabad, skipping route calculation',
+        '_calculateRoute: Pickup location outside our service area, skipping route calculation',
       );
       triggerComingSoonOverlay();
       return;

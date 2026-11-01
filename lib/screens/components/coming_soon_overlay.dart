@@ -3,8 +3,17 @@ import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 
+import 'market_overlays.dart';
+
 class ComingSoonOverlay extends StatelessWidget {
   const ComingSoonOverlay({super.key});
+
+  /// The configured live cities ("Hyderabad"), or "our service area" when the
+  /// server has named none.
+  static String _areaNames(BuildContext context) {
+    final names = marketOf(context).cityNames;
+    return names.isEmpty ? 'our service area' : names;
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -54,7 +63,7 @@ class ComingSoonOverlay extends StatelessWidget {
                 ),
                 const SizedBox(height: 16),
                 Text(
-                  'Our services are currently available only in Hyderabad.\nWe\'ll expand to your location soon!',
+                  'Our services are currently available only in ${_areaNames(context)}.\nWe\'ll expand to your location soon!',
                   style: GoogleFonts.plusJakartaSans(
                     color: const Color(0xFFadaaaa),
                     fontSize: 16,

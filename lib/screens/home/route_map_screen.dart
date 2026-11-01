@@ -10,8 +10,10 @@ import 'package:flutter_svg/flutter_svg.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../../providers/map_provider.dart';
 import '../components/coming_soon_overlay.dart';
+import '../components/market_overlays.dart';
 import '../components/map_attribution.dart';
 import '../../widgets/fare_breakdown.dart';
+import '../../utils/money.dart' show currencySymbol;
 
 class RouteMapScreen extends StatefulWidget {
   const RouteMapScreen({super.key});
@@ -574,7 +576,7 @@ class _RouteMapScreenState extends State<RouteMapScreen> {
     final safeTime = time.isNotEmpty
         ? time
         : (subtitle?.isNotEmpty == true ? subtitle! : '');
-    final safePrice = price.isNotEmpty ? price : '₹...';
+    final safePrice = price.isNotEmpty ? price : '${currencySymbol(null)}...';
 
     return InkWell(
       onTap: onTap,
@@ -915,15 +917,17 @@ class _RouteMapScreenState extends State<RouteMapScreen> {
 
   String _getEstimatedFare(Map<String, dynamic>? estimate) {
     if (estimate == null || estimate['estimated_fare'] == null) {
-      return '₹...';
+      return '${currencySymbol(null)}...';
     }
+    // The API names the currency of its own quote; it wins over the market config.
+    final symbol = currencySymbol(estimate['currency']?.toString());
     final fare = estimate['estimated_fare'];
     if (fare is num) {
-      return '₹${fare.toStringAsFixed(0)}';
+      return '$symbol${fare.toStringAsFixed(0)}';
     } else if (fare is String) {
-      return '₹$fare';
+      return '$symbol$fare';
     }
-    return '₹...';
+    return '$symbol...';
   }
 
   Future<bool> _showCancelConfirmation(BuildContext context) async {
@@ -1063,7 +1067,7 @@ class _RouteMapScreenState extends State<RouteMapScreen> {
                 const Icon(Icons.route, color: Color(0xFFEEBD2B), size: 18),
                 const SizedBox(width: 8),
                 Text(
-                  mapProvider.distance ?? '--',
+                  marketOf(context).displayDistance(mapProvider.distance) ?? '--',
                   style: const TextStyle(
                     color: Color(0xFFEEBD2B),
                     fontWeight: FontWeight.w600,

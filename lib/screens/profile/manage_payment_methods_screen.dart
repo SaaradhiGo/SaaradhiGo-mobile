@@ -1,3 +1,4 @@
+import '../components/market_overlays.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -42,7 +43,7 @@ class ManagePaymentMethodsScreen extends StatelessWidget {
       body: Consumer<WalletProvider>(
         builder: (context, provider, child) {
           final formatter = NumberFormat.currency(
-            symbol: '₹',
+            symbol: marketOf(context).currencySymbol,
             decimalDigits: 2,
           );
 

@@ -2,15 +2,26 @@ import 'package:cached_network_image_ce/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../services/api_service.dart';
+import '../core/market/market_config_store.dart';
 
 class AuthProvider extends ChangeNotifier {
   AuthProvider({
     AuthApiClient? apiService,
     Future<SharedPreferences> Function()? prefsFactory,
+    /// When given, the market config is refreshed after every sign-in (for the
+    /// signed-in user's country). Null in tests: no network.
+    MarketConfigStore? market,
   }) : _apiService = apiService ?? ApiService(),
+       _market = market,
        _prefsFactory = prefsFactory ?? SharedPreferences.getInstance {
     _initializationFuture = _hydrateProfileFromPrefs();
   }
+
+  final MarketConfigStore? _market;
+
+  /// The dialling code to assume when the user has none yet: the market's own
+  /// (built-in is +91, so unchanged for India).
+  String get _fallbackDial => MarketConfigStore.instance.current.dialPrefix;
 
   static const String _fullNameKey = 'profile_full_name';
   static const String _avatarUrlKey = 'profile_avatar_url';
@@ -465,7 +476,7 @@ class AuthProvider extends ChangeNotifier {
       _capturePhoneFromRawValue(
         payloadPhone,
         explicitCountryCode: payloadCountryCode,
-        fallbackCountryCode: _countryCode ?? '+91',
+        fallbackCountryCode: _countryCode ?? _fallbackDial,
       );
     }
 
@@ -651,7 +662,7 @@ class AuthProvider extends ChangeNotifier {
     return _capturePhoneFromRawValue(
       profileData['phone_number']?.toString(),
       explicitCountryCode: profileData['country_code']?.toString(),
-      fallbackCountryCode: _countryCode ?? '+91',
+      fallbackCountryCode: _countryCode ?? _fallbackDial,
     );
   }
 
@@ -686,9 +697,10 @@ class AuthProvider extends ChangeNotifier {
     );
     final phoneUpdated = _capturePhoneFromRawValue(
       phone,
-      fallbackCountryCode: '+91',
+      fallbackCountryCode: _fallbackDial,
     );
     await _persistIfNeeded([profileUpdated, phoneUpdated]);
+    _market?.refreshForPhone(phone);
   }
 
   /// Sign in with email + password.
@@ -736,6 +748,7 @@ class AuthProvider extends ChangeNotifier {
       _extractUserPayload(response),
     );
     await _persistIfNeeded([profileUpdated]);
+    _market?.refresh();
 
     _setLoading(false);
     return null;

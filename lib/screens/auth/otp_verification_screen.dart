@@ -1,4 +1,5 @@
 import 'dart:async';
+import '../components/market_overlays.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/scheduler.dart';
 import 'package:go_router/go_router.dart';
@@ -239,7 +240,7 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen> {
                     TextSpan(
                       text: widget.phoneNumber.isNotEmpty
                           ? widget.phoneNumber
-                          : "+91 98765 43210",
+                          : "${marketOf(context).dialPrefix} 98765 43210",
                       style: TextStyle(
                         color: colorScheme.onSurface,
                         fontWeight: FontWeight.bold,

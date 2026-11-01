@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 
 import '../../providers/auth_provider.dart';
+import '../components/market_overlays.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -119,7 +120,9 @@ class _LoginScreenState extends State<LoginScreen> {
     }
 
     final authProvider = Provider.of<AuthProvider>(context, listen: false);
-    final formattedPhone = '+91$phone';
+    // India still builds +91XXXXXXXXXX exactly as before; another market uses its own
+    // dialling code from app-config.
+    final formattedPhone = '${marketOf(context).dialPrefix}$phone';
     final response = await authProvider.requestOtp(formattedPhone);
 
     if (!mounted) return;
@@ -327,17 +330,17 @@ class _LoginScreenState extends State<LoginScreen> {
                                   horizontal: 14,
                                 ),
                                 child: Row(
-                                  children: const [
+                                  children: [
                                     Text(
-                                      '+91',
-                                      style: TextStyle(
+                                      marketOf(context).dialPrefix,
+                                      style: const TextStyle(
                                         color: Colors.white,
                                         fontSize: 18,
                                         fontWeight: FontWeight.w600,
                                       ),
                                     ),
-                                    SizedBox(width: 4),
-                                    Icon(
+                                    const SizedBox(width: 4),
+                                    const Icon(
                                       Icons.keyboard_arrow_down,
                                       color: Color(0xFF64748B),
                                     ),

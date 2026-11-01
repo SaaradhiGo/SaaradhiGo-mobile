@@ -7,7 +7,12 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 
+import 'dart:async';
 import 'core/app_config.dart';
+import 'core/market/app_http_client.dart';
+import 'core/market/market_config_store.dart';
+import 'package:http/http.dart' as http;
+import 'screens/components/market_overlays.dart';
 import 'screens/components/misconfigured_build_screen.dart';
 
 import 'providers/auth_provider.dart';
@@ -59,7 +64,15 @@ Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
   }
 }
 
-void main() async {
+void main() {
+  // ONE interceptor for every API call: http.runWithClient makes both the top-level
+  // http.get(...) calls and every http.Client() use AppHttpClient, which adds the
+  // X-App-* headers and watches for 426 APP_UPDATE_REQUIRED. The binding and
+  // runApp must share this zone.
+  http.runWithClient(_main, () => AppHttpClient());
+}
+
+Future<void> _main() async {
   WidgetsFlutterBinding.ensureInitialized();
   final container = riverpod.ProviderContainer();
 
@@ -90,6 +103,11 @@ void main() async {
     runApp(MisconfiguredBuildScreen(reason: misconfiguration));
     return;
   }
+  // Market config: the cached copy is read before the first frame (local, fast);
+  // the fresh fetch is NOT awaited, so a slow or failed fetch never delays
+  // start-up. Built-in defaults equal today's India behaviour.
+  await MarketConfigStore.instance.restoreCached();
+  unawaited(MarketConfigStore.instance.refresh());
   final prefs = await SharedPreferences.getInstance();
   final isFirstLaunch = prefs.getBool('isFirstLaunch') ?? true;
   final token = prefs.getString('access_token');
@@ -102,7 +120,12 @@ void main() async {
         container: container,
       child: MultiProvider(
         providers: [
-          ChangeNotifierProvider(create: (_) => AuthProvider()),
+          ChangeNotifierProvider<MarketConfigStore>.value(
+            value: MarketConfigStore.instance,
+          ),
+          ChangeNotifierProvider(
+            create: (_) => AuthProvider(market: MarketConfigStore.instance),
+          ),
           ChangeNotifierProvider(
             create: (_) => MapProvider(container: container),
           ),
@@ -293,7 +316,7 @@ class SaaradhiGoApp extends StatelessWidget {
           title: 'SaaradhiGo',
           debugShowCheckedModeBanner: false,
           builder: (context, child) {
-            return riverpod.Consumer(
+            return MarketOverlays(child: riverpod.Consumer(
               builder: (context, ref, _) {
                 // Wire the foreground-service notification into ride
                 // lifecycle. Listener is attached once per Consumer
@@ -319,7 +342,7 @@ class SaaradhiGoApp extends StatelessWidget {
                   ],
                 );
               },
-            );
+            ));
           },
           theme: ThemeData(
             useMaterial3: true,

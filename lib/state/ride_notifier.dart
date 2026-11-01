@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:latlong2/latlong.dart';
 import 'package:flutter/foundation.dart';
 import 'ride_state.dart';
+import '../core/market/booking_refusal.dart';
 import '../services/models/location_model.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../services/websocket_service.dart';
@@ -357,6 +358,17 @@ class RideNotifier extends Notifier<RideState> {
   void updateFromWebSocket(Map<String, dynamic> data) {
     final type = data['type'];
     final status = data['status'];
+
+    // The booking was refused because the city is paused or not live. Say so,
+    // and leave the "searching" screen: no trip exists to wait for.
+    if (type == 'error' && isBookingRefusalCode(data['code']?.toString())) {
+      BookingRefusalState.instance.report(
+        data['code'].toString(),
+        pickup: state.pickupLocation?.latLng,
+      );
+      unawaited(clearState());
+      return;
+    }
 
     if (type == 'driver_location_update' || type == 'location_update') {
       final lat = data['lat'] ?? data['latitude'];
