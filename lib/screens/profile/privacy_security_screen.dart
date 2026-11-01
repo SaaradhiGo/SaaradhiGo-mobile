@@ -188,23 +188,12 @@ class _PrivacySecurityScreenState extends State<PrivacySecurityScreen> {
                           onTap: () => _showComingSoon('Location Permissions'),
                         ),
                         const _PrivacyDivider(),
-                        _PrivacyToggleRow(
-                          key: const Key('privacy-toggle-marketing'),
-                          title: 'Marketing Preferences',
+                        _PrivacyActionRow(
+                          key: const Key('privacy-row-notification-preferences'),
+                          title: 'Notification Preferences',
                           subtitle:
                               'Choose how you want to receive offers and updates.',
-                          value: auth.marketingOptIn,
-                          // Awaited, not unawaited. The provider sets its
-                          // in-memory field synchronously and then persists to
-                          // SharedPreferences; firing that off unawaited meant a
-                          // rider could change their marketing preference
-                          // and kill the app before the write landed, leaving the
-                          // switch showing one thing and storage holding another.
-                          onChanged: (value) async {
-                            await context
-                                .read<AuthProvider>()
-                                .setMarketingOptIn(value);
-                          },
+                          onTap: () => context.push('/notification-preferences'),
                         ),
                         const _PrivacyDivider(),
                         _PrivacyActionRow(

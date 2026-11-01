@@ -372,6 +372,17 @@ class RideNotifier extends Notifier<RideState> {
       return;
     }
 
+    // Cash is not available for this account. Neutral message, and back out of
+    // the "searching" screen.
+    if (type == 'error' && data['code']?.toString() == kCashNotAvailable) {
+      BookingRefusalState.instance.reportMessage(
+        kCashNotAvailable,
+        kCashNotAvailableAtBookingMessage,
+      );
+      unawaited(clearState());
+      return;
+    }
+
     // The code the rider applied stopped applying between the preview and the
     // booking. Booking without it would charge more than they were shown, so
     // the server refused; say why and let them re-quote.
@@ -516,10 +527,7 @@ class RideNotifier extends Notifier<RideState> {
     //
     // Cheap and bounded: one extra request, only when a rider reaches a state that
     // should have an OTP and does not.
-    const needsOtp = {
-      RideStatus.driverAccepted,
-      RideStatus.driverArrived,
-    };
+    const needsOtp = {RideStatus.driverAccepted, RideStatus.driverArrived};
     final haveOtp = (mergedResponse['otp']?.toString() ?? '').isNotEmpty;
     if (tripId != null && needsOtp.contains(newStatus) && !haveOtp) {
       debugPrint(

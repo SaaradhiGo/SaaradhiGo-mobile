@@ -34,6 +34,7 @@ import 'screens/auth/login_screen.dart';
 import 'screens/auth/otp_verification_screen.dart';
 import 'screens/profile/profile_setup_screen.dart';
 import 'screens/profile/referral_screen.dart';
+import 'screens/profile/notification_preferences_screen.dart';
 import 'screens/home/home_screen.dart';
 import 'screens/home/rider_flow_screens.dart';
 import 'screens/home/wallet_screen.dart';
@@ -212,6 +213,11 @@ class SaaradhiGoApp extends StatelessWidget {
           path: '/privacy-security',
           builder: (BuildContext context, GoRouterState state) =>
               const PrivacySecurityScreen(),
+        ),
+        GoRoute(
+          path: '/notification-preferences',
+          builder: (BuildContext context, GoRouterState state) =>
+              const NotificationPreferencesScreen(),
         ),
         GoRoute(
           path: '/personal-info',

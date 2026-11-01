@@ -8,6 +8,7 @@ import '../../providers/wallet_provider.dart';
 import '../../providers/notification_provider.dart';
 import '../../providers/remote_config_provider.dart';
 import '../../services/models/wallet_model.dart';
+import '../../utils/money.dart';
 
 class WalletScreen extends StatefulWidget {
   const WalletScreen({super.key});
@@ -97,6 +98,12 @@ class _WalletScreenState extends State<WalletScreen> {
                 Consumer<RemoteConfigProvider>(
                   builder: (context, cfg, _) => _WalletBalanceCard(
                     balance: provider.balance,
+                    pendingReview: provider.wallet?.hasPendingReview == true
+                        ? formatServerMoney(
+                            provider.wallet!.pendingReview,
+                            provider.wallet!.currency,
+                          )
+                        : null,
                     isLoading: provider.isLoading,
                     topupsEnabled: cfg.walletTopupsEnabled,
                     creditsOnly: cfg.walletCreditsOnly,
@@ -329,8 +336,12 @@ class _WalletBalanceCard extends StatelessWidget {
     required this.isLoading,
     required this.topupsEnabled,
     required this.creditsOnly,
+    this.pendingReview,
   });
   final double balance;
+
+  /// A reward held for review, already formatted; null hides the line.
+  final String? pendingReview;
   final bool isLoading;
   final bool topupsEnabled;
   final bool creditsOnly;
@@ -402,6 +413,18 @@ class _WalletBalanceCard extends StatelessWidget {
                     letterSpacing: -0.5,
                   ),
                 ),
+          if (pendingReview != null) ...[
+            const SizedBox(height: 8),
+            Text(
+              'Pending review: $pendingReview (not spendable yet)',
+              key: const Key('wallet_pending_review'),
+              style: GoogleFonts.inter(
+                color: Colors.black.withValues(alpha: 0.75),
+                fontSize: 13,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ],
           if (topupsEnabled) ...[
             const SizedBox(height: 24),
             Row(
@@ -565,7 +588,7 @@ class _WalletTxnCard extends StatelessWidget {
                 ),
                 const SizedBox(width: 16),
                 Text(
-                  '${transaction.isCredit ? '+' : '-'}\u20B9${transaction.amount}',
+                  transaction.formattedAmount,
                   style: GoogleFonts.inter(
                     color: transaction.isCredit
                         ? const Color(0xFF10B981)

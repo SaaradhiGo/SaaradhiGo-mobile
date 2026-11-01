@@ -5,6 +5,7 @@ import 'package:web_socket_channel/web_socket_channel.dart';
 import 'package:flutter/foundation.dart';
 import 'models/trip_model.dart';
 import '../core/app_config.dart';
+import '../core/market/booking_refusal.dart';
 import '../utils/log_redaction.dart';
 
 class RideService {
@@ -511,7 +512,10 @@ class RideService {
     final payload = _unwrap(body);
     final error = body?['error'];
     final code = (error is Map ? error['code'] : null)?.toString();
-    final message = (error is Map ? error['message'] : null)?.toString();
+    // CASH_NOT_AVAILABLE gets the app's own neutral sentence, never the API's.
+    final message = code == kCashNotAvailable
+        ? kCashNotAvailableMessage
+        : (error is Map ? error['message'] : null)?.toString();
 
     if (response.statusCode == 200 || response.statusCode == 201) {
       final paymentStatus = payload?['status']?.toString();

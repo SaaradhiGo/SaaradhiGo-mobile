@@ -4,7 +4,16 @@ import 'package:flutter/material.dart';
 class Wallet {
   final double balance;
 
-  Wallet({required this.balance});
+  /// A reward held for review, as the API's decimal string (null when the API
+  /// sent none or zero, so no line is shown). It is not spendable yet.
+  final String? pendingReview;
+
+  /// The ISO currency the API names for the balance (null: the market's).
+  final String? currency;
+
+  Wallet({required this.balance, this.pendingReview, this.currency});
+
+  bool get hasPendingReview => pendingReview != null;
 
   factory Wallet.fromJson(Map<String, dynamic> json) {
     var balanceValue = json['balance'];
@@ -16,7 +25,14 @@ class Wallet {
       parsedBalance = double.tryParse(balanceValue) ?? 0.0;
     }
 
-    return Wallet(balance: parsedBalance);
+    final held = json['rewards_pending_review']?.toString().trim();
+    final heldValue = held == null ? null : double.tryParse(held);
+    final currency = json['currency']?.toString().trim();
+    return Wallet(
+      balance: parsedBalance,
+      pendingReview: heldValue != null && heldValue > 0 ? held : null,
+      currency: currency == null || currency.isEmpty ? null : currency,
+    );
   }
 }
 
@@ -30,6 +46,10 @@ class Transaction {
   final String transactionId;
   final String type; // 'payment', 'recharge', 'refund', 'cashback'
 
+  /// The API's plain-words label for a line that needs one (a recovery of a
+  /// reward reads "Recovery of reward (reviewed)"); null for ordinary lines.
+  final String? label;
+
   Transaction({
     required this.id,
     required this.title,
@@ -39,6 +59,7 @@ class Transaction {
     required this.status,
     required this.transactionId,
     required this.type,
+    this.label,
   });
 
   factory Transaction.fromJson(Map<String, dynamic> json) {
@@ -60,6 +81,7 @@ class Transaction {
           ? json['id'] as int
           : int.tryParse(json['id']?.toString() ?? '0') ?? 0,
       title:
+          _label(json['label']) ??
           json['description'] ??
           (type == 'payment' ? 'Ride Payment' : 'Wallet Top-up'),
       amount: amountStr,
@@ -75,7 +97,13 @@ class Transaction {
           json['transaction_id'] ??
           json['id'].toString(),
       type: type,
+      label: _label(json['label']),
     );
+  }
+
+  static String? _label(Object? raw) {
+    final s = raw?.toString().trim();
+    return s == null || s.isEmpty ? null : s;
   }
 
   String get formattedDate {

@@ -139,7 +139,8 @@ void main() {
       expect(find.text('Two-Factor Authentication'), findsOneWidget);
       expect(find.text('Change Password'), findsOneWidget);
       expect(find.text('Location Permissions'), findsOneWidget);
-      expect(find.text('Marketing Preferences'), findsOneWidget);
+      expect(find.text('Notification Preferences'), findsOneWidget);
+      expect(find.text('Marketing Preferences'), findsNothing);
       expect(find.text('Manage My Data'), findsOneWidget);
 
       expect(find.byKey(const Key('privacy-back')), findsOneWidget);
@@ -152,12 +153,13 @@ void main() {
         of: find.byKey(const Key('privacy-toggle-two-factor')),
         matching: find.byType(Switch),
       ));
-      final marketingSwitch = tester.widget<Switch>(find.descendant(
-        of: find.byKey(const Key('privacy-toggle-marketing')),
-        matching: find.byType(Switch),
-      ));
       expect(twoFactorSwitch.value, isTrue);
-      expect(marketingSwitch.value, isFalse);
+      // One notification screen, not a second local switch beside it.
+      expect(
+        find.byKey(const Key('privacy-row-notification-preferences')),
+        findsOneWidget,
+      );
+      expect(find.byKey(const Key('privacy-toggle-marketing')), findsNothing);
     });
 
     testWidgets('back button routes to /home?tab=3 when no back stack', (
@@ -250,10 +252,8 @@ void main() {
       }
 
       await toggle('privacy-toggle-two-factor');
-      await toggle('privacy-toggle-marketing');
 
       expect(provider.twoFactorEnabled, isFalse);
-      expect(provider.marketingOptIn, isTrue);
 
       final rehydratedProvider = AuthProvider(apiService: _FakeAuthApiClient());
       await rehydratedProvider.initializationFuture;
@@ -263,12 +263,7 @@ void main() {
         of: find.byKey(const Key('privacy-toggle-two-factor')),
         matching: find.byType(Switch),
       ));
-      final marketingSwitch = tester.widget<Switch>(find.descendant(
-        of: find.byKey(const Key('privacy-toggle-marketing')),
-        matching: find.byType(Switch),
-      ));
       expect(twoFactorSwitch.value, isFalse);
-      expect(marketingSwitch.value, isTrue);
     });
   });
 }
