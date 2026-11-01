@@ -9,6 +9,7 @@ import 'package:latlong2/latlong.dart';
 import '../../providers/notification_provider.dart';
 import 'package:geolocator/geolocator.dart';
 
+import '../../core/market/market_config_store.dart';
 import '../../providers/auth_provider.dart';
 import '../../providers/map_provider.dart';
 import '../../services/map_service.dart';
@@ -745,7 +746,18 @@ class _ProfileTab extends StatelessWidget {
             onTap: () => context.push('/help-support'),
           ),
           const SizedBox(height: 8),
-          const _ProfileMenuTile(icon: Icons.sell, title: 'Refer & Earn'),
+          // Hidden unless a referral offer is live for riders in this market.
+          ListenableBuilder(
+            listenable: MarketConfigStore.instance,
+            builder: (context, _) =>
+                MarketConfigStore.instance.current.referralsAvailable
+                ? _ProfileMenuTile(
+                    icon: Icons.sell,
+                    title: 'Refer & Earn',
+                    onTap: () => context.push('/refer'),
+                  )
+                : const SizedBox.shrink(),
+          ),
           const SizedBox(height: 26),
           OutlinedButton(
             onPressed: () async {
@@ -1248,7 +1260,9 @@ class _LocationCardState extends State<_LocationCard> {
             );
           } catch (e) {
             // Check if error is due to pickup location outside our service area
-            if (e.toString().contains('Pickup location outside our service area')) {
+            if (e.toString().contains(
+              'Pickup location outside our service area',
+            )) {
               // Show ComingSoonOverlay
               if (mounted) {
                 showDialog(

@@ -33,6 +33,7 @@ import 'screens/splash/splash_screen.dart';
 import 'screens/auth/login_screen.dart';
 import 'screens/auth/otp_verification_screen.dart';
 import 'screens/profile/profile_setup_screen.dart';
+import 'screens/profile/referral_screen.dart';
 import 'screens/home/home_screen.dart';
 import 'screens/home/rider_flow_screens.dart';
 import 'screens/home/wallet_screen.dart';
@@ -216,6 +217,11 @@ class SaaradhiGoApp extends StatelessWidget {
           path: '/personal-info',
           builder: (BuildContext context, GoRouterState state) =>
               const EditPersonalInformationScreen(),
+        ),
+        GoRoute(
+          path: '/refer',
+          builder: (BuildContext context, GoRouterState state) =>
+              const ReferralScreen(),
         ),
         GoRoute(
           path: '/help-support',
