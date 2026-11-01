@@ -32,6 +32,38 @@ class WebSocketService {
   bool _isConnectingRide = false;
   int _tripReconnectAttempts = 0;
 
+  /// The ride-request frame the booking socket sends. `promo_code` is present
+  /// only when the rider applied a code, so a booking without one is the frame
+  /// the app has always sent.
+  @visibleForTesting
+  static Map<String, dynamic> buildRideRequestPayload({
+    required double pickupLat,
+    required double pickupLng,
+    required double destinationLat,
+    required double destinationLng,
+    required double distanceKm,
+    required int durationMin,
+    required String vehicleType,
+    required String pickupAddress,
+    required String destinationAddress,
+    required String paymentMethod,
+    String? promoCode,
+  }) => {
+    'action': 'request',
+    'type': 'ride_request',
+    'pickup_lat': pickupLat,
+    'pickup_lng': pickupLng,
+    'destination_lat': destinationLat,
+    'destination_lng': destinationLng,
+    'pickup_address': pickupAddress,
+    'destination_address': destinationAddress,
+    'distance_km': distanceKm,
+    'duration_min': durationMin,
+    'vehicle_type': vehicleType,
+    'payment_method': paymentMethod,
+    if (promoCode != null && promoCode.isNotEmpty) 'promo_code': promoCode,
+  };
+
   void requestRide({
     required String token,
     required double pickupLat,
@@ -44,6 +76,7 @@ class WebSocketService {
     required String pickupAddress,
     required String destinationAddress,
     required String paymentMethod,
+    String? promoCode,
   }) {
     debugPrint("WebSocketService: requestRide invoked.");
     _isIntentionalDisconnect = false;
@@ -60,20 +93,19 @@ class WebSocketService {
       }
     }
 
-    _lastRideRequestPayload = {
-      'action': 'request',
-      'type': 'ride_request',
-      'pickup_lat': pickupLat,
-      'pickup_lng': pickupLng,
-      'destination_lat': destinationLat,
-      'destination_lng': destinationLng,
-      'pickup_address': pickupAddress,
-      'destination_address': destinationAddress,
-      'distance_km': distanceKm,
-      'duration_min': durationMin,
-      'vehicle_type': vehicleType,
-      'payment_method': paymentMethod,
-    };
+    _lastRideRequestPayload = buildRideRequestPayload(
+      pickupLat: pickupLat,
+      pickupLng: pickupLng,
+      destinationLat: destinationLat,
+      destinationLng: destinationLng,
+      distanceKm: distanceKm,
+      durationMin: durationMin,
+      vehicleType: vehicleType,
+      pickupAddress: pickupAddress,
+      destinationAddress: destinationAddress,
+      paymentMethod: paymentMethod,
+      promoCode: promoCode,
+    );
 
     debugPrint(
       "WebSocketService: Payload prepared. Connecting to WS URL: $wsUrl",

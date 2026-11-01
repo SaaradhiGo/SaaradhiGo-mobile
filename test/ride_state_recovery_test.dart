@@ -65,6 +65,18 @@ class _FakeRideService implements RideService {
   /// had ever run. Returns true because no test here exercises cancellation; a
   /// test that does should assert on it rather than rely on this default.
   @override
+  Future<VerifyResult> verifyRazorpayPayment(
+    String token,
+    String orderId,
+    String paymentId,
+    String signature,
+  ) async => const VerifyResult(200);
+
+  @override
+  Future<String?> getTripPaymentStatus(String token, int tripId) async =>
+      'completed';
+
+  @override
   Future<bool> cancelTrip(
     String token,
     String tripId, {

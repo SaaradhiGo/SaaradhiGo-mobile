@@ -236,6 +236,29 @@ class FareBreakdown extends StatelessWidget {
           ),
         );
       }
+
+      // US (additive tax): the sales tax and the per-trip regulatory fee are
+      // added on top of the fare and are collected and remitted by SaaradhiGo.
+      // They are shown apart from the fare, never as part of it. India's
+      // quotes carry `tax_mode: inclusive`, which adds no line here.
+      if (breakdown['tax_mode']?.toString() == 'additive') {
+        const note = 'Collected and remitted by SaaradhiGo';
+        if (_isPositive(breakdown['tax_amount'])) {
+          final label = (breakdown['tax_label']?.toString().trim().isNotEmpty ??
+                  false)
+              ? breakdown['tax_label'].toString()
+              : 'Sales tax';
+          final pct = breakdown['tax_percent']?.toString();
+          add(
+            pct == null || pct.isEmpty ? label : '$label ($pct%)',
+            breakdown['tax_amount'],
+            note: note,
+          );
+        }
+        if (_isPositive(breakdown['per_trip_fee'])) {
+          add('Regulatory fee', breakdown['per_trip_fee'], note: note);
+        }
+      }
     }
 
     return Column(

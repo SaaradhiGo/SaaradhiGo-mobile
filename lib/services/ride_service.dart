@@ -197,6 +197,56 @@ class RideService {
     }
   }
 
+  /// Verify a Razorpay Checkout result: the three values Checkout returned,
+  /// under the names the backend reads (`razorpay_*`). Unlike
+  /// [verifyTripPayment] this keeps the status and error code, because
+  /// `409 PAYMENT_NOT_CAPTURED` ("received, still confirming") must not be
+  /// read as a failure.
+  Future<VerifyResult> verifyRazorpayPayment(
+    String token,
+    String orderId,
+    String paymentId,
+    String signature,
+  ) async {
+    try {
+      final response = await _client.post(
+        Uri.parse('${AppConfig.baseUrl}/payments/verify/'),
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer $token',
+        },
+        body: jsonEncode({
+          'razorpay_order_id': orderId,
+          'razorpay_payment_id': paymentId,
+          'razorpay_signature': signature,
+        }),
+      );
+      String? code;
+      Map<String, dynamic>? body;
+      try {
+        final decoded = jsonDecode(response.body);
+        if (decoded is Map<String, dynamic>) {
+          body = decoded;
+          final err = decoded['error'];
+          if (err is Map) code = err['code']?.toString();
+        }
+      } catch (_) {}
+      return VerifyResult(response.statusCode, code: code, body: body);
+    } catch (e) {
+      debugPrint('Verify Razorpay Payment error: $e');
+      return const VerifyResult(0);
+    }
+  }
+
+  /// The trip's `payment_status`, or null when it cannot be read. Used to poll
+  /// a bounded number of times after `PAYMENT_NOT_CAPTURED`.
+  Future<String?> getTripPaymentStatus(String token, int tripId) async {
+    final body = await getTripStatus(token, tripId.toString());
+    final data = body?['data'];
+    final trip = data is Map ? data : body;
+    return trip?['payment_status']?.toString();
+  }
+
   Future<Map<String, dynamic>?> getTripStatus(
     String token,
     String tripId,
@@ -619,4 +669,18 @@ class CashSwitchOutcome {
   bool get isSettledOrOwed =>
       status == CashSwitchStatus.awaitingCollection ||
       status == CashSwitchStatus.alreadyPaid;
+}
+
+/// The outcome of POST /payments/verify/: the HTTP status and, on an error, the
+/// backend's `error.code` (`PAYMENT_NOT_CAPTURED`, `SIGNATURE_INVALID`...).
+class VerifyResult {
+  const VerifyResult(this.statusCode, {this.code, this.body});
+
+  /// 0 when the request never got an answer.
+  final int statusCode;
+  final String? code;
+  final Map<String, dynamic>? body;
+
+  bool get isSuccess =>
+      statusCode == 200 && (body == null || body!['status'] != 'error');
 }

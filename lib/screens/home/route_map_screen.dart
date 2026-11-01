@@ -13,6 +13,7 @@ import '../components/coming_soon_overlay.dart';
 import '../components/market_overlays.dart';
 import '../components/map_attribution.dart';
 import '../../widgets/fare_breakdown.dart';
+import '../../widgets/promo_entry_section.dart';
 import '../../utils/money.dart' show currencySymbol;
 
 class RouteMapScreen extends StatefulWidget {
@@ -860,6 +861,16 @@ class _RouteMapScreenState extends State<RouteMapScreen> {
           fareData: fareEstimates['car_premium'],
         ),
         _buildFareDetailsLink(fareEstimates[provider.selectedVehicleType]),
+        // Hidden unless app-config says a promo is available (promos_available).
+        PromoEntrySection(
+          market: marketOf(context),
+          fareData: fareEstimates[provider.selectedVehicleType],
+          vehicleType: provider.selectedVehicleType,
+          pickupLat: (provider.precisePickupLocation ?? provider.pickupLocation?.latLng)
+              ?.latitude,
+          pickupLong: (provider.precisePickupLocation ?? provider.pickupLocation?.latLng)
+              ?.longitude,
+        ),
       ],
     );
   }

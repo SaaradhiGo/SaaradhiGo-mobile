@@ -17,6 +17,7 @@ import '../state/ride_notifier.dart';
 import '../state/ride_state.dart';
 import '../services/websocket_service.dart';
 import '../services/token_store.dart';
+import '../core/promo/promo_selection.dart';
 
 enum LocationStatus { unknown, loading, confirmed, failed }
 
@@ -505,6 +506,8 @@ class MapProvider extends ChangeNotifier {
 
     _isLoadingFares = true;
     _fareEstimates = {};
+    // A code applied to the previous quote says nothing about this one.
+    PromoSelection.instance.clear();
     notifyListeners();
 
     final vehicleSpeeds = {
@@ -542,6 +545,8 @@ class MapProvider extends ChangeNotifier {
   void selectVehicleType(String? type) {
     if (_selectedVehicleType == type) return;
     _selectedVehicleType = type;
+    // The preview was for the other vehicle's fare.
+    PromoSelection.instance.clear();
     notifyListeners();
   }
 
@@ -595,6 +600,7 @@ class MapProvider extends ChangeNotifier {
           destinationAddress: _dropLocation!.name,
           vehicleType: _selectedVehicleType!,
           paymentMethod: selectedPaymentMethod,
+          promoCode: PromoSelection.instance.code,
         );
   }
 
