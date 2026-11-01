@@ -167,6 +167,8 @@ class WalletProvider extends ChangeNotifier {
             _wallet = Wallet(
               balance:
                   double.tryParse(newBalance.toString()) ?? _wallet!.balance,
+              pendingReview: _wallet!.pendingReview,
+              currency: _wallet!.currency,
             );
             notifyListeners();
           }

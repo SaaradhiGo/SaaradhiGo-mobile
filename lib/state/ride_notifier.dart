@@ -372,6 +372,17 @@ class RideNotifier extends Notifier<RideState> {
       return;
     }
 
+    // Cash is not available for this account. Neutral message, and back out of
+    // the "searching" screen so the rider can choose how to pay.
+    if (type == 'error' && data['code']?.toString() == kCashNotAvailable) {
+      BookingRefusalState.instance.reportMessage(
+        kCashNotAvailable,
+        kCashNotAvailableMessage,
+      );
+      unawaited(clearState());
+      return;
+    }
+
     // The code the rider applied stopped applying between the preview and the
     // booking. Booking without it would charge more than they were shown, so
     // the server refused; say why and let them re-quote.

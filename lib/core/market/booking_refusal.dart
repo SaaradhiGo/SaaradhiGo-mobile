@@ -17,6 +17,17 @@ const String kCityNotLive = 'CITY_NOT_LIVE';
 bool isBookingRefusalCode(String? code) =>
     code == kCityPaused || code == kCityNotLive;
 
+/// A cash booking, or a switch to cash, the backend refused for this account
+/// (`CASH_NOT_AVAILABLE`, servers/rider/models.py). On the booking socket it
+/// arrives as an `error` frame; on `POST /payments/switch/` as `error.code`.
+const String kCashNotAvailable = 'CASH_NOT_AVAILABLE';
+
+/// The one sentence a rider sees. It never says why: no review, no fraud, no
+/// account status. (The API's own wording is not used, so a wording change
+/// there cannot leak a reason into the app.)
+const String kCashNotAvailableMessage =
+    "Cash isn't available for this ride. Please choose another payment method.";
+
 /// "Rides are paused in Hyderabad right now" / "We're not in your area yet".
 String bookingRefusalMessage(String code, {String? city}) {
   final hasCity = city != null && city.trim().isNotEmpty;
