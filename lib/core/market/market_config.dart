@@ -115,6 +115,7 @@ class MarketConfig {
     required this.emergency,
     required this.cities,
     this.notices = const [],
+    this.promosAvailable = false,
     this.isBuiltIn = false,
   });
 
@@ -134,6 +135,12 @@ class MarketConfig {
   /// then falls back to the built-in Hyderabad polygon.
   final List<CityConfig> cities;
   final List<AppNotice> notices;
+
+  /// `promos_available` from app-config: true only while a rider promo is live
+  /// in this market. The promo-code entry is hidden unless it is true; a
+  /// document without the key (an older backend) reads as false, which is
+  /// exactly how the app behaved before promos existed.
+  final bool promosAvailable;
   final bool isBuiltIn;
 
   /// `+91`, `+1`: what the phone field shows and E.164 numbers start with.
@@ -278,6 +285,7 @@ class MarketConfig {
       ),
       cities: cities,
       notices: notices,
+      promosAvailable: data['promos_available'] == true,
     );
   }
 }

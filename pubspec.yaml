@@ -50,6 +50,7 @@ dependencies:
   # the raw phone number stays out of the widget tree; the only thing
   # that touches it is launchUrl(Uri.parse('tel:$number')).
   url_launcher: ^6.3.0
+  razorpay_flutter: 1.4.7
 
 dev_dependencies:
   flutter_test:

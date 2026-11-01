@@ -15,6 +15,7 @@ class PromoService {
     required double fare,
     double? pickupLat,
     double? pickupLong,
+    String? vehicleType,
   }) async {
     final body = <String, dynamic>{
       'code': code.trim().toUpperCase(),
@@ -22,6 +23,9 @@ class PromoService {
     };
     if (pickupLat != null) body['pickup_lat'] = pickupLat;
     if (pickupLong != null) body['pickup_long'] = pickupLong;
+    if (vehicleType != null && vehicleType.isNotEmpty) {
+      body['vehicle_type'] = vehicleType;
+    }
 
     final resp = await http
         .post(

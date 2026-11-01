@@ -18,7 +18,6 @@
 import '../../core/market/market_config_store.dart';
 import '../components/market_overlays.dart';
 import 'dart:async';
-import 'dart:convert';
 
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
@@ -37,6 +36,9 @@ import 'package:latlong2/latlong.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import '../../services/ride_service.dart';
 import '../../services/payment_service.dart';
+import '../../services/online_payment.dart';
+import '../../services/trip_charge.dart';
+import '../../widgets/trip_charge_card.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:provider/provider.dart' as p;
 import '../../utils/money.dart';
@@ -315,7 +317,13 @@ class _DriverFoundScreenState extends State<DriverFoundScreen> {
         WidgetsBinding.instance.addPostFrameCallback((_) {
           if (mounted && context.mounted) {
             ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(content: Text('Ride was cancelled by driver.')),
+              SnackBar(
+                content: Text(
+                  isOpsCancelled(response)
+                      ? kOpsCancelledNotice
+                      : 'Ride was cancelled by driver.',
+                ),
+              ),
             );
             context.go('/home');
           }
@@ -816,7 +824,13 @@ class _FullMapTrackingScreenState extends State<FullMapTrackingScreen> {
         WidgetsBinding.instance.addPostFrameCallback((_) {
           if (mounted && context.mounted) {
             ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(content: Text('Ride was cancelled.')),
+              SnackBar(
+                content: Text(
+                  isOpsCancelled(response)
+                      ? kOpsCancelledNotice
+                      : 'Ride was cancelled.',
+                ),
+              ),
             );
             context.go('/home');
           }
@@ -974,7 +988,20 @@ class _FullMapTrackingScreenState extends State<FullMapTrackingScreen> {
 }
 
 class RidePaymentSummaryScreen extends StatefulWidget {
-  const RidePaymentSummaryScreen({super.key});
+  const RidePaymentSummaryScreen({
+    super.key,
+    this.rideService,
+    this.razorpay,
+    this.cashfreeStarter,
+    this.confirmPollInterval = const Duration(seconds: 3),
+  });
+
+  /// Test seams: the HTTP service, the Razorpay and Cashfree launchers and the
+  /// poll interval after a PAYMENT_NOT_CAPTURED. Production passes none.
+  final RideService? rideService;
+  final RazorpayLauncher? razorpay;
+  final CashfreeStarter? cashfreeStarter;
+  final Duration confirmPollInterval;
 
   @override
   State<RidePaymentSummaryScreen> createState() =>
@@ -984,15 +1011,44 @@ class RidePaymentSummaryScreen extends StatefulWidget {
 class _RidePaymentSummaryScreenState extends State<RidePaymentSummaryScreen> {
   String _selectedPaymentMethod = 'wallet';
   final PaymentService _paymentService = PaymentService();
-  final RideService _rideService = RideService();
+  late final RideService _rideService = widget.rideService ?? RideService();
   bool _isProcessing = false;
+
+  /// create-order said 409 NOT_CHARGED: nothing is owed.
+  bool _notCharged = false;
+  String _notChargedMessage = 'You were not charged for this trip.';
+
+  /// "Payment received, confirming..." while a 409 PAYMENT_NOT_CAPTURED is
+  /// being polled.
+  String? _confirming;
+
+  /// The trip detail, loaded for a trip support ended (distance driven, the
+  /// fare for it, whether anything was charged).
+  Map<String, dynamic>? _receipt;
 
   @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
       context.read<WalletProvider>().refreshWallet();
+      _loadReceiptIfEndedBySupport();
     });
+  }
+
+  Future<void> _loadReceiptIfEndedBySupport() async {
+    final mapProvider = context.read<MapProvider>();
+    final raw = mapProvider.rideRequestResponse;
+    if (raw is! Map || !isOpsEnded(raw)) return;
+    final tripId = mapProvider.tripId;
+    if (tripId == null) return;
+    final token = (await SharedPreferences.getInstance()).getString(
+      'access_token',
+    );
+    if (token == null) return;
+    final body = await _rideService.getTripStatus(token, tripId);
+    final data = body?['data'];
+    final trip = data is Map<String, dynamic> ? data : body;
+    if (mounted && trip != null) setState(() => _receipt = trip);
   }
 
   /// Choosing cash is a SERVER action, not a screen change.
@@ -1264,106 +1320,33 @@ class _RidePaymentSummaryScreenState extends State<RidePaymentSummaryScreen> {
           return;
         }
 
-        final orderData = await _rideService.createTripPaymentOrder(
-          token,
-          tripId,
-        );
-        if (!mounted) return;
-
-        // Detailed logging for debugging
-        debugPrint(
-          'RidePaymentSummaryScreen: Order Data: ${jsonEncode(orderData)}',
-        );
-
-        // Extract order ID with robust fallback paths
-        final orderId =
-            orderData?['gateway_order_id']?.toString() ??
-            orderData?['id']?.toString() ??
-            orderData?['data']?['gateway_order_id']?.toString() ??
-            orderData?['data']?['id']?.toString();
-
-        final sessionId =
-            orderData?['cashfree_payment_session_id']?.toString() ??
-            orderData?['data']?['cashfree_payment_session_id']?.toString() ??
-            '';
-
-        if (orderId == null || orderId.isEmpty) {
-          setState(() => _isProcessing = false);
-
-          final backendError = orderData?['error'];
-          final errorMessage =
-              (backendError != null && backendError['message'] != null)
-              ? backendError['message']
-              : (orderData?['message'] ??
-                    'Failed to initiate payment. Please try again.');
-
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text(errorMessage),
-              backgroundColor: Colors.redAccent,
-            ),
-          );
-          return;
-        }
-
-        // Use server-provided prefill if available (handle data wrapper)
-        final serverPrefill =
-            (orderData?['data']?['prefill'] ?? orderData?['prefill'])
-                as Map<String, dynamic>?;
-        final prefill = {
-          'name': serverPrefill?['name']?.toString() ?? 'Rider',
-          'contact': serverPrefill?['contact']?.toString() ?? '9876543210',
-          'email':
-              serverPrefill?['email']?.toString() ?? 'rider@saaradhigo.com',
-        };
-
-        // Extract description with data wrapper fallback
-        final description =
-            orderData?['data']?['description']?.toString() ??
-            orderData?['description']?.toString() ??
-            'Payment for Trip #$tripId';
-
-        debugPrint(
-          'RidePaymentSummaryScreen: Initiating payment for Order: $orderId',
-        );
-
-        final successResponse = await _paymentService.startPayment(
-          amount: fare,
-          name: 'SaaradhiGo',
-          description: description,
-          orderId: orderId,
-          cashfreePaymentSessionId: sessionId,
-          prefill: prefill,
-          context: context,
-        );
-
-        if (successResponse != null) {
-          final verifyResult = await _rideService.verifyTripPayment(
-            token,
-            orderId,
-            successResponse.paymentId,
-            successResponse.signature,
-          );
-
-          if (verifyResult != null &&
-              (verifyResult['status'] == 'success' ||
-                  verifyResult['status'] == 'paid')) {
-            // The trip is COMPLETE and PAID. Tear down local state; do not
-            // ask the server to cancel a ride that just succeeded.
-            final mapProvider = p.Provider.of<MapProvider>(
-              context,
-              listen: false,
+        final flow = OnlinePaymentFlow(
+          rides: _rideService,
+          razorpay: widget.razorpay ?? RazorpaySdkLauncher(),
+          pollInterval: widget.confirmPollInterval,
+          cashfree: widget.cashfreeStarter ?? (order) async {
+            final r = await _paymentService.startPayment(
+              amount: fare,
+              name: 'SaaradhiGo',
+              description: order.description,
+              orderId: order.orderId,
+              cashfreePaymentSessionId: order.sessionId,
+              prefill: {
+                'name': order.prefill['name'] ?? 'Rider',
+                'contact': order.prefill['contact'] ?? '9876543210',
+                'email': order.prefill['email'] ?? 'rider@saaradhigo.com',
+              },
+              context: context,
             );
-            await mapProvider.clearRideStateLocally();
-            if (mounted) context.push('/rate-driver');
-          } else {
-            if (mounted) {
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text('Payment verification failed.')),
-              );
-            }
-          }
-        }
+            return r?.orderId;
+          },
+          onConfirming: () {
+            if (mounted) setState(() => _confirming = kPaymentConfirmingMessage);
+          },
+        );
+        final result = await flow.pay(token: token, tripId: tripId);
+        if (!mounted) return;
+        await _handleOnlineResult(result);
       } catch (e) {
         debugPrint(e.toString());
         if (mounted) {
@@ -1379,18 +1362,102 @@ class _RidePaymentSummaryScreenState extends State<RidePaymentSummaryScreen> {
     }
   }
 
+  /// What the screen does with each way the online payment can end.
+  Future<void> _handleOnlineResult(OnlinePaymentResult result) async {
+    if (!mounted) return;
+    setState(() => _confirming = null);
+    switch (result.outcome) {
+      case OnlinePaymentOutcome.paid:
+        // The trip is COMPLETE and PAID. Tear down local state; do not ask the
+        // server to cancel a ride that just succeeded.
+        final mapProvider = p.Provider.of<MapProvider>(context, listen: false);
+        await mapProvider.clearRideStateLocally();
+        if (mounted) context.push('/rate-driver');
+      case OnlinePaymentOutcome.notCharged:
+        // Nothing is owed: say so, never open a checkout.
+        setState(() {
+          _notCharged = true;
+          _notChargedMessage = result.message ?? _notChargedMessage;
+        });
+      case OnlinePaymentOutcome.cancelled:
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(result.message ?? 'Payment cancelled.')),
+        );
+      case OnlinePaymentOutcome.failed:
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(result.message ?? 'Payment verification failed.'),
+          ),
+        );
+      case OnlinePaymentOutcome.confirming:
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(result.message ?? kPaymentStillConfirmingMessage),
+            duration: const Duration(seconds: 8),
+          ),
+        );
+      case OnlinePaymentOutcome.unavailable:
+        // Online payment is not available (no gateway, unknown gateway, or the
+        // backend refused): the message the backend gave, as before.
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(result.message ?? kPaymentUnavailableMessage),
+            backgroundColor: Colors.redAccent,
+          ),
+        );
+    }
+  }
+
+  Future<void> _continueWhenNotCharged() async {
+    final mapProvider = p.Provider.of<MapProvider>(context, listen: false);
+    await mapProvider.clearRideStateLocally();
+    if (mounted) context.push('/rate-driver');
+  }
+
   @override
   Widget build(BuildContext context) {
     return Consumer2<MapProvider, WalletProvider>(
       builder: (context, mapProvider, walletProvider, child) {
         final rideData = mapProvider.rideRequestResponse;
-        final totalFareStr =
-            rideData?['total_fare'] ?? rideData?['estimated_fare'] ?? '0.00';
+        final rideMap = rideData is Map ? rideData : null;
+        final endedBySupport = isOpsEnded(rideMap);
+        // A trip support ended is charged for the distance driven, capped at the
+        // quote: its own final fare, from the trip detail, not the quote.
+        final totalFareStr = (endedBySupport && _receipt?['final_fare'] != null)
+            ? _receipt!['final_fare']
+            : (rideData?['total_fare'] ??
+                  rideData?['estimated_fare'] ??
+                  '0.00');
         final totalFare = double.tryParse(totalFareStr.toString()) ?? 0.0;
         // The server sends an ISO 4217 CODE, not a symbol. Interpolating it
         // directly rendered a rider's fare as "INR169.02" -- verified against
         // deployed QA, which returns `"currency": "INR"` with every quote.
-        final currencyCode = rideData?['currency'] as String?;
+        final currencyCode =
+            (rideData?['currency'] ?? _receipt?['currency']) as String?;
+
+        // What the server says the rider is charged: promo (trip_created frame
+        // or trip detail) and "not charged". Nothing is computed here.
+        final rideCharge = TripCharge.fromRide(rideMap);
+        final receiptCharge = TripCharge.fromTripDetail(_receipt);
+        final charge = TripCharge(
+          promoCode: rideCharge.promoCode,
+          discount: rideCharge.discount ?? receiptCharge.discount,
+          payable: rideCharge.payable ?? receiptCharge.payable,
+          notCharged:
+              _notCharged ||
+              rideCharge.notCharged ||
+              (endedBySupport && receiptCharge.notCharged),
+        );
+        final km = double.tryParse(
+          _receipt?['actual_distance_km']?.toString() ?? '',
+        );
+        final distanceDriven = (endedBySupport && km != null)
+            ? marketOf(context).formatDistanceKm(km)
+            : null;
+        // With a promo the rider pays the server's `rider_payable`, not the fare.
+        final payTotal = (charge.hasPromo && !charge.notCharged)
+            ? (double.tryParse(charge.payable ?? '') ?? totalFare)
+            : totalFare;
 
         return Scaffold(
           backgroundColor: const Color(0xFF12110E),
@@ -1419,38 +1486,33 @@ class _RidePaymentSummaryScreenState extends State<RidePaymentSummaryScreen> {
             child: ListView(
               padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
               children: [
-                Container(
-                  padding: const EdgeInsets.all(24),
-                  decoration: BoxDecoration(
-                    color: const Color(0xFF24211C),
-                    borderRadius: BorderRadius.circular(20),
-                    border: Border.all(color: const Color(0x1AFFFFFF)),
-                  ),
-                  child: Column(
-                    children: [
-                      Text(
-                        'Ride Fare',
-                        style: GoogleFonts.inter(
-                          color: const Color(0xFF94A3B8),
-                          fontSize: 14,
-                          fontWeight: FontWeight.w500,
-                        ),
-                      ),
-                      const SizedBox(height: 8),
-                      Text(
-                        formatServerMoney(totalFareStr, currencyCode) ??
-                            formatMoney(totalFare, currencyCode) ??
-                            '',
-                        style: GoogleFonts.inter(
-                          color: Colors.white,
-                          fontSize: 40,
-                          fontWeight: FontWeight.w800,
-                        ),
-                      ),
-                    ],
-                  ),
+                TripChargeCard(
+                  fare: totalFareStr.toString(),
+                  currencyCode: currencyCode,
+                  charge: charge,
+                  endedBySupport: endedBySupport,
+                  distanceDriven: distanceDriven,
                 ),
+                if (_confirming != null) ...[
+                  const SizedBox(height: 12),
+                  Text(
+                    _confirming!,
+                    key: const Key('payment_confirming'),
+                    textAlign: TextAlign.center,
+                    style: GoogleFonts.inter(
+                      color: const Color(0xFFEEBD2B),
+                      fontSize: 14,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ],
                 const SizedBox(height: 32),
+                if (charge.notCharged)
+                  NotChargedPanel(
+                    message: _notChargedMessage,
+                    onContinue: _continueWhenNotCharged,
+                  )
+                else ...[
 
                 // Payment Options List
                 _buildPaymentOption(
@@ -1482,7 +1544,7 @@ class _RidePaymentSummaryScreenState extends State<RidePaymentSummaryScreen> {
                     onPressed: _isProcessing
                         ? null
                         : () => _processPayment(
-                            totalFare,
+                            payTotal,
                             walletProvider,
                             rideData,
                           ),
@@ -1517,7 +1579,7 @@ class _RidePaymentSummaryScreenState extends State<RidePaymentSummaryScreen> {
                   child: TextButton(
                     onPressed: _isProcessing
                         ? null
-                        : () => _payWithCash(totalFare, currencyCode, rideData),
+                        : () => _payWithCash(payTotal, currencyCode, rideData),
                     child: Text(
                       'Pay with Cash instead?',
                       style: GoogleFonts.inter(
@@ -1529,6 +1591,7 @@ class _RidePaymentSummaryScreenState extends State<RidePaymentSummaryScreen> {
                     ),
                   ),
                 ),
+                ],
               ],
             ),
           ),

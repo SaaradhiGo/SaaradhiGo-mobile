@@ -50,6 +50,13 @@ class BookingRefusalState extends ChangeNotifier {
     notifyListeners();
   }
 
+  /// Records a refusal whose sentence the caller already worded (a promo code
+  /// the booking could no longer apply).
+  void reportMessage(String code, String message) {
+    _latest = BookingRefusal(code, message);
+    notifyListeners();
+  }
+
   void dismiss() {
     if (_latest == null) return;
     _latest = null;

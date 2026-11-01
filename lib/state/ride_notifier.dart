@@ -5,6 +5,8 @@ import 'package:latlong2/latlong.dart';
 import 'package:flutter/foundation.dart';
 import 'ride_state.dart';
 import '../core/market/booking_refusal.dart';
+import '../core/promo/promo_messages.dart';
+import '../core/promo/promo_selection.dart';
 import '../services/models/location_model.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../services/websocket_service.dart';
@@ -365,6 +367,19 @@ class RideNotifier extends Notifier<RideState> {
       BookingRefusalState.instance.report(
         data['code'].toString(),
         pickup: state.pickupLocation?.latLng,
+      );
+      unawaited(clearState());
+      return;
+    }
+
+    // The code the rider applied stopped applying between the preview and the
+    // booking. Booking without it would charge more than they were shown, so
+    // the server refused; say why and let them re-quote.
+    if (type == 'error' && isPromoRefusalCode(data['code']?.toString())) {
+      PromoSelection.instance.clear();
+      BookingRefusalState.instance.reportMessage(
+        data['code'].toString(),
+        promoBookingRefusalMessage(data['code']?.toString()),
       );
       unawaited(clearState());
       return;
