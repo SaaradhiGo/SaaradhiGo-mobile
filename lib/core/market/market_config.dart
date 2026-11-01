@@ -182,6 +182,29 @@ class MarketConfig {
     return '$dialPrefix ${digits.substring(0, cut)} ${digits.substring(cut)}';
   }
 
+  /// Address-form hints in this market's style. India and the US get a
+  /// local-looking sample; any other (or unknown) market gets a neutral label
+  /// rather than a wrong-country example.
+  String get streetAddressHint => switch (countryCode.toUpperCase()) {
+    'IN' => 'Road No. 12, Banjara Hills',
+    'US' => '123 Main Street',
+    _ => 'Street address',
+  };
+
+  /// A sample postal code: a 6-digit PIN in India, a 5-digit ZIP in the US.
+  String get postalCodeHint => switch (countryCode.toUpperCase()) {
+    'IN' => '500034',
+    'US' => '78701',
+    _ => 'Postal code',
+  };
+
+  /// The postal-code field's label: "PIN code" / "ZIP code" / "Postal code".
+  String get postalCodeLabel => switch (countryCode.toUpperCase()) {
+    'IN' => 'PIN code',
+    'US' => 'ZIP code',
+    _ => 'Postal code',
+  };
+
   /// A short distance string in this market's unit: "12.3 km" / "7.6 mi".
   String formatDistanceKm(double km, {int decimals = 1}) {
     if (distanceUnit == 'mi') {

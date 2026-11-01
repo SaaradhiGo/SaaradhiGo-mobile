@@ -6,7 +6,10 @@ import '../services/payment_service.dart';
 import '../services/models/wallet_model.dart';
 
 class WalletProvider extends ChangeNotifier {
-  final WalletService _walletService = WalletService();
+  WalletProvider({WalletService? walletService})
+    : _walletService = walletService ?? WalletService();
+
+  final WalletService _walletService;
   final PaymentService _paymentService = PaymentService();
 
   Wallet? _wallet;
@@ -137,48 +140,33 @@ class WalletProvider extends ChangeNotifier {
     }
   }
 
-  /// Pay for a ride directly from wallet
-  /// Returns: Map with new_balance and transaction_id on success, null on failure
-  Future<Map<String, dynamic>?> payForRide({
-    required double amount,
-    required int tripId,
-    String? purpose,
-  }) async {
+  /// Pay for a ride directly from the wallet. The server picks the amount;
+  /// the outcome carries what it charged.
+  Future<WalletPayOutcome> payForRide({required int tripId}) async {
     try {
       final prefs = await SharedPreferences.getInstance();
       final token = prefs.getString('access_token');
-      if (token == null) return null;
+      if (token == null) return const WalletPayOutcome(paid: false);
 
-      final idempotencyKey =
-          'trip_${tripId}_${DateTime.now().millisecondsSinceEpoch}';
-
-      final result = await _walletService.directWalletPayment(
-        token: token,
-        amount: amount,
-        purpose: purpose ?? 'Trip payment',
-        referenceId: tripId.toString(),
-        idempotencyKey: idempotencyKey,
+      final outcome = WalletPayOutcome.fromResponse(
+        await _walletService.directWalletPayment(token: token, tripId: tripId),
       );
 
-      if (result != null && result['status'] == 'success') {
-        if (result['data'] != null) {
-          final newBalance = result['data']['new_balance'];
-          if (_wallet != null && newBalance != null) {
-            _wallet = Wallet(
-              balance:
-                  double.tryParse(newBalance.toString()) ?? _wallet!.balance,
-              pendingReview: _wallet!.pendingReview,
-              currency: _wallet!.currency,
-            );
-            notifyListeners();
-          }
+      if (outcome.paid) {
+        final newBalance = outcome.newBalance;
+        if (_wallet != null && newBalance != null) {
+          _wallet = Wallet(
+            balance: double.tryParse(newBalance.toString()) ?? _wallet!.balance,
+            pendingReview: _wallet!.pendingReview,
+            currency: _wallet!.currency,
+          );
+          notifyListeners();
         }
-        return result['data'];
       }
-      return result;
+      return outcome;
     } catch (e) {
       debugPrint('payForRide error: $e');
-      return null;
+      return const WalletPayOutcome(paid: false);
     }
   }
 }
