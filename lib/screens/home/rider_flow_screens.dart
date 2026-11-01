@@ -36,6 +36,7 @@ import 'package:latlong2/latlong.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import '../../services/ride_service.dart';
 import '../../services/payment_service.dart';
+import '../../services/wallet_service.dart' show WalletPayOutcome;
 import '../../services/online_payment.dart';
 import '../../services/trip_charge.dart';
 import '../../widgets/trip_charge_card.dart';
@@ -918,7 +919,9 @@ class _FullMapTrackingScreenState extends State<FullMapTrackingScreen> {
                         ),
                       ),
                       Text(
-                        marketOf(context).displayDistance(mapProvider.distance) ??
+                        marketOf(
+                              context,
+                            ).displayDistance(mapProvider.distance) ??
                             marketOf(context).distancePlaceholder,
                         style: GoogleFonts.inter(
                           color: Colors.white70,
@@ -1153,10 +1156,7 @@ class _RidePaymentSummaryScreenState extends State<RidePaymentSummaryScreen> {
     if (!mounted) return;
 
     ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(message),
-        duration: const Duration(seconds: 5),
-      ),
+      SnackBar(content: Text(message), duration: const Duration(seconds: 5)),
     );
     context.push('/rate-driver');
   }
@@ -1167,6 +1167,47 @@ class _RidePaymentSummaryScreenState extends State<RidePaymentSummaryScreen> {
     );
   }
 
+  void _showInsufficientBalanceDialog(
+    double fare,
+    WalletProvider walletProvider,
+  ) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Insufficient Balance'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'Your wallet balance (${MarketConfigStore.instance.current.currencySymbol}${walletProvider.balance.toStringAsFixed(2)}) is less than the fare (${MarketConfigStore.instance.current.currencySymbol}${fare.toStringAsFixed(2)}).',
+            ),
+            const SizedBox(height: 16),
+            const Text('Would you like to:'),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () {
+              Navigator.pop(context);
+              context.push(
+                '/add-money',
+                extra: {'returnRoute': '/ride-summary'},
+              );
+            },
+            child: const Text('Add Money'),
+          ),
+          TextButton(
+            onPressed: () {
+              Navigator.pop(context);
+              setState(() => _selectedPaymentMethod = 'online');
+            },
+            child: const Text('Pay with UPI/Card'),
+          ),
+        ],
+      ),
+    );
+  }
 
   void _processPayment(
     double fare,
@@ -1175,42 +1216,7 @@ class _RidePaymentSummaryScreenState extends State<RidePaymentSummaryScreen> {
   ) async {
     if (_selectedPaymentMethod == 'wallet') {
       if (walletProvider.balance < fare) {
-        showDialog(
-          context: context,
-          builder: (context) => AlertDialog(
-            title: const Text('Insufficient Balance'),
-            content: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  'Your wallet balance (${MarketConfigStore.instance.current.currencySymbol}${walletProvider.balance.toStringAsFixed(2)}) is less than the fare (${MarketConfigStore.instance.current.currencySymbol}${fare.toStringAsFixed(2)}).',
-                ),
-                const SizedBox(height: 16),
-                const Text('Would you like to:'),
-              ],
-            ),
-            actions: [
-              TextButton(
-                onPressed: () {
-                  Navigator.pop(context);
-                  context.push(
-                    '/add-money',
-                    extra: {'returnRoute': '/ride-summary'},
-                  );
-                },
-                child: const Text('Add Money'),
-              ),
-              TextButton(
-                onPressed: () {
-                  Navigator.pop(context);
-                  setState(() => _selectedPaymentMethod = 'online');
-                },
-                child: const Text('Pay with UPI/Card'),
-              ),
-            ],
-          ),
-        );
+        _showInsufficientBalanceDialog(fare, walletProvider);
       } else {
         setState(() => _isProcessing = true);
         try {
@@ -1240,40 +1246,42 @@ class _RidePaymentSummaryScreenState extends State<RidePaymentSummaryScreen> {
             return;
           }
 
-          // Call wallet payment API
-          final result = await walletProvider.payForRide(
-            amount: fare,
-            tripId: tripId,
-          );
+          // The server decides the amount and whether the trip can be paid.
+          final result = await walletProvider.payForRide(tripId: tripId);
 
           if (!mounted) return;
 
           setState(() => _isProcessing = false);
 
-          if (result != null && result['transaction_id'] != null) {
-            if (mounted) {
-              context.push(
-                '/payment-status',
-                extra: {
-                  'status': 'success',
-                  'amount': fare,
-                  'transaction_id': result['transaction_id'],
-                  'new_balance':
-                      result['new_balance'] ?? walletProvider.balance,
-                },
-              );
-            }
+          if (result.paid) {
+            // A 200 duplicate is the same transaction: success.
+            context.push(
+              '/payment-status',
+              extra: {
+                'status': 'success',
+                // What the server charged; the local fare is display-only
+                // fallback when the response lacks an amount.
+                'amount': result.serverAmount ?? fare,
+                'transaction_id': result.transactionId,
+                'new_balance': result.newBalance ?? walletProvider.balance,
+              },
+            );
+          } else if (result.alreadyPaid) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                content: Text(WalletPayOutcome.alreadyPaidMessage),
+              ),
+            );
+          } else if (result.insufficientBalance) {
+            _showInsufficientBalanceDialog(fare, walletProvider);
           } else {
-            if (mounted) {
-              context.push(
-                '/payment-status',
-                extra: {
-                  'status': 'failed',
-                  'error_message':
-                      result?['error'] ?? 'Could not process wallet payment',
-                },
-              );
-            }
+            context.push(
+              '/payment-status',
+              extra: {
+                'status': 'failed',
+                'error_message': WalletPayOutcome.neutralFailureMessage,
+              },
+            );
           }
         } catch (e) {
           setState(() => _isProcessing = false);
@@ -1282,7 +1290,7 @@ class _RidePaymentSummaryScreenState extends State<RidePaymentSummaryScreen> {
               '/payment-status',
               extra: {
                 'status': 'failed',
-                'error_message': 'Payment error: ${e.toString()}',
+                'error_message': WalletPayOutcome.neutralFailureMessage,
               },
             );
           }
@@ -1324,24 +1332,27 @@ class _RidePaymentSummaryScreenState extends State<RidePaymentSummaryScreen> {
           rides: _rideService,
           razorpay: widget.razorpay ?? RazorpaySdkLauncher(),
           pollInterval: widget.confirmPollInterval,
-          cashfree: widget.cashfreeStarter ?? (order) async {
-            final r = await _paymentService.startPayment(
-              amount: fare,
-              name: 'SaaradhiGo',
-              description: order.description,
-              orderId: order.orderId,
-              cashfreePaymentSessionId: order.sessionId,
-              prefill: {
-                'name': order.prefill['name'] ?? 'Rider',
-                'contact': order.prefill['contact'] ?? '9876543210',
-                'email': order.prefill['email'] ?? 'rider@saaradhigo.com',
+          cashfree:
+              widget.cashfreeStarter ??
+              (order) async {
+                final r = await _paymentService.startPayment(
+                  amount: fare,
+                  name: 'SaaradhiGo',
+                  description: order.description,
+                  orderId: order.orderId,
+                  cashfreePaymentSessionId: order.sessionId,
+                  prefill: {
+                    'name': order.prefill['name'] ?? 'Rider',
+                    'contact': order.prefill['contact'] ?? '9876543210',
+                    'email': order.prefill['email'] ?? 'rider@saaradhigo.com',
+                  },
+                  context: context,
+                );
+                return r?.orderId;
               },
-              context: context,
-            );
-            return r?.orderId;
-          },
           onConfirming: () {
-            if (mounted) setState(() => _confirming = kPaymentConfirmingMessage);
+            if (mounted)
+              setState(() => _confirming = kPaymentConfirmingMessage);
           },
         );
         final result = await flow.pay(token: token, tripId: tripId);
@@ -1513,84 +1524,84 @@ class _RidePaymentSummaryScreenState extends State<RidePaymentSummaryScreen> {
                     onContinue: _continueWhenNotCharged,
                   )
                 else ...[
-
-                // Payment Options List
-                _buildPaymentOption(
-                  id: 'wallet',
-                  title: 'Pay from Wallet',
-                  subtitle:
-                      'Current Balance: ${MarketConfigStore.instance.current.currencySymbol}${walletProvider.balance.toStringAsFixed(2)}',
-                  icon: Icons.account_balance_wallet,
-                  isSelected: _selectedPaymentMethod == 'wallet',
-                  onTap: () =>
-                      setState(() => _selectedPaymentMethod = 'wallet'),
-                ),
-                const SizedBox(height: 12),
-                _buildPaymentOption(
-                  id: 'upi_card',
-                  title: 'Pay via UPI/Card',
-                  icon: Icons.credit_card,
-                  isSelected: _selectedPaymentMethod == 'upi_card',
-                  onTap: () =>
-                      setState(() => _selectedPaymentMethod = 'upi_card'),
-                ),
-
-                const SizedBox(height: 48),
-
-                SizedBox(
-                  width: double.infinity,
-                  height: 56,
-                  child: ElevatedButton(
-                    onPressed: _isProcessing
-                        ? null
-                        : () => _processPayment(
-                            payTotal,
-                            walletProvider,
-                            rideData,
-                          ),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color(0xFFEEBD2B),
-                      foregroundColor: Colors.black,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(16),
-                      ),
-                      elevation: 0,
-                    ),
-                    child: _isProcessing
-                        ? const SizedBox(
-                            width: 24,
-                            height: 24,
-                            child: CircularProgressIndicator(
-                              color: Colors.black,
-                              strokeWidth: 2,
-                            ),
-                          )
-                        : Text(
-                            'Confirm & Pay',
-                            style: GoogleFonts.inter(
-                              fontSize: 16,
-                              fontWeight: FontWeight.w700,
-                            ),
-                          ),
+                  // Payment Options List
+                  _buildPaymentOption(
+                    id: 'wallet',
+                    title: 'Pay from Wallet',
+                    subtitle:
+                        'Current Balance: ${MarketConfigStore.instance.current.currencySymbol}${walletProvider.balance.toStringAsFixed(2)}',
+                    icon: Icons.account_balance_wallet,
+                    isSelected: _selectedPaymentMethod == 'wallet',
+                    onTap: () =>
+                        setState(() => _selectedPaymentMethod = 'wallet'),
                   ),
-                ),
-                const SizedBox(height: 16),
-                Center(
-                  child: TextButton(
-                    onPressed: _isProcessing
-                        ? null
-                        : () => _payWithCash(payTotal, currencyCode, rideData),
-                    child: Text(
-                      'Pay with Cash instead?',
-                      style: GoogleFonts.inter(
-                        color: const Color(0xFF94A3B8),
-                        fontSize: 14,
-                        fontWeight: FontWeight.w500,
-                        decoration: TextDecoration.underline,
+                  const SizedBox(height: 12),
+                  _buildPaymentOption(
+                    id: 'upi_card',
+                    title: 'Pay via UPI/Card',
+                    icon: Icons.credit_card,
+                    isSelected: _selectedPaymentMethod == 'upi_card',
+                    onTap: () =>
+                        setState(() => _selectedPaymentMethod = 'upi_card'),
+                  ),
+
+                  const SizedBox(height: 48),
+
+                  SizedBox(
+                    width: double.infinity,
+                    height: 56,
+                    child: ElevatedButton(
+                      onPressed: _isProcessing
+                          ? null
+                          : () => _processPayment(
+                              payTotal,
+                              walletProvider,
+                              rideData,
+                            ),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: const Color(0xFFEEBD2B),
+                        foregroundColor: Colors.black,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(16),
+                        ),
+                        elevation: 0,
                       ),
+                      child: _isProcessing
+                          ? const SizedBox(
+                              width: 24,
+                              height: 24,
+                              child: CircularProgressIndicator(
+                                color: Colors.black,
+                                strokeWidth: 2,
+                              ),
+                            )
+                          : Text(
+                              'Confirm & Pay',
+                              style: GoogleFonts.inter(
+                                fontSize: 16,
+                                fontWeight: FontWeight.w700,
+                              ),
+                            ),
                     ),
                   ),
-                ),
+                  const SizedBox(height: 16),
+                  Center(
+                    child: TextButton(
+                      onPressed: _isProcessing
+                          ? null
+                          : () =>
+                                _payWithCash(payTotal, currencyCode, rideData),
+                      child: Text(
+                        'Pay with Cash instead?',
+                        style: GoogleFonts.inter(
+                          color: const Color(0xFF94A3B8),
+                          fontSize: 14,
+                          fontWeight: FontWeight.w500,
+                          decoration: TextDecoration.underline,
+                        ),
+                      ),
+                    ),
+                  ),
                 ],
               ],
             ),

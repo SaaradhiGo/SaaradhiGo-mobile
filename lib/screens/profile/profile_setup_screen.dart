@@ -741,7 +741,7 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen> {
                             flex: 2,
                             child: _buildTextField(
                               'Street Name',
-                              'Park Avenue',
+                              _market.current.streetAddressHint,
                               controller: _streetNameController,
                             ),
                           ),
@@ -764,8 +764,8 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen> {
                           Expanded(
                             flex: 1,
                             child: _buildTextField(
-                              'Zip Code',
-                              '10001',
+                              _market.current.postalCodeLabel,
+                              _market.current.postalCodeHint,
                               controller: _zipCodeController,
                             ),
                           ),

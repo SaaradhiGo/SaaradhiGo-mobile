@@ -718,13 +718,16 @@ class _EditPersonalInformationScreenState
                                     color: const Color(0xFFF8FAFC),
                                     fontSize: 16,
                                   ),
-                                  decoration: const InputDecoration(
+                                  decoration: InputDecoration(
                                     border: InputBorder.none,
-                                    contentPadding: EdgeInsets.symmetric(
+                                    contentPadding: const EdgeInsets.symmetric(
                                       horizontal: 16,
                                       vertical: 12,
                                     ),
-                                    hintText: 'Park Avenue',
+                                    hintText: MarketConfigStore
+                                        .instance
+                                        .current
+                                        .streetAddressHint,
                                   ),
                                 ),
                               ),
@@ -749,7 +752,7 @@ class _EditPersonalInformationScreenState
                                     color: const Color(0xFFF8FAFC),
                                     fontSize: 16,
                                   ),
-                                  decoration: const InputDecoration(
+                                  decoration: InputDecoration(
                                     border: InputBorder.none,
                                     contentPadding: EdgeInsets.symmetric(
                                       horizontal: 16,
@@ -767,7 +770,12 @@ class _EditPersonalInformationScreenState
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              _label('Zip Code'),
+                              _label(
+                                MarketConfigStore
+                                    .instance
+                                    .current
+                                    .postalCodeLabel,
+                              ),
                               _fieldContainer(
                                 child: TextField(
                                   controller: _zipCodeController,
@@ -776,13 +784,16 @@ class _EditPersonalInformationScreenState
                                     color: const Color(0xFFF8FAFC),
                                     fontSize: 16,
                                   ),
-                                  decoration: const InputDecoration(
+                                  decoration: InputDecoration(
                                     border: InputBorder.none,
-                                    contentPadding: EdgeInsets.symmetric(
+                                    contentPadding: const EdgeInsets.symmetric(
                                       horizontal: 16,
                                       vertical: 12,
                                     ),
-                                    hintText: '10001',
+                                    hintText: MarketConfigStore
+                                        .instance
+                                        .current
+                                        .postalCodeHint,
                                   ),
                                 ),
                               ),
