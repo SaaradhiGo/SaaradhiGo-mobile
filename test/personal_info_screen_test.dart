@@ -65,6 +65,7 @@ class _FakeAuthApiClient implements AuthApiClient {
     required String street,
     required String city,
     required String zipCode,
+    String? homeCity,
   }) async {
     lastUpdateProfileRequest = {
       'full_name': fullName,
@@ -76,6 +77,7 @@ class _FakeAuthApiClient implements AuthApiClient {
       'street': street,
       'city': city,
       'zip_code': zipCode,
+      'home_city': ?homeCity,
     };
     if (updateProfileDelay > Duration.zero) {
       await Future<void>.delayed(updateProfileDelay);

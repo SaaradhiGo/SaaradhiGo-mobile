@@ -49,6 +49,7 @@ abstract class AuthApiClient {
     required String street,
     required String city,
     required String zipCode,
+    String? homeCity,
   });
   Future<Map<String, dynamic>?> getProfile();
   Future<void> clearSession();
@@ -353,6 +354,7 @@ class ApiService implements AuthApiClient {
     required String street,
     required String city,
     required String zipCode,
+    String? homeCity,
   }) async {
     if (_accessToken == null) await _loadTokens();
 
@@ -375,6 +377,9 @@ class ApiService implements AuthApiClient {
         request.fields['street'] = street;
         request.fields['city'] = city;
         request.fields['zip_code'] = zipCode;
+        if (homeCity != null && homeCity.isNotEmpty) {
+          request.fields['home_city'] = homeCity;
+        }
 
         final xFile = XFile(profilePicPath);
         final bytes = await xFile.readAsBytes();
@@ -406,6 +411,7 @@ class ApiService implements AuthApiClient {
             'street': street,
             'city': city,
             'zip_code': zipCode,
+            if (homeCity != null && homeCity.isNotEmpty) 'home_city': homeCity,
           }),
         );
       }

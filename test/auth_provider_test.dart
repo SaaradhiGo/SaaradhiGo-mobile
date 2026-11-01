@@ -57,6 +57,7 @@ class _FakeAuthApiClient implements AuthApiClient {
     required String street,
     required String city,
     required String zipCode,
+    String? homeCity,
   }) async {
     return updateProfileResponse;
   }

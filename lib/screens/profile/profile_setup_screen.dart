@@ -2,21 +2,36 @@ import 'package:cached_network_image_ce/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
+
 import 'dart:io';
+
 import 'package:flutter/foundation.dart' show kIsWeb;
+import 'package:geolocator/geolocator.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:latlong2/latlong.dart';
+
+import '../../core/market/market_config.dart';
 import '../../core/market/market_config_store.dart';
 import '../../providers/auth_provider.dart';
 import '../../services/referral_service.dart';
 import '../../services/token_store.dart';
 
 class ProfileSetupScreen extends StatefulWidget {
-  const ProfileSetupScreen({super.key, this.referralService, this.marketStore});
+  const ProfileSetupScreen({
+    super.key,
+    this.referralService,
+    this.marketStore,
+    this.locate,
+  });
 
   /// Injected by tests; the app uses the real service.
   final ReferralService? referralService;
   final MarketConfigStore? marketStore;
+
+  /// Where the rider is, if the app can tell without asking. Injected by
+  /// tests; the app uses [_lastKnownLocation].
+  final Future<LatLng?> Function()? locate;
 
   @override
   State<ProfileSetupScreen> createState() => _ProfileSetupScreenState();
@@ -37,6 +52,15 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen> {
   MarketConfigStore get _market =>
       widget.marketStore ?? MarketConfigStore.instance;
 
+  /// The live city the rider chose (app-config `cities[].code`, which is the
+  /// backend's GeoNode code, e.g. IN-TG-HYD). Null: nothing chosen.
+  String? _homeCityCode;
+
+  /// The picker is shown only when the server named live cities. The built-in
+  /// fallback city is not a server code, so it never becomes a picker.
+  List<CityConfig> get _pickerCities =>
+      _market.current.isBuiltIn ? const [] : _market.current.cities;
+
   XFile? _selectedImage;
   final ImagePicker _picker = ImagePicker();
 
@@ -54,6 +78,7 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen> {
       if (auth.street != null) _streetNameController.text = auth.street!;
       if (auth.city != null) _cityController.text = auth.city!;
       if (auth.zipCode != null) _zipCodeController.text = auth.zipCode!;
+      _preselectCity();
       if (auth.gender != null) {
         final g = auth.gender!.toLowerCase();
         if (g == 'male' || g == 'female' || g == 'other') {
@@ -79,6 +104,44 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen> {
         }
       }
     });
+  }
+
+  /// Pre-selects the city the rider already gave, else the live city they are
+  /// in right now. Nothing is guessed beyond that.
+  Future<void> _preselectCity() async {
+    final cities = _pickerCities;
+    if (cities.isEmpty) return;
+    final saved = _cityController.text.trim().toLowerCase();
+    CityConfig? pick;
+    if (saved.isNotEmpty) {
+      for (final c in cities) {
+        if (c.name.toLowerCase() == saved) pick = c;
+      }
+    } else {
+      try {
+        final here = await (widget.locate ?? _lastKnownLocation)();
+        pick = _market.cityAt(here);
+      } catch (_) {}
+    }
+    if (pick != null && mounted && _homeCityCode == null) {
+      setState(() {
+        _homeCityCode = pick!.code;
+        _cityController.text = pick.name;
+      });
+    }
+  }
+
+  /// The device's last known position, only if location permission is already
+  /// granted: this screen never raises a permission prompt.
+  static Future<LatLng?> _lastKnownLocation() async {
+    if (kIsWeb) return null;
+    final permission = await Geolocator.checkPermission();
+    if (permission == LocationPermission.denied ||
+        permission == LocationPermission.deniedForever) {
+      return null;
+    }
+    final p = await Geolocator.getLastKnownPosition();
+    return p == null ? null : LatLng(p.latitude, p.longitude);
   }
 
   Future<void> _selectDate(BuildContext context) async {
@@ -219,6 +282,7 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen> {
       'street': _streetNameController.text.trim(),
       'city': _cityController.text.trim(),
       'zip_code': _zipCodeController.text.trim(),
+      if (_homeCityCode != null) 'home_city': _homeCityCode,
     };
 
     final authProvider = Provider.of<AuthProvider>(context, listen: false);
@@ -327,6 +391,64 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen> {
                 color: colorScheme.onSurface.withValues(alpha: 0.4),
                 fontWeight: FontWeight.normal,
               ),
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildCityPicker() {
+    final colorScheme = Theme.of(context).colorScheme;
+    final cities = _pickerCities;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          'City',
+          style: TextStyle(
+            fontSize: 14,
+            fontWeight: FontWeight.w500,
+            color: colorScheme.onSurface.withValues(alpha: 0.7),
+          ),
+        ),
+        const SizedBox(height: 6),
+        Container(
+          height: 56,
+          padding: const EdgeInsets.symmetric(horizontal: 12),
+          decoration: BoxDecoration(
+            color: colorScheme.surfaceContainerHighest.withValues(alpha: 0.3),
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(
+              color: colorScheme.outline.withValues(alpha: 0.2),
+            ),
+          ),
+          child: DropdownButtonHideUnderline(
+            child: DropdownButton<String>(
+              key: const Key('city_picker'),
+              isExpanded: true,
+              value: cities.any((c) => c.code == _homeCityCode)
+                  ? _homeCityCode
+                  : null,
+              hint: Text(
+                'Select your city',
+                style: TextStyle(
+                  color: colorScheme.onSurface.withValues(alpha: 0.4),
+                ),
+              ),
+              items: [
+                for (final c in cities)
+                  DropdownMenuItem(value: c.code, child: Text(c.name)),
+              ],
+              onChanged: (code) {
+                if (code == null) return;
+                setState(() {
+                  _homeCityCode = code;
+                  _cityController.text = cities
+                      .firstWhere((c) => c.code == code)
+                      .name;
+                });
+              },
             ),
           ),
         ),
@@ -562,7 +684,7 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen> {
                 const SizedBox(height: 16),
                 _buildTextField(
                   'Emergency Contact',
-                  '(555) 019-2834',
+                  _market.current.phoneHint ?? 'Phone number',
                   leadingIcon: Icons.call,
                   keyboardType: TextInputType.phone,
                   controller: _emergencyContactController,
@@ -630,11 +752,13 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen> {
                         children: [
                           Expanded(
                             flex: 2,
-                            child: _buildTextField(
-                              'City',
-                              'New York',
-                              controller: _cityController,
-                            ),
+                            child: _pickerCities.isEmpty
+                                ? _buildTextField(
+                                    'City',
+                                    'New York',
+                                    controller: _cityController,
+                                  )
+                                : _buildCityPicker(),
                           ),
                           const SizedBox(width: 16),
                           Expanded(
