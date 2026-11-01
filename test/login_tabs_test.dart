@@ -82,6 +82,7 @@ class _FakeAuthApiClient implements AuthApiClient {
     String? street,
     String? city,
     String? zipCode,
+    String? homeCity,
   }) async =>
       null;
 

@@ -812,6 +812,7 @@ class AuthProvider extends ChangeNotifier {
       street: profileData['street'] ?? '',
       city: profileData['city'] ?? '',
       zipCode: profileData['zip_code'] ?? '',
+      homeCity: profileData['home_city'] as String?,
     );
 
     if (response == null) {

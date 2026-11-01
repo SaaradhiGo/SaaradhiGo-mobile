@@ -115,6 +115,7 @@ class MarketConfig {
     required this.emergency,
     required this.cities,
     this.notices = const [],
+    this.nationalNumberLengths = const [],
     this.promosAvailable = false,
     this.referralsAvailable = false,
     this.isBuiltIn = false,
@@ -136,6 +137,10 @@ class MarketConfig {
   /// then falls back to the built-in Hyderabad polygon.
   final List<CityConfig> cities;
   final List<AppNotice> notices;
+
+  /// `country.phone.national_number_lengths`: the digit counts a national
+  /// number may have here ([10] for India). Empty when the server sent none.
+  final List<int> nationalNumberLengths;
 
   /// `promos_available` from app-config: true only while a rider promo is live
   /// in this market. The promo-code entry is hidden unless it is true; a
@@ -162,6 +167,19 @@ class MarketConfig {
     if (names.isEmpty) return '';
     if (names.length == 1) return names.first;
     return '${names.sublist(0, names.length - 1).join(', ')} and ${names.last}';
+  }
+
+  /// A phone-number hint in this market's style, e.g. "+91 98765 43210":
+  /// the dialling code plus a sample national number of the configured
+  /// length. Null when the length is not known, so the caller shows a neutral
+  /// hint instead.
+  String? get phoneHint {
+    if (nationalNumberLengths.isEmpty || callingCode.isEmpty) return null;
+    final n = nationalNumberLengths.first;
+    if (n < 4 || n > 15) return null;
+    final digits = List.generate(n, (i) => '9876543210'[i % 10]).join();
+    final cut = (n + 1) ~/ 2;
+    return '$dialPrefix ${digits.substring(0, cut)} ${digits.substring(cut)}';
   }
 
   /// A short distance string in this market's unit: "12.3 km" / "7.6 mi".
@@ -193,6 +211,7 @@ class MarketConfig {
     currency: CurrencyConfig(code: 'INR', symbol: '₹'),
     distanceUnit: 'km',
     emergency: EmergencyConfig(number: '112', label: 'Emergency services'),
+    nationalNumberLengths: [10],
     cities: [
       CityConfig(
         code: 'HYD',
@@ -221,6 +240,14 @@ class MarketConfig {
       _str(country['calling_code']) ??
           _str(_map(country['phone'])['calling_code']),
     );
+
+    final lengths = <int>[];
+    final rawLengths = _map(country['phone'])['national_number_lengths'];
+    if (rawLengths is List) {
+      for (final l in rawLengths) {
+        if (l is num && l > 0) lengths.add(l.toInt());
+      }
+    }
 
     final cities = <CityConfig>[];
     final rawCities = data['cities'];
@@ -292,6 +319,9 @@ class MarketConfig {
       ),
       cities: cities,
       notices: notices,
+      nationalNumberLengths: lengths.isNotEmpty
+          ? lengths
+          : (country.isEmpty ? base.nationalNumberLengths : const <int>[]),
       promosAvailable: data['promos_available'] == true,
       referralsAvailable: data['referrals_available'] == true,
     );
