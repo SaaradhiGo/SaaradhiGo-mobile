@@ -17,6 +17,19 @@ import '../../providers/auth_provider.dart';
 import '../../services/referral_service.dart';
 import '../../services/token_store.dart';
 
+/// The profile update body: only what the rider filled in.
+///
+/// Every field used to be sent, blanks as "". The server reads `dob: ""` as
+/// an invalid date and refuses the whole update, so a returning rider with no
+/// date of birth on file could not get past this screen to book a ride (seen
+/// on the QA emulator, product phase 1). Every field is optional server-side.
+@visibleForTesting
+Map<String, dynamic> profileUpdatePayload(Map<String, dynamic> fields) => {
+  for (final e in fields.entries)
+    if (e.value != null && !(e.value is String && (e.value as String).isEmpty))
+      e.key: e.value,
+};
+
 class ProfileSetupScreen extends StatefulWidget {
   const ProfileSetupScreen({
     super.key,
@@ -272,7 +285,7 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen> {
   }
 
   void _saveAndContinue() async {
-    final Map<String, dynamic> profileData = {
+    final Map<String, dynamic> profileData = profileUpdatePayload({
       'full_name': _nameController.text.trim(),
       'email': _emailController.text.trim(),
       'gender': _selectedGender.toLowerCase(),
@@ -283,7 +296,7 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen> {
       'city': _cityController.text.trim(),
       'zip_code': _zipCodeController.text.trim(),
       if (_homeCityCode != null) 'home_city': _homeCityCode,
-    };
+    });
 
     final authProvider = Provider.of<AuthProvider>(context, listen: false);
     final success = await authProvider.updateProfile(profileData);
