@@ -2,17 +2,14 @@
 import '../../core/vehicle_classes.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:flutter_map/flutter_map.dart';
-import 'package:flutter_map_cancellable_tile_provider/flutter_map_cancellable_tile_provider.dart';
 import 'package:latlong2/latlong.dart';
+import '../../core/maps/sg_map.dart';
 import 'package:provider/provider.dart';
 import 'package:go_router/go_router.dart';
-import 'package:flutter_svg/flutter_svg.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../../providers/map_provider.dart';
 import '../components/coming_soon_overlay.dart';
 import '../components/market_overlays.dart';
-import '../components/map_attribution.dart';
 import '../../widgets/fare_breakdown.dart';
 import '../../widgets/promo_entry_section.dart';
 import '../../utils/money.dart' show currencySymbol;
@@ -25,7 +22,7 @@ class RouteMapScreen extends StatefulWidget {
 }
 
 class _RouteMapScreenState extends State<RouteMapScreen> {
-  final MapController _mapController = MapController();
+  SgMapController? _mapController;
   late DraggableScrollableController _sheetController;
   MapProvider? _mapProvider;
   bool _isNavigated = false;
@@ -52,60 +49,31 @@ class _RouteMapScreenState extends State<RouteMapScreen> {
     return true;
   }
 
-  /// Creates a safe SVG widget with proper error handling and fallback
-  Widget _buildSafeSvgMarker({
-    required String assetPath,
-    required Color fallbackColor,
-    double size = 40,
-  }) {
-    return SvgPicture.asset(
-      assetPath,
-      width: size,
-      height: size,
-      placeholderBuilder: (BuildContext context) =>
-          _buildFallbackIcon(fallbackColor, size),
-      // Add errorBuilder for additional error handling
-      // Note: SvgPicture.asset doesn't have errorBuilder, but we can catch errors in the widget tree
-    );
-  }
-
-  /// Builds a fallback icon when SVG fails to load
-  Widget _buildFallbackIcon(Color color, double size) {
-    return Icon(Icons.location_on, color: color, size: size);
-  }
-
-  /// Creates a marker with safe coordinate validation and error handling
-  Marker? _buildSafeMarker({
+  /// A marker, or null for a coordinate that is not a real place.
+  SgMarker? _buildSafeMarker({
+    required String id,
     required LatLng? point,
-    required Widget child,
-    double width = 40,
-    double height = 40,
+    required SgMarkerIcon icon,
+    Offset anchor = const Offset(0.5, 1.0),
+    String? label,
   }) {
-    if (point == null || !_isValidCoordinate(point)) {
-      return null;
-    }
-
-    return Marker(point: point, width: width, height: height, child: child);
+    if (point == null || !_isValidCoordinate(point)) return null;
+    return SgMarker(id: id, point: point, icon: icon, anchor: anchor, label: label);
   }
 
-  /// Validates polyline coordinates and returns a safe polyline or null
-  Polyline? _buildSafePolyline({
+  /// The route, without any invalid coordinate, or null if too little is left.
+  SgPolyline? _buildSafePolyline({
     required List<LatLng> points,
     required Color color,
     double strokeWidth = 4,
   }) {
-    if (points.isEmpty) return null;
-
-    // Filter out invalid coordinates
-    final validPoints = points
-        .where((point) => _isValidCoordinate(point))
-        .toList();
+    final validPoints = points.where(_isValidCoordinate).toList();
     if (validPoints.length < 2) return null;
-
-    return Polyline(
+    return SgPolyline(
+      id: 'route',
       points: validPoints,
       color: color,
-      strokeWidth: strokeWidth,
+      width: strokeWidth,
     );
   }
 
@@ -196,28 +164,16 @@ class _RouteMapScreenState extends State<RouteMapScreen> {
           .where((point) => _isValidCoordinate(point))
           .toList();
 
-      LatLngBounds bounds;
-      if (dropoff != null &&
-          _isValidCoordinate(dropoff) &&
-          validPolyline.isNotEmpty) {
-        bounds = LatLngBounds.fromPoints(validPolyline);
-      } else if (dropoff != null && _isValidCoordinate(dropoff)) {
-        bounds = LatLngBounds.fromPoints([pickup, dropoff]);
-      } else {
-        // If only one point, create a tiny bound around it
-        bounds = LatLngBounds(pickup, pickup);
-      }
-
-      // Check if the bounds are degenerate (exactly the same point)
-      // fitCamera with padding on zero-size bounds can sometimes cause "viewport too small" errors
-      _mapController.fitCamera(
-        CameraFit.bounds(
-          bounds: bounds,
-          // Reduce vertical padding to prevent zoom overflows on smaller viewports
-          padding: const EdgeInsets.symmetric(horizontal: 50, vertical: 80),
-          // Ensure we don't zoom in too far if bounds are small/single point
-          maxZoom: 16,
-        ),
+      final points = (dropoff != null &&
+              _isValidCoordinate(dropoff) &&
+              validPolyline.isNotEmpty)
+          ? validPolyline
+          : (dropoff != null && _isValidCoordinate(dropoff))
+          ? [pickup, dropoff]
+          : [pickup];
+      _mapController?.fitPoints(
+        points,
+        padding: const EdgeInsets.symmetric(horizontal: 50, vertical: 80),
       );
 
       // Delay tile rendering until the camera has fitted its target bounds
@@ -237,7 +193,7 @@ class _RouteMapScreenState extends State<RouteMapScreen> {
       backgroundColor: const Color(0xFF12110E),
       body: Consumer<MapProvider>(
         builder: (context, mapProvider, child) {
-          final List<Marker> markers = [];
+          final markers = <SgMarker>[];
 
           // Pickup Marker with safe coordinate validation
           if (mapProvider.pickupLocation != null) {
@@ -246,14 +202,10 @@ class _RouteMapScreenState extends State<RouteMapScreen> {
                 mapProvider.pickupLocation!.latLng;
 
             final pickupMarker = _buildSafeMarker(
+              id: 'pickup',
               point: pickupPoint,
-              child: _buildSafeSvgMarker(
-                assetPath: 'assets/markers/pickup.svg',
-                fallbackColor: const Color(0xFFEEBD2B),
-                size: 40,
-              ),
-              width: 40,
-              height: 40,
+              icon: const SgSvgMarker('assets/markers/pickup.svg'),
+              label: 'Pickup',
             );
 
             if (pickupMarker != null) {
@@ -266,14 +218,10 @@ class _RouteMapScreenState extends State<RouteMapScreen> {
           // Dropoff Marker with safe coordinate validation
           if (mapProvider.dropLocation != null) {
             final dropoffMarker = _buildSafeMarker(
+              id: 'drop',
               point: mapProvider.dropLocation!.latLng,
-              child: _buildSafeSvgMarker(
-                assetPath: 'assets/markers/dropoff.svg',
-                fallbackColor: Colors.blue,
-                size: 40,
-              ),
-              width: 40,
-              height: 40,
+              icon: const SgSvgMarker('assets/markers/dropoff.svg'),
+              label: 'Drop',
             );
 
             if (dropoffMarker != null) {
@@ -286,6 +234,7 @@ class _RouteMapScreenState extends State<RouteMapScreen> {
           }
 
           // Nearby Driver Markers with safe coordinate validation
+          var nearby = 0;
           for (var driver in mapProvider.nearbyDrivers) {
             final lat = driver['latitude'] ?? driver['lat'];
             final lng = driver['longitude'] ?? driver['lng'];
@@ -293,14 +242,14 @@ class _RouteMapScreenState extends State<RouteMapScreen> {
               try {
                 final point = LatLng(lat.toDouble(), lng.toDouble());
                 final driverMarker = _buildSafeMarker(
+                  id: 'nearby-${nearby++}',
                   point: point,
-                  child: const Icon(
+                  icon: const SgIconMarker(
                     Icons.directions_car,
-                    color: Color(0xFFEEBD2B),
+                    Color(0xFFEEBD2B),
                     size: 24,
                   ),
-                  width: 30,
-                  height: 30,
+                  anchor: const Offset(0.5, 0.5),
                 );
 
                 if (driverMarker != null) {
@@ -314,7 +263,7 @@ class _RouteMapScreenState extends State<RouteMapScreen> {
             }
           }
 
-          final List<Polyline> polylines = [];
+          final polylines = <SgPolyline>[];
           // Use safe polyline creation with coordinate validation
           final safePolyline = _buildSafePolyline(
             points: mapProvider.polylineCoordinates,
@@ -385,38 +334,19 @@ class _RouteMapScreenState extends State<RouteMapScreen> {
                       }
 
                       try {
-                        return FlutterMap(
-                          mapController: _mapController,
-                          options: MapOptions(
-                            initialCenter: initialCenter,
-                            initialZoom: initialZoom,
-                            onMapReady: () {
-                              _fitBoundsIfNeeded(mapProvider);
-                            },
+                        return SgMap(
+                          initialCenter: initialCenter,
+                          initialZoom: initialZoom,
+                          markers: markers,
+                          polylines: polylines,
+                          // The ride sheet covers the lower part of the map.
+                          padding: EdgeInsets.only(
+                            bottom: constraints.maxHeight * 0.35,
                           ),
-                          children: [
-                            // Wrap TileLayer to only load after polyline/markers are fitted
-                            if (_showTiles)
-                              TileLayer(
-                                urlTemplate:
-                                    'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png',
-                                subdomains: const ['a', 'b', 'c', 'd'],
-                                userAgentPackageName: 'com.saaradhigo.app',
-                                retinaMode: RetinaMode.isHighDensity(context),
-                                tileProvider: CancellableNetworkTileProvider(),
-                                // Enable preloading to prevent gray areas on load or scroll
-                                panBuffer: 1,
-                                keepBuffer: 2,
-                              ),
-                            if (polylines.isNotEmpty)
-                              PolylineLayer(polylines: polylines),
-                            if (markers.isNotEmpty)
-                              MarkerLayer(markers: markers),
-                            const MapAttribution(),
-
-                            // Remove empty marker layer that was causing hit testing errors
-                            // Instead, we'll ensure the map has a proper interactive area
-                          ],
+                          onMapCreated: (c) {
+                            _mapController = c;
+                            _fitBoundsIfNeeded(mapProvider);
+                          },
                         );
                       } catch (e, stackTrace) {
                         debugPrint('FlutterMap rendering error: $e');

@@ -30,11 +30,8 @@ import 'trip_chat_screen.dart';
 
 import '../../providers/map_provider.dart';
 import '../../providers/wallet_provider.dart';
-import 'package:flutter_map/flutter_map.dart';
-import 'package:flutter_map_cancellable_tile_provider/flutter_map_cancellable_tile_provider.dart';
-import '../components/map_attribution.dart';
+import '../../core/maps/sg_map.dart';
 import 'package:latlong2/latlong.dart';
-import 'package:flutter_svg/flutter_svg.dart';
 import '../../services/ride_service.dart';
 import '../../services/payment_service.dart';
 import '../../services/wallet_service.dart' show WalletPayOutcome;
@@ -1922,7 +1919,7 @@ class _DarkMapScaffold extends StatefulWidget {
 
 class _DarkMapScaffoldState extends State<_DarkMapScaffold>
     with TickerProviderStateMixin {
-  final MapController _mapController = MapController();
+  SgMapController? _mapController;
   LatLng? _animatedDriverLocation;
   MapProvider? _mapProvider;
   String? _lastStatus;
@@ -1982,25 +1979,11 @@ class _DarkMapScaffoldState extends State<_DarkMapScaffold>
     if (targetLocation == null) return;
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (mounted) {
-        try {
-          final bounds = LatLngBounds.fromPoints([
-            mapProvider.driverLocation!,
-            targetLocation,
-          ]);
-          _mapController.fitCamera(
-            CameraFit.bounds(
-              bounds: bounds,
-              padding: const EdgeInsets.symmetric(
-                horizontal: 70,
-                vertical: 180,
-              ),
-            ),
-          );
-        } catch (e) {
-          debugPrint('MapController not ready for fitCamera: $e');
-        }
-      }
+      if (!mounted) return;
+      _mapController?.fitPoints(
+        [mapProvider.driverLocation!, targetLocation],
+        padding: const EdgeInsets.symmetric(horizontal: 70, vertical: 180),
+      );
     });
   }
 
@@ -2047,9 +2030,8 @@ class _DarkMapScaffoldState extends State<_DarkMapScaffold>
       backgroundColor: const Color(0xFF12110E),
       body: Consumer<MapProvider>(
         builder: (context, mapProvider, child) {
-          final List<Marker> markers = [];
+          final markers = <SgMarker>[];
 
-          // Pickup Marker
           final bool isInProgress =
               widget.forceInProgress ||
               mapProvider.rideRequestResponse?['status'] == 'start' ||
@@ -2057,129 +2039,93 @@ class _DarkMapScaffoldState extends State<_DarkMapScaffold>
 
           if (mapProvider.pickupLocation != null && !isInProgress) {
             markers.add(
-              Marker(
+              SgMarker(
+                id: 'pickup',
                 point:
                     mapProvider.precisePickupLocation ??
                     mapProvider.pickupLocation!.latLng,
-                width: 40,
-                height: 40,
-                child: SvgPicture.asset(
-                  'assets/markers/pickup.svg',
-                  width: 40,
-                  height: 40,
-                  placeholderBuilder: (BuildContext context) => const Icon(
-                    Icons.location_on,
-                    color: Color(0xFFEEBD2B),
-                    size: 40,
-                  ),
-                ),
+                icon: const SgSvgMarker('assets/markers/pickup.svg'),
+                label: 'Pickup',
               ),
             );
           }
 
-          // Dropoff Marker (Destination)
           if (mapProvider.dropLocation != null &&
               (!mapProvider.isDriverArriving || isInProgress)) {
             markers.add(
-              Marker(
+              SgMarker(
+                id: 'drop',
                 point: mapProvider.dropLocation!.latLng,
-                width: 40,
-                height: 40,
-                child: SvgPicture.asset(
-                  'assets/markers/dropoff.svg',
-                  width: 40,
-                  height: 40,
-                  placeholderBuilder: (BuildContext context) => const Icon(
-                    Icons.location_on,
-                    color: Colors.blue,
-                    size: 40,
-                  ),
-                ),
+                icon: const SgSvgMarker('assets/markers/dropoff.svg'),
+                label: 'Drop',
               ),
             );
           }
 
-          // Driver Marker (Animated)
           if (_animatedDriverLocation != null &&
               mapProvider.rideRequestResponse != null) {
             markers.add(
-              Marker(
+              SgMarker(
+                id: 'driver',
                 point: _animatedDriverLocation!,
-                width: 45,
-                height: 45,
-                child: const SmoothAnimatedMarker(
-                  child: Icon(
-                    Icons.directions_car,
-                    color: Color(0xFFEEBD2B),
-                    size: 34,
-                  ),
+                icon: const SgIconMarker(
+                  Icons.directions_car,
+                  Color(0xFFEEBD2B),
+                  size: 34,
                 ),
+                anchor: const Offset(0.5, 0.5),
+                label: 'Your driver',
               ),
             );
           }
 
-          // Nearby Driver Markers
+          var n = 0;
           for (var driver in mapProvider.nearbyDrivers) {
             final lat = driver['latitude'] ?? driver['lat'];
             final lng = driver['longitude'] ?? driver['lng'];
             if (lat != null && lng != null) {
               markers.add(
-                Marker(
+                SgMarker(
+                  id: 'nearby-${n++}',
                   point: LatLng(lat.toDouble(), lng.toDouble()),
-                  width: 30,
-                  height: 30,
-                  child: const Icon(
+                  icon: const SgIconMarker(
                     Icons.directions_car,
-                    color: Color(0xFFEEBD2B),
+                    Color(0xFFEEBD2B),
                     size: 24,
                   ),
+                  anchor: const Offset(0.5, 0.5),
                 ),
               );
             }
           }
 
-          final List<Polyline> polylines = [];
-          if (mapProvider.polylineCoordinates.isNotEmpty) {
-            polylines.add(
-              Polyline(
+          final polylines = <SgPolyline>[
+            if (mapProvider.polylineCoordinates.isNotEmpty)
+              SgPolyline(
+                id: 'route',
                 points: mapProvider.polylineCoordinates,
                 color: const Color(0xFFEEBD2B),
-                strokeWidth: 4,
               ),
-            );
-          }
+          ];
 
           final initialCenter =
               mapProvider.dropLocation?.latLng ??
               mapProvider.pickupLocation?.latLng ??
-              const LatLng(0, 0);
-          final initialZoom =
-              (mapProvider.dropLocation != null ||
-                  mapProvider.pickupLocation != null)
-              ? 14.0
-              : 2.0;
+              const LatLng(17.385044, 78.4867);
 
           return Stack(
             children: [
-              FlutterMap(
-                mapController: _mapController,
-                options: MapOptions(
-                  initialCenter: initialCenter,
-                  initialZoom: initialZoom,
-                ),
-                children: [
-                  TileLayer(
-                    urlTemplate:
-                        'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png',
-                    subdomains: const ['a', 'b', 'c', 'd'],
-                    userAgentPackageName: 'com.saaradhigo.app',
-                    retinaMode: RetinaMode.isHighDensity(context),
-                    tileProvider: CancellableNetworkTileProvider(),
-                  ),
-                  PolylineLayer(polylines: polylines),
-                  MarkerLayer(markers: markers),
-                  const MapAttribution(),
-                ],
+              SgMap(
+                initialCenter: initialCenter,
+                initialZoom: 14,
+                markers: markers,
+                polylines: polylines,
+                // The sheet covers the lower part of the map.
+                padding: const EdgeInsets.only(bottom: 260, top: 72),
+                onMapCreated: (c) {
+                  _mapController = c;
+                  _fitDriverAndTarget();
+                },
               ),
               SafeArea(
                 child: Padding(

@@ -108,12 +108,33 @@ jobs:
       #
       # Note the conventions differ from the driver app: here the REST base
       # has NO trailing slash and the WS base ends in `/ws`.
+      # A STABLE signing certificate for QA builds (owner decision D1). The
+      # Maps key is restricted to package + SHA-1, and a runner's own debug
+      # keystore is new on every run, so its SHA-1 would never match. The
+      # QA debug keystore is a secret; without it (a fork, a PR from
+      # outside) the build still works, with a runner key and no map tiles.
+      - name: QA debug keystore
+        env:
+          QA_DEBUG_KEYSTORE_B64: ${{ secrets.QA_DEBUG_KEYSTORE_B64 }}
+        run: |
+          if [ -n "$QA_DEBUG_KEYSTORE_B64" ]; then
+            mkdir -p ~/.android
+            echo "$QA_DEBUG_KEYSTORE_B64" | base64 -d > ~/.android/debug.keystore
+            echo "Using the QA debug keystore."
+          else
+            echo "No QA keystore secret: runner debug key, maps will not load."
+          fi
+
       - name: Build debug APK
         env:
           QA_API: ${{ vars.SAARADHIGO_QA_API_BASE || 'https://backend-qa-811d.up.railway.app/api/v1' }}
           QA_WS: ${{ vars.SAARADHIGO_QA_WS_BASE || 'wss://backend-qa-811d.up.railway.app/ws' }}
+          # The Android Maps key, restricted in Google Cloud to this package
+          # and the QA keystore's SHA-1. Never committed.
+          MAPS_API_KEY: ${{ secrets.MAPS_API_KEY_ANDROID }}
         run: |
           flutter build apk --debug \
+            --android-project-arg maps.apiKey="$MAPS_API_KEY" \
             --dart-define=BASE_URL="$QA_API" \
             --dart-define=WS_BASE_URL="$QA_WS"
 

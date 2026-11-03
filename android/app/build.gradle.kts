@@ -149,10 +149,10 @@ android {
         versionCode = flutter.versionCode
         versionName = flutter.versionName
 
-        // Supplies ${MAPS_API_KEY} in AndroidManifest.xml. Empty by default:
-        // an unsupplied placeholder fails the build, and this app does not use
-        // the Maps SDK, so there is nothing to supply. Pass one at build time
-        // if that ever changes:  flutter build apk -Pmaps.apiKey=AIza...
+        // Supplies ${MAPS_API_KEY} in AndroidManifest.xml for the Google Maps
+        // SDK (owner decision D1). Passed at build time, never committed:
+        //   flutter build apk --android-project-arg maps.apiKey=<key>
+        // Empty when not passed: the app builds and runs, the map has no tiles.
         manifestPlaceholders["MAPS_API_KEY"] =
             (project.findProperty("maps.apiKey") as String?) ?: ""
     }

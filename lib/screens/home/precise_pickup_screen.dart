@@ -1,13 +1,11 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
+import '../../core/maps/sg_map.dart';
 import 'package:provider/provider.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../../providers/map_provider.dart';
 import '../../utils/geometry_utils.dart';
-import '../components/map_attribution.dart';
-import 'package:flutter_svg/flutter_svg.dart';
 
 class PrecisePickupScreen extends StatefulWidget {
   const PrecisePickupScreen({super.key});
@@ -17,7 +15,6 @@ class PrecisePickupScreen extends StatefulWidget {
 }
 
 class _PrecisePickupScreenState extends State<PrecisePickupScreen> {
-  final MapController _mapController = MapController();
   LatLng? _snappedLocation;
   LatLng? _centerLocation;
   MapProvider? _mapProvider;
@@ -83,49 +80,38 @@ class _PrecisePickupScreenState extends State<PrecisePickupScreen> {
           // Map Background
           Consumer<MapProvider>(
             builder: (context, mapProvider, child) {
-              return FlutterMap(
-                mapController: _mapController,
-                options: MapOptions(
-                  initialCenter:
-                      mapProvider.pickupLocation?.latLng ?? const LatLng(0, 0),
-                  initialZoom: 17,
-                  onPositionChanged: (position, hasGesture) {
-                    if (hasGesture) {
-                      _updateSnapping(position.center);
-                    }
-                  },
-                ),
-                children: [
-                  TileLayer(
-                    urlTemplate:
-                        'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png',
-                    subdomains: const ['a', 'b', 'c', 'd'],
+              return SgMap(
+                initialCenter:
+                    mapProvider.pickupLocation?.latLng ??
+                    const LatLng(17.385044, 78.4867),
+                initialZoom: 17,
+                onCameraMove: (camera) {
+                  if (camera.byGesture) _updateSnapping(camera.center);
+                },
+                polylines: [
+                  SgPolyline(
+                    id: 'route',
+                    points: mapProvider.polylineCoordinates,
+                    width: 5,
+                    color: const Color(0xFFEEBD2B).withValues(alpha: 0.5),
                   ),
-                  PolylineLayer(
-                    polylines: [
-                      Polyline(
-                        points: mapProvider.polylineCoordinates,
-                        strokeWidth: 5,
-                        color: const Color(0xFFEEBD2B).withValues(alpha: 0.5),
-                      ),
-                    ],
-                  ),
-                  if (_snappedLocation != null)
-                    MarkerLayer(
-                      markers: [
-                        Marker(
-                          point: _snappedLocation!,
-                          width: 40,
-                          height: 40,
-                          child: SvgPicture.asset(
-                            'assets/markers/pickup.svg',
-                            width: 40,
-                            height: 40,
-                          ),
-                        ),
-                      ],
+                  // The snap cue: from where the rider pointed to the road.
+                  if (_centerLocation != null && _snappedLocation != null)
+                    SgPolyline(
+                      id: 'snap',
+                      points: [_centerLocation!, _snappedLocation!],
+                      width: 2,
+                      color: const Color(0xFFEEBD2B).withValues(alpha: 0.3),
                     ),
-                  const MapAttribution(),
+                ],
+                markers: [
+                  if (_snappedLocation != null)
+                    SgMarker(
+                      id: 'pickup',
+                      point: _snappedLocation!,
+                      icon: const SgSvgMarker('assets/markers/pickup.svg'),
+                      label: 'Pickup',
+                    ),
                 ],
               );
             },
@@ -168,16 +154,6 @@ class _PrecisePickupScreenState extends State<PrecisePickupScreen> {
               ],
             ),
           ),
-
-          // Snap Indicator Line (Optional visual cue)
-          if (_centerLocation != null && _snappedLocation != null)
-            CustomPaint(
-              painter: _SnapLinePainter(
-                center: _centerLocation!,
-                snapped: _snappedLocation!,
-                mapController: _mapController,
-              ),
-            ),
 
           // Bottom Action
           Positioned(
@@ -250,45 +226,5 @@ class _PrecisePickupScreenState extends State<PrecisePickupScreen> {
         ],
       ),
     );
-  }
-}
-
-class _SnapLinePainter extends CustomPainter {
-  final LatLng center;
-  final LatLng snapped;
-  final MapController mapController;
-
-  _SnapLinePainter({
-    required this.center,
-    required this.snapped,
-    required this.mapController,
-  });
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    final p1 = mapController.camera.project(center);
-    final p2 = mapController.camera.project(snapped);
-    final origin = mapController.camera.pixelOrigin;
-
-    final offset1 = Offset(
-      p1.x.toDouble() - origin.x.toDouble(),
-      p1.y.toDouble() - origin.y.toDouble(),
-    );
-    final offset2 = Offset(
-      p2.x.toDouble() - origin.x.toDouble(),
-      p2.y.toDouble() - origin.y.toDouble(),
-    );
-
-    final paint = Paint()
-      ..color = const Color(0xFFEEBD2B).withValues(alpha: 0.3)
-      ..strokeWidth = 2
-      ..style = PaintingStyle.stroke;
-
-    canvas.drawLine(offset1, offset2, paint);
-  }
-
-  @override
-  bool shouldRepaint(covariant _SnapLinePainter oldDelegate) {
-    return oldDelegate.center != center || oldDelegate.snapped != snapped;
   }
 }
