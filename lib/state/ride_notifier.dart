@@ -115,7 +115,6 @@ RideStatus? rideStatusFromBackendCode(String code) {
 /// it was paid, and both recovery paths mapped every `completed` trip to
 /// "payment pending". A rider who had paid cash saw a yellow "Payment Pending
 /// for your last ride" banner for an hour (PRODUCT_AUDIT §2, Home).
-@visibleForTesting
 bool isSettledCompletedTrip(dynamic trip) {
   if (trip is! Map || trip['status']?.toString() != 'completed') return false;
   final payment = trip['payment_status']?.toString();

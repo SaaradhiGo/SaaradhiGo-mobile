@@ -1221,13 +1221,34 @@ class _RidePaymentSummaryScreenState extends State<RidePaymentSummaryScreen> {
         },
         fireImmediately: true,
       );
+      // The frame is best-effort, and after `complete` the rider's sockets
+      // may already be closed (trip 121 on QA: confirmed, never heard). The
+      // trip record is the authority, so ask it too.
+      _settledPoll = Timer.periodic(
+        const Duration(seconds: 5),
+        (_) => _checkSettled(),
+      );
       context.read<WalletProvider>().refreshWallet();
       _loadReceiptIfEndedBySupport();
     });
   }
 
+  Timer? _settledPoll;
+
+  Future<void> _checkSettled() async {
+    final id = _rateTripId;
+    if (id == null || _cashHandled) return;
+    final token = (await SharedPreferences.getInstance()).getString(
+      'access_token',
+    );
+    if (token == null) return;
+    final body = await _rideService.getTripStatus(token, id);
+    if (isSettledCompletedTrip(body?['data'])) _onCashConfirmed();
+  }
+
   @override
   void dispose() {
+    _settledPoll?.cancel();
     _cashSub?.close();
     super.dispose();
   }
@@ -1236,6 +1257,7 @@ class _RidePaymentSummaryScreenState extends State<RidePaymentSummaryScreen> {
   Future<void> _onCashConfirmed() async {
     if (_cashHandled || !mounted) return;
     _cashHandled = true;
+    _settledPoll?.cancel();
     await _finishCashSelection('Cash payment received. Thank you.');
   }
 
