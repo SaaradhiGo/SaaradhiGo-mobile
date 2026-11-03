@@ -555,6 +555,18 @@ class RideNotifier extends Notifier<RideState> {
       }
     }
 
+    // The driver confirmed the cash. The payment screen used to keep asking
+    // the rider to pay -- offering the wallet for a ride already paid in cash
+    // (product phase 1 emulator run, trip 118). Mark it, and let that screen
+    // move on to rating.
+    if (type == 'cash_payment_confirmed') {
+      final merged = Map<String, dynamic>.from(state.rawResponse ?? {})
+        ..['cash_confirmed'] = true
+        ..['payment_status'] = 'completed';
+      state = state.copyWith(rawResponse: merged);
+      return;
+    }
+
     if (type == 'driver_location_update' || type == 'location_update') {
       final lat = data['lat'] ?? data['latitude'];
       final lng = data['lng'] ?? data['longitude'];

@@ -254,6 +254,17 @@ void main() {
     });
   });
 
+  group('paid in cash', () {
+    test("the driver's cash confirmation marks the trip paid", () {
+      final n = container.read(rideNotifierProvider.notifier);
+      n.updateFromWebSocket({'type': 'trip_update', 'trip_id': 118, 'status': 'accept'});
+      n.updateFromWebSocket({'type': 'cash_payment_confirmed', 'trip_id': 118});
+      expect(state().rawResponse?['cash_confirmed'], isTrue,
+          reason: 'the payment screen kept offering the wallet for a ride paid in cash');
+      expect(state().rawResponse?['payment_status'], 'completed');
+    });
+  });
+
   group('completing the profile', () {
     test('blank fields are left out, so an empty date of birth cannot fail the save', () {
       final body = profileUpdatePayload({
