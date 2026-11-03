@@ -15,6 +15,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
+import 'package:saaradhigo_rider/core/market/market_config_store.dart';
 import 'package:saaradhigo_rider/providers/auth_provider.dart';
 import 'package:saaradhigo_rider/screens/auth/login_screen.dart';
 import 'package:saaradhigo_rider/services/api_service.dart';
@@ -101,7 +102,7 @@ void main() {
     api = _FakeAuthApiClient();
   });
 
-  Future<void> pump(WidgetTester tester) async {
+  Future<void> pump(WidgetTester tester, {bool withMarket = false}) async {
     final view = TestWidgetsFlutterBinding.instance.platformDispatcher.views.first;
     view.physicalSize = const Size(1200, 3000);
     view.devicePixelRatio = 1.0;
@@ -129,11 +130,18 @@ void main() {
     );
     addTearDown(router.dispose);
 
+    final app = ChangeNotifierProvider<AuthProvider>(
+      create: (_) => AuthProvider(apiService: api),
+      child: MaterialApp.router(routerConfig: router),
+    );
     await tester.pumpWidget(
-      ChangeNotifierProvider<AuthProvider>(
-        create: (_) => AuthProvider(apiService: api),
-        child: MaterialApp.router(routerConfig: router),
-      ),
+      // The app provides the market store above everything (main.dart).
+      withMarket
+          ? ChangeNotifierProvider<MarketConfigStore>.value(
+              value: MarketConfigStore.instance,
+              child: app,
+            )
+          : app,
     );
     await tester.pumpAndSettle();
   }
@@ -148,6 +156,21 @@ void main() {
     expect(find.byKey(const Key('login_email_field')), findsNothing);
     expect(find.text('PHONE NUMBER'), findsOneWidget);
     expect(find.text('Continue'), findsOneWidget);
+  });
+
+  testWidgets('Continue with a phone number asks for an OTP (market store present)',
+      (tester) async {
+    // With the market store provided, as in the app, "Continue" threw a
+    // Provider assertion in debug builds (marketOf listened inside an event
+    // handler), so a QA build could not sign in by phone at all.
+    await pump(tester, withMarket: true);
+
+    await tester.enterText(find.byType(TextField).first, '9876543210');
+    await tester.tap(find.text('Continue'));
+    await tester.pumpAndSettle();
+
+    expect(tester.takeException(), isNull);
+    expect(api.requestedOtpPhone, '+919876543210');
   });
 
   testWidgets('choosing Email shows the email and password fields',

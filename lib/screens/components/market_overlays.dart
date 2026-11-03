@@ -262,9 +262,13 @@ class MarketOverlays extends StatelessWidget {
 /// The market config for [context], rebuilding when it changes. Tolerates a
 /// tree with no [MarketConfigStore] provider (older tests, previews) by
 /// falling back to the app-wide instance.
-MarketConfig marketOf(BuildContext context) {
+///
+/// Pass `listen: false` from an event handler. Listening outside `build`
+/// fails a Provider assertion in debug builds: on the login screen that threw
+/// on "Continue", so a debug (QA) build could not sign in at all.
+MarketConfig marketOf(BuildContext context, {bool listen = true}) {
   try {
-    return Provider.of<MarketConfigStore>(context).current;
+    return Provider.of<MarketConfigStore>(context, listen: listen).current;
   } on ProviderNotFoundException {
     return MarketConfigStore.instance.current;
   }
