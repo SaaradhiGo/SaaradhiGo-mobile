@@ -28,6 +28,54 @@ final rideNotifierProvider = NotifierProvider<RideNotifier, RideState>(
   RideNotifier.new,
 );
 
+/// The server's "nobody accepted" sentence, used when the frame has none.
+const String kNoDriverMessage =
+    'No driver accepted your request. Please try again.';
+
+/// Said when the server never acknowledged the booking.
+const String kSearchUnreachableMessage =
+    "We couldn't reach SaaradhiGo. Check your connection and try again.";
+
+const String _kBookingFailedMessage =
+    "We couldn't book your ride. Please try again.";
+
+/// Server messages written for developers, not riders.
+const _technicalMessages = {
+  'Failed to create trip',
+  'Internal server error',
+  'Invalid JSON',
+};
+
+/// The sentence that ends a driver search, or null if [frame] does not end
+/// one. Covers every frame the booking socket uses to say "no": a refused
+/// request, a search that could not start, and the accept deadline passing
+/// with nobody (backend `auto_cancel_trip`).
+@visibleForTesting
+String? searchFailureFor(Map<String, dynamic> frame) {
+  final type = frame['type'];
+  final message = frame['message']?.toString().trim();
+  final hasMessage = message != null && message.isNotEmpty;
+  if (type == 'error') {
+    if (!hasMessage ||
+        _technicalMessages.contains(message) ||
+        message.contains('_lat')) {
+      return _kBookingFailedMessage;
+    }
+    return message;
+  }
+  if (type == 'dispatch_failed') {
+    return hasMessage
+        ? message
+        : "We couldn't start the driver search. Please try again.";
+  }
+  if ((type == 'trip_update' || type == 'trip_status_update') &&
+      frame['status'] == 'cancel' &&
+      frame['reason'] == 'no_driver_accepted') {
+    return hasMessage ? message : kNoDriverMessage;
+  }
+  return null;
+}
+
 /// Maps a backend trip status_code onto a rider-facing RideStatus.
 ///
 /// The canonical list lives in the backend's TripStatus.status_code choices:
@@ -59,6 +107,19 @@ RideStatus? rideStatusFromBackendCode(String code) {
       return RideStatus.cancelled;
   }
   return null;
+}
+
+/// A completed trip whose payment is settled is over: nothing to show.
+///
+/// `/ride/active/` returns a trip completed in the last hour whether or not
+/// it was paid, and both recovery paths mapped every `completed` trip to
+/// "payment pending". A rider who had paid cash saw a yellow "Payment Pending
+/// for your last ride" banner for an hour (PRODUCT_AUDIT §2, Home).
+@visibleForTesting
+bool isSettledCompletedTrip(dynamic trip) {
+  if (trip is! Map || trip['status']?.toString() != 'completed') return false;
+  final payment = trip['payment_status']?.toString();
+  return payment == 'completed' || payment == 'not_charged';
 }
 
 class RideNotifier extends Notifier<RideState> {
@@ -210,6 +271,10 @@ class RideNotifier extends Notifier<RideState> {
       _showCancelledOverlayBriefly();
       return;
     }
+    if (isSettledCompletedTrip(statusData['data'])) {
+      await clearState();
+      return;
+    }
 
     final mapped = rideStatusFromBackendCode(tripStatus);
     if (mapped == null) {
@@ -273,6 +338,10 @@ class RideNotifier extends Notifier<RideState> {
     if (tripStatus == 'cancelled') {
       await clearState();
       _showCancelledOverlayBriefly();
+      return;
+    }
+    if (isSettledCompletedTrip(tripData)) {
+      await clearState();
       return;
     }
 
@@ -353,8 +422,82 @@ class RideNotifier extends Notifier<RideState> {
       distance: distance,
       duration: duration,
       rawResponse: {},
+      clearSearchFailure: true,
+      clearTripId: true,
     );
     _saveState();
+  }
+
+  /// Ends the search with [message]. The status stays `searchingDriver` so
+  /// the search screen, not the global navigator, owns what happens next.
+  void failSearch(String message) {
+    if (state.status != RideStatus.searchingDriver) return;
+    state = state.copyWith(searchFailure: message, clearTripId: true);
+    _saveState();
+  }
+
+  /// What the search screen calls when the server has been quiet too long.
+  ///
+  /// The answer comes from the REST API, which does not depend on a socket
+  /// frame arriving. A trip a driver took is recovered; a cancelled one ends
+  /// the search; [giveUp] (the hard client deadline) cancels a trip that is
+  /// still unanswered. A network failure ends the search only on [giveUp].
+  Future<void> verifySearch({bool giveUp = false}) async {
+    if (state.status != RideStatus.searchingDriver ||
+        state.searchFailure != null) {
+      return;
+    }
+    final prefs = await SharedPreferences.getInstance();
+    final token = prefs.getString('access_token') ?? '';
+    final rideService = ref.read(rideServiceProvider);
+    final tripId = state.tripId;
+
+    if (tripId == null) {
+      // Never acknowledged. Did the trip get made anyway?
+      final active =
+          token.isEmpty ? null : await rideService.fetchActiveTrip(token);
+      final data = active?['status'] == 'success' ? active!['data'] : null;
+      if (data is Map && data['status'] != 'completed') {
+        await syncStateFromActiveTripResponse(active!);
+        return;
+      }
+      ref.read(webSocketServiceProvider).abandonRideRequest();
+      failSearch(kSearchUnreachableMessage);
+      return;
+    }
+
+    final trip = token.isEmpty
+        ? null
+        : await rideService.getTripStatus(token, tripId);
+    final tripData = trip != null && trip['status'] == 'success'
+        ? trip['data']
+        : null;
+    final code = tripData is Map ? tripData['status']?.toString() : null;
+    if (code == null) {
+      if (giveUp) failSearch(kSearchUnreachableMessage);
+      return;
+    }
+    if (code == 'cancelled') {
+      failSearch(kNoDriverMessage);
+    } else if (code == 'requested') {
+      if (!giveUp) return; // The server's own deadline still applies.
+      await rideService.cancelTrip(token, tripId, reason: 'too_long');
+      failSearch(kNoDriverMessage);
+    } else {
+      // A driver took it and the frame was lost.
+      await syncStateFromBackend(tripId);
+    }
+  }
+
+  Future<void> _cancelQuietly(String tripId) async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final token = prefs.getString('access_token') ?? '';
+      if (token.isEmpty) return;
+      await ref.read(rideServiceProvider).cancelTrip(token, tripId);
+    } catch (e) {
+      debugPrint('Could not cancel stranded trip $tripId: $e');
+    }
   }
 
   void updateFromWebSocket(Map<String, dynamic> data) {
@@ -394,6 +537,22 @@ class RideNotifier extends Notifier<RideState> {
       );
       unawaited(clearState());
       return;
+    }
+
+    // A search that ended without a driver. Said on the search screen, with
+    // "Try again"; it used to be dropped, so the screen waited forever.
+    if (state.status == RideStatus.searchingDriver) {
+      final failure = searchFailureFor(data);
+      if (failure != null) {
+        // A search that could not start leaves a `requested` trip behind
+        // until its deadline. Cancel it, so "Try again" is the only booking.
+        final stranded = data['trip_id']?.toString();
+        if (type == 'dispatch_failed' && stranded != null) {
+          unawaited(_cancelQuietly(stranded));
+        }
+        failSearch(failure);
+        return;
+      }
     }
 
     if (type == 'driver_location_update' || type == 'location_update') {

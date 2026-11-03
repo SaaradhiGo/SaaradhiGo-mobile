@@ -20,6 +20,7 @@ import '../components/market_overlays.dart';
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart' as riverpod;
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
@@ -44,6 +45,9 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:provider/provider.dart' as p;
 import '../../utils/money.dart';
 import '../../widgets/safety_sheet.dart';
+import '../../widgets/rate_trip_sheet.dart';
+import '../../state/ride_notifier.dart';
+import '../../state/ride_state.dart';
 
 /// Cancel, and tell the rider when the server did not confirm it.
 ///
@@ -113,6 +117,16 @@ class _SearchingDriverScreenState extends State<SearchingDriverScreen> {
   bool _canPop = false;
   MapProvider? _mapProvider;
 
+  /// Client-side bounds on the search, so the screen can never wait forever.
+  /// The server ends a search at 90 s and says so; these cover the frame
+  /// being lost. See [RideNotifier.verifySearch].
+  static const _ackTimeout = Duration(seconds: 20);
+  static const _checkAfter = Duration(seconds: 105);
+  static const _giveUpAfter = Duration(seconds: 240);
+  Timer? _watchdog;
+  final Stopwatch _elapsed = Stopwatch();
+  bool _checking = false;
+
   @override
   void initState() {
     super.initState();
@@ -121,12 +135,45 @@ class _SearchingDriverScreenState extends State<SearchingDriverScreen> {
       if (!mounted) return;
       _mapProvider = context.read<MapProvider>();
       _mapProvider?.addListener(_handleStateChange);
-      _mapProvider?.requestRide(context: context);
+      _startSearch();
     });
+  }
+
+  void _startSearch() {
+    _mapProvider?.requestRide(context: context);
+    _elapsed
+      ..reset()
+      ..start();
+    _watchdog?.cancel();
+    _watchdog = Timer.periodic(const Duration(seconds: 5), (_) => _tick());
+  }
+
+  RideState? get _ride => _mapProvider?.container?.read(rideNotifierProvider);
+
+  Future<void> _tick() async {
+    final ride = _ride;
+    if (!mounted || ride == null || _checking) return;
+    if (ride.searchFailure != null ||
+        ride.status != RideStatus.searchingDriver) {
+      _watchdog?.cancel();
+      return;
+    }
+    final unacknowledged =
+        ride.tripId == null && _elapsed.elapsed >= _ackTimeout;
+    if (!unacknowledged && _elapsed.elapsed < _checkAfter) return;
+    _checking = true;
+    try {
+      await _mapProvider?.container
+          ?.read(rideNotifierProvider.notifier)
+          .verifySearch(giveUp: _elapsed.elapsed >= _giveUpAfter);
+    } finally {
+      _checking = false;
+    }
   }
 
   @override
   void dispose() {
+    _watchdog?.cancel();
     _mapProvider?.removeListener(_handleStateChange);
     super.dispose();
   }
@@ -168,63 +215,139 @@ class _SearchingDriverScreenState extends State<SearchingDriverScreen> {
     }
   }
 
+  /// Leave a search that already ended. Nothing is live on the server, so
+  /// there is nothing to cancel there.
+  Future<void> _leaveFailedSearch() async {
+    await _mapProvider?.container
+        ?.read(rideNotifierProvider.notifier)
+        .clearState();
+    if (!mounted) return;
+    setState(() => _canPop = true);
+    if (context.mounted) Navigator.of(context).maybePop();
+  }
+
   @override
   Widget build(BuildContext context) {
-    return PopScope(
-      canPop: _canPop,
-      onPopInvokedWithResult: (didPop, result) async {
-        if (didPop) return;
-        final shouldPop = await _showCancelConfirmation(context);
-        if (shouldPop && mounted && context.mounted) {
-          // Only leave the screen if the ride is really cancelled. Popping
-          // on a failed cancellation is what showed a rider an empty screen
-          // while a driver was still on the way.
-          final confirmed = await _cancelRideAndReport(context);
-          if (!confirmed || !mounted) return;
-          setState(() => _canPop = true);
-          if (context.mounted) Navigator.of(context).pop();
-        }
+    return riverpod.Consumer(
+      builder: (context, ref, _) {
+        final failure = ref.watch(
+          rideNotifierProvider.select((s) => s.searchFailure),
+        );
+        return PopScope(
+          canPop: _canPop,
+          onPopInvokedWithResult: (didPop, result) async {
+            if (didPop) return;
+            if (failure != null) {
+              await _leaveFailedSearch();
+              return;
+            }
+            final shouldPop = await _showCancelConfirmation(context);
+            if (shouldPop && mounted && context.mounted) {
+              // Only leave the screen if the ride is really cancelled. Popping
+              // on a failed cancellation is what showed a rider an empty screen
+              // while a driver was still on the way.
+              final confirmed = await _cancelRideAndReport(context);
+              if (!confirmed || !mounted) return;
+              setState(() => _canPop = true);
+              if (context.mounted) Navigator.of(context).pop();
+            }
+          },
+          child: _DarkMapScaffold(
+            title: failure == null ? 'Finding your ride…' : 'No ride yet',
+            backIcon: Icons.close,
+            bottom: failure == null
+                ? _searching(context)
+                : _failed(context, failure),
+          ),
+        );
       },
-      child: _DarkMapScaffold(
-        title: 'Finding your ride...',
-        backIcon: Icons.close,
-        bottom: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            TweenAnimationBuilder<double>(
-              duration: const Duration(seconds: 4),
-              tween: Tween(begin: 0.0, end: 0.8),
-              builder: (context, value, child) => ClipRRect(
-                borderRadius: BorderRadius.circular(10),
-                child: LinearProgressIndicator(
-                  value: value,
-                  minHeight: 10,
-                  backgroundColor: Colors.white.withValues(alpha: 0.1),
-                  valueColor: const AlwaysStoppedAnimation<Color>(
-                    Color(0xFFEEBD2B),
-                  ),
-                ),
+    );
+  }
+
+  Widget _searching(BuildContext context) {
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Semantics(
+          label: 'Searching for a driver',
+          child: ClipRRect(
+            borderRadius: BorderRadius.circular(10),
+            child: LinearProgressIndicator(
+              minHeight: 6,
+              backgroundColor: Colors.white.withValues(alpha: 0.1),
+              valueColor: const AlwaysStoppedAnimation<Color>(
+                Color(0xFFEEBD2B),
               ),
             ),
-            const SizedBox(height: 12),
-            OutlinedButton(
-              onPressed: () => Navigator.of(context).maybePop(),
-              style: OutlinedButton.styleFrom(
-                foregroundColor: Colors.white70,
-                side: BorderSide(color: Colors.white.withValues(alpha: 0.2)),
-                padding: const EdgeInsets.symmetric(
-                  vertical: 16,
-                  horizontal: 32,
-                ),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12),
-                ),
-              ),
-              child: const Text('Cancel Search'),
-            ),
-          ],
+          ),
         ),
-      ),
+        const SizedBox(height: 12),
+        Text(
+          'Asking drivers near your pickup.',
+          textAlign: TextAlign.center,
+          style: GoogleFonts.inter(color: Colors.white70, fontSize: 14),
+        ),
+        const SizedBox(height: 16),
+        OutlinedButton(
+          onPressed: () => Navigator.of(context).maybePop(),
+          style: OutlinedButton.styleFrom(
+            foregroundColor: Colors.white70,
+            side: BorderSide(color: Colors.white.withValues(alpha: 0.2)),
+            minimumSize: const Size.fromHeight(52),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(12),
+            ),
+          ),
+          child: const Text('Cancel search'),
+        ),
+      ],
+    );
+  }
+
+  Widget _failed(BuildContext context, String message) {
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Semantics(
+          liveRegion: true,
+          child: Text(
+            message,
+            textAlign: TextAlign.center,
+            style: GoogleFonts.inter(
+              color: Colors.white,
+              fontSize: 16,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+        ),
+        const SizedBox(height: 16),
+        ElevatedButton(
+          onPressed: _startSearch,
+          style: ElevatedButton.styleFrom(
+            backgroundColor: const Color(0xFFEEBD2B),
+            foregroundColor: const Color(0xFF12110E),
+            minimumSize: const Size.fromHeight(52),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(12),
+            ),
+          ),
+          child: const Text(
+            'Try again',
+            style: TextStyle(fontWeight: FontWeight.w700),
+          ),
+        ),
+        const SizedBox(height: 8),
+        TextButton(
+          onPressed: _leaveFailedSearch,
+          style: TextButton.styleFrom(
+            foregroundColor: Colors.white70,
+            minimumSize: const Size.fromHeight(48),
+          ),
+          child: const Text('Change ride'),
+        ),
+      ],
     );
   }
 
@@ -471,6 +594,24 @@ class _DriverFoundScreenState extends State<DriverFoundScreen> {
                                 ),
                               );
                             },
+                          ),
+                          const SizedBox(width: 12),
+                          _ActionButton(
+                            key: const Key('arriving_sos_button'),
+                            icon: Icons.shield_outlined,
+                            label: 'Safety and SOS',
+                            color: const Color(0xFFDC2626),
+                            onTap: () => showSafetySheet(
+                              context,
+                              trip: TripSafetyContext(
+                                tripId: (rideData?['trip_id'] ??
+                                        rideData?['id'])
+                                    ?.toString(),
+                                driverName: driverName?.toString(),
+                                vehicleNumber: vehicleNumber?.toString(),
+                                vehicleModel: vehicleModel?.toString(),
+                              ),
+                            ),
                           ),
                           const SizedBox(width: 12),
                           _ActionButton(
@@ -735,25 +876,40 @@ class _DriverFoundScreenState extends State<DriverFoundScreen> {
 class _ActionButton extends StatelessWidget {
   final IconData icon;
   final VoidCallback onTap;
+  final String? label;
+  final Color? color;
 
-  const _ActionButton({required this.icon, required this.onTap});
+  const _ActionButton({
+    super.key,
+    required this.icon,
+    required this.onTap,
+    this.label,
+    this.color,
+  });
 
   @override
   Widget build(BuildContext context) {
-    return InkWell(
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(12),
-      child: Container(
-        padding: const EdgeInsets.all(12),
-        decoration: BoxDecoration(
-          color: Colors.white.withValues(alpha: 0.1),
-          borderRadius: BorderRadius.circular(12),
+    return Semantics(
+      button: true,
+      label: label,
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(12),
+        child: Container(
+          constraints: const BoxConstraints(minWidth: 48, minHeight: 48),
+          padding: const EdgeInsets.all(12),
+          decoration: BoxDecoration(
+            color: (color ?? Colors.white).withValues(alpha: color == null ? 0.1 : 0.2),
+            borderRadius: BorderRadius.circular(12),
+            border: color == null ? null : Border.all(color: color!),
+          ),
+          child: Icon(icon, color: Colors.white, size: 20),
         ),
-        child: Icon(icon, color: Colors.white, size: 20),
       ),
     );
   }
 }
+
 
 class FullMapTrackingScreen extends StatefulWidget {
   const FullMapTrackingScreen({super.key});
@@ -1029,10 +1185,27 @@ class _RidePaymentSummaryScreenState extends State<RidePaymentSummaryScreen> {
   /// fare for it, whether anything was charged).
   Map<String, dynamic>? _receipt;
 
+  /// The trip to rate, captured on open: every payment path clears the local
+  /// ride state before the rating screen, which then had nothing to rate.
+  String? _rateTripId;
+  String? _rateDriverName;
+
+  void _goRate() {
+    context.go(
+      '/rate-driver',
+      extra: {'trip_id': _rateTripId, 'driver_name': _rateDriverName},
+    );
+  }
+
   @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
+      final mp = context.read<MapProvider>();
+      final raw = mp.rideRequestResponse;
+      _rateTripId = mp.tripId ??
+          (raw is Map ? (raw['trip_id'] ?? raw['id'])?.toString() : null);
+      _rateDriverName = raw is Map ? raw['driver_name']?.toString() : null;
       context.read<WalletProvider>().refreshWallet();
       _loadReceiptIfEndedBySupport();
     });
@@ -1158,7 +1331,7 @@ class _RidePaymentSummaryScreenState extends State<RidePaymentSummaryScreen> {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(content: Text(message), duration: const Duration(seconds: 5)),
     );
-    context.push('/rate-driver');
+    _goRate();
   }
 
   void _showCashError(String message) {
@@ -1383,7 +1556,7 @@ class _RidePaymentSummaryScreenState extends State<RidePaymentSummaryScreen> {
         // server to cancel a ride that just succeeded.
         final mapProvider = p.Provider.of<MapProvider>(context, listen: false);
         await mapProvider.clearRideStateLocally();
-        if (mounted) context.push('/rate-driver');
+        if (mounted) _goRate();
       case OnlinePaymentOutcome.notCharged:
         // Nothing is owed: say so, never open a checkout.
         setState(() {
@@ -1422,7 +1595,7 @@ class _RidePaymentSummaryScreenState extends State<RidePaymentSummaryScreen> {
   Future<void> _continueWhenNotCharged() async {
     final mapProvider = p.Provider.of<MapProvider>(context, listen: false);
     await mapProvider.clearRideStateLocally();
-    if (mounted) context.push('/rate-driver');
+    if (mounted) _goRate();
   }
 
   @override
@@ -1680,77 +1853,47 @@ class _RidePaymentSummaryScreenState extends State<RidePaymentSummaryScreen> {
   }
 }
 
-class RateReviewDriverScreen extends StatefulWidget {
-  const RateReviewDriverScreen({super.key});
+/// Rate the trip that just ended. Opened by the payment summary with the
+/// trip id and driver name, because the local ride state is gone by then.
+///
+/// It used to show a hard-coded driver ("Rajesh Kumar", a Toyota Innova) and
+/// a Submit button that went home without saving anything.
+class RateReviewDriverScreen extends StatelessWidget {
+  const RateReviewDriverScreen({super.key, this.tripId, this.driverName});
 
-  @override
-  State<RateReviewDriverScreen> createState() => _RateReviewDriverScreenState();
-}
-
-class _RateReviewDriverScreenState extends State<RateReviewDriverScreen> {
-  int score = 4;
+  final String? tripId;
+  final String? driverName;
 
   @override
   Widget build(BuildContext context) {
+    final id = tripId;
+    if (id == null || id.isEmpty) {
+      // Nothing to rate: never show a form that cannot be submitted.
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (context.mounted) context.go('/home');
+      });
+      return const Scaffold(backgroundColor: Color(0xFF12110E));
+    }
     return Scaffold(
       backgroundColor: const Color(0xFF12110E),
-      appBar: AppBar(
-        backgroundColor: Colors.transparent,
-        title: const Text('Rate your Driver'),
-      ),
-      body: ListView(
-        padding: const EdgeInsets.all(16),
-        children: [
-          const CircleAvatar(radius: 50, child: Icon(Icons.person, size: 48)),
-          const SizedBox(height: 8),
-          const Text(
-            'Rajesh Kumar',
-            textAlign: TextAlign.center,
-            style: TextStyle(
-              color: Colors.white,
-              fontSize: 28,
-              fontWeight: FontWeight.w700,
+      body: SafeArea(
+        child: Align(
+          alignment: Alignment.bottomCenter,
+          child: SingleChildScrollView(
+            child: RateTripSheet(
+              tripId: id,
+              driverName: driverName,
+              onDone: (rated) {
+                if (rated) {
+                  ScaffoldMessenger.maybeOf(context)?.showSnackBar(
+                    const SnackBar(content: Text('Thanks for rating your trip.')),
+                  );
+                }
+                context.go('/home');
+              },
             ),
           ),
-          const Text(
-            'Toyota Innova Crysta . MH 01 AB 1234',
-            textAlign: TextAlign.center,
-            style: TextStyle(color: Colors.white70),
-          ),
-          const SizedBox(height: 8),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: List.generate(
-              5,
-              (i) => IconButton(
-                onPressed: () => setState(() => score = i + 1),
-                icon: Icon(
-                  i < score ? Icons.star : Icons.star_border,
-                  color: const Color(0xFFEEBD2B),
-                  size: 36,
-                ),
-              ),
-            ),
-          ),
-          const TextField(
-            maxLines: 4,
-            style: TextStyle(color: Colors.white),
-            decoration: InputDecoration(
-              hintText: 'Write a comment (optional)...',
-              hintStyle: TextStyle(color: Colors.white54),
-              border: OutlineInputBorder(),
-            ),
-          ),
-          const SizedBox(height: 10),
-          ElevatedButton(
-            onPressed: () => context.go('/home'),
-            child: const Text('Submit Review'),
-          ),
-          TextButton(
-            onPressed: () => context.go('/home'),
-            child: const Text('Skip'),
-          ),
-        ],
+        ),
       ),
     );
   }

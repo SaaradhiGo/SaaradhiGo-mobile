@@ -35,6 +35,15 @@ class FakeLocationService extends Fake implements LocationService {
 }
 
 class FakeFareService extends Fake implements FareService {
+  /// What /pricing/vehicle-types/ answers; null means it could not be reached.
+  List<String>? types = ['bike', 'auto', 'sedan'];
+
+  /// Classes the zone does not price: estimate-fare answers null for them.
+  Set<String> unpriced = {};
+
+  @override
+  Future<List<String>?> vehicleTypesAt(double lat, double lng) async => types;
+
   @override
   Future<Map<String, dynamic>?> estimateFare({
     required double pickupLat,
@@ -45,6 +54,7 @@ class FakeFareService extends Fake implements FareService {
     required int durationMin,
     required String vehicleType,
   }) async {
+    if (unpriced.contains(vehicleType)) return null;
     return {
       'estimated_fare': '100.00',
       'vehicle_type': vehicleType,
@@ -142,8 +152,36 @@ void main() {
       expect(mapProvider.fareEstimates.containsKey('auto'), isTrue);
       expect(mapProvider.fareEstimates['auto']?['time_to_drop'], 10);
       
-      expect(mapProvider.fareEstimates.containsKey('car'), isTrue);
-      expect(mapProvider.fareEstimates['car']?['time_to_drop'], 9);
+      expect(mapProvider.fareEstimates.containsKey('sedan'), isTrue);
+      expect(mapProvider.fareEstimates['sedan']?['time_to_drop'], 9);
+    });
+
+    test('only classes the server lists and prices are offered', () async {
+      // "car", "car_xl" and "car_premium" were hard-coded, priced nowhere,
+      // and shown as "₹…" rows that could never be booked.
+      fakeFareService.types = ['auto', 'hatchback', 'suv'];
+      fakeFareService.unpriced = {'suv'};
+      await mapProvider.prepareAndCalculateRoute(
+        presetPickup: const LatLng(17.3850, 78.4867),
+        pickupName: 'Home',
+        dropPlaceId: 'destination_id',
+      );
+
+      expect(mapProvider.fareEstimates.keys.toSet(), {'auto', 'hatchback'});
+    });
+
+    test('an unreachable class list falls back to the backend classes', () async {
+      fakeFareService.types = null;
+      await mapProvider.prepareAndCalculateRoute(
+        presetPickup: const LatLng(17.3850, 78.4867),
+        pickupName: 'Home',
+        dropPlaceId: 'destination_id',
+      );
+
+      expect(
+        mapProvider.fareEstimates.keys.toSet(),
+        {'auto', 'hatchback', 'sedan', 'suv'},
+      );
     });
 
     test('selectVehicleType updates state', () {

@@ -276,8 +276,13 @@ class SaaradhiGoApp extends StatelessWidget {
         ),
         GoRoute(
           path: '/rate-driver',
-          builder: (BuildContext context, GoRouterState state) =>
-              const RateReviewDriverScreen(),
+          builder: (BuildContext context, GoRouterState state) {
+            final extra = state.extra is Map ? state.extra as Map : const {};
+            return RateReviewDriverScreen(
+              tripId: extra['trip_id']?.toString(),
+              driverName: extra['driver_name']?.toString(),
+            );
+          },
         ),
         GoRoute(
           path: '/add-money',
@@ -345,11 +350,13 @@ class SaaradhiGoApp extends StatelessWidget {
                     if (rideState.showCancelledOverlay)
                       const CancelledOverlay(),
                     if (rideState.status == RideStatus.paymentPending)
-                      const Positioned(
+                      Positioned(
                         top: 0,
                         left: 0,
                         right: 0,
-                        child: PaymentPendingBanner(),
+                        child: PaymentPendingBanner(
+                          onOpen: () => router.go('/ride-summary'),
+                        ),
                       ),
                   ],
                 );

@@ -31,6 +31,12 @@ class RideState {
   final bool isSyncing;
   final bool showCancelledOverlay;
 
+  /// Why the driver search ended without a driver, in the sentence the rider
+  /// sees. Set only while [status] is still [RideStatus.searchingDriver], so
+  /// the search screen stays up with "Try again" instead of the app jumping
+  /// home with nothing said. Null while a search is running normally.
+  final String? searchFailure;
+
   const RideState({
     this.status = RideStatus.none,
     this.tripId,
@@ -46,6 +52,7 @@ class RideState {
     this.rawResponse,
     this.isSyncing = false,
     this.showCancelledOverlay = false,
+    this.searchFailure,
   });
 
   RideState copyWith({
@@ -63,10 +70,13 @@ class RideState {
     Map<String, dynamic>? rawResponse,
     bool? isSyncing,
     bool? showCancelledOverlay,
+    String? searchFailure,
+    bool clearSearchFailure = false,
+    bool clearTripId = false,
   }) {
     return RideState(
       status: status ?? this.status,
-      tripId: tripId ?? this.tripId,
+      tripId: clearTripId ? null : (tripId ?? this.tripId),
       driverLocation: driverLocation ?? this.driverLocation,
       pickupLocation: pickupLocation ?? this.pickupLocation,
       dropLocation: dropLocation ?? this.dropLocation,
@@ -79,6 +89,9 @@ class RideState {
       rawResponse: rawResponse ?? this.rawResponse,
       isSyncing: isSyncing ?? this.isSyncing,
       showCancelledOverlay: showCancelledOverlay ?? this.showCancelledOverlay,
+      searchFailure: clearSearchFailure
+          ? null
+          : (searchFailure ?? this.searchFailure),
     );
   }
 

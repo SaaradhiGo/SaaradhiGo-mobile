@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'package:flutter/foundation.dart';
 import 'package:web_socket_channel/web_socket_channel.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:uuid/uuid.dart';
 import '../core/app_config.dart';
 
 final webSocketServiceProvider = Provider<WebSocketService>((ref) {
@@ -12,6 +13,7 @@ final webSocketServiceProvider = Provider<WebSocketService>((ref) {
 class WebSocketService {
   WebSocketChannel? _rideChannel;
   WebSocketChannel? _tripChannel;
+  StreamSubscription? _rideSubscription;
   StreamSubscription? _tripSubscription;
 
   final _rideEventController =
@@ -27,9 +29,7 @@ class WebSocketService {
 
   // Connection tracking
   String? _activeTripWsUrl;
-  String? _activeRideWsUrl;
   bool _isConnectingTrip = false;
-  bool _isConnectingRide = false;
   int _tripReconnectAttempts = 0;
 
   /// The ride-request frame the booking socket sends. `promo_code` is present
@@ -48,6 +48,7 @@ class WebSocketService {
     required String destinationAddress,
     required String paymentMethod,
     String? promoCode,
+    String? clientRequestId,
   }) => {
     'action': 'request',
     'type': 'ride_request',
@@ -62,6 +63,17 @@ class WebSocketService {
     'vehicle_type': vehicleType,
     'payment_method': paymentMethod,
     if (promoCode != null && promoCode.isNotEmpty) 'promo_code': promoCode,
+    if (clientRequestId != null) 'client_request_id': clientRequestId,
+  };
+
+  /// Frames after which the booking must not be sent again on a reconnect:
+  /// the server has answered it. Resending a request the server already
+  /// cancelled (nobody accepted) would book a ride the rider gave up on.
+  static const _answeredTypes = {
+    'trip_created',
+    'error',
+    'dispatch_failed',
+    'current_trip',
   };
 
   void requestRide({
@@ -80,19 +92,15 @@ class WebSocketService {
   }) {
     debugPrint("WebSocketService: requestRide invoked.");
     _isIntentionalDisconnect = false;
+    _tripActive = false;
     final wsUrl = '${AppConfig.rideRequestWs}?token=$token';
 
-    // Prevent redundant connection attempts to the SAME URL
-    // Also check if we are ALREADY scheduled to reconnect to this URL
-    if (_activeRideWsUrl == wsUrl) {
-      if (_rideChannel != null || _isConnectingRide) {
-        debugPrint(
-          "WebSocketService: Already connected or connecting to ride request WS. Skipping duplicate request.",
-        );
-        return;
-      }
-    }
-
+    // Every booking attempt is a new request with its own idempotency key.
+    // This used to skip the request when a channel from an earlier booking
+    // was still open, so a second "Request ride" (after a cancel or a failed
+    // search) silently sent nothing and the rider watched "Finding your
+    // ride" forever (PRODUCT_AUDIT §2). The key makes a reconnect resend of
+    // THIS request safe: the server answers it with the trip it already made.
     _lastRideRequestPayload = buildRideRequestPayload(
       pickupLat: pickupLat,
       pickupLng: pickupLng,
@@ -105,12 +113,10 @@ class WebSocketService {
       destinationAddress: destinationAddress,
       paymentMethod: paymentMethod,
       promoCode: promoCode,
+      clientRequestId: const Uuid().v4(),
     );
 
-    debugPrint(
-      "WebSocketService: Payload prepared. Connecting to WS URL: $wsUrl",
-    );
-    _activeRideWsUrl = wsUrl;
+    debugPrint("WebSocketService: Payload prepared. Connecting to ride WS.");
     _connectRideChannel(wsUrl);
   }
 
@@ -143,28 +149,34 @@ class WebSocketService {
     // Close the ride request channel since we have a trip now
     _rideReconnectTimer?.cancel();
     _tripReconnectTimer?.cancel(); // Cancel any pending trip logic/reconnects
+    _rideSubscription?.cancel();
+    _rideSubscription = null;
     _rideChannel?.sink.close();
     _rideChannel = null;
     _lastRideRequestPayload = null;
-    _activeRideWsUrl = null;
-    _isConnectingRide = false;
 
     _connectTripChannel(wsUrl);
   }
 
   void _connectRideChannel(String wsUrl) {
     debugPrint("WebSocketService: _connectRideChannel executing...");
-    _isConnectingRide = true;
     try {
+      // Drop the old channel's listener first, so its onDone cannot schedule
+      // a reconnect that races this one.
+      _rideReconnectTimer?.cancel();
+      _rideSubscription?.cancel();
+      _rideSubscription = null;
       _rideChannel?.sink.close();
       _rideChannel = WebSocketChannel.connect(Uri.parse(wsUrl));
       debugPrint("WebSocketService: WebSocketChannel initialized.");
-      _isConnectingRide = false;
 
-      _rideChannel!.stream.listen(
+      _rideSubscription = _rideChannel!.stream.listen(
         (data) {
           try {
             final Map<String, dynamic> decoded = jsonDecode(data);
+            if (_answeredTypes.contains(decoded['type'])) {
+              _lastRideRequestPayload = null;
+            }
             _rideEventController.add(decoded);
           } catch (e) {
             debugPrint("Error parsing ride WS data: $e");
@@ -192,9 +204,19 @@ class WebSocketService {
           });
     } catch (e) {
       debugPrint("Ride request WS connect error: $e");
-      _isConnectingRide = false;
       _scheduleRideReconnect(wsUrl);
     }
+  }
+
+  /// Stops a booking that has not been answered: the rider gave up waiting
+  /// for the server to acknowledge it. Nothing is resent after this.
+  void abandonRideRequest() {
+    _lastRideRequestPayload = null;
+    _rideReconnectTimer?.cancel();
+    _rideSubscription?.cancel();
+    _rideSubscription = null;
+    _rideChannel?.sink.close();
+    _rideChannel = null;
   }
 
   void _scheduleRideReconnect(String wsUrl) {
@@ -292,15 +314,15 @@ class WebSocketService {
     _tripReconnectTimer?.cancel();
     _tripSubscription?.cancel();
     _tripSubscription = null;
+    _rideSubscription?.cancel();
+    _rideSubscription = null;
     _rideChannel?.sink.close();
     _tripChannel?.sink.close();
     _rideChannel = null;
     _tripChannel = null;
     _lastRideRequestPayload = null;
     _activeTripWsUrl = null;
-    _activeRideWsUrl = null;
     _isConnectingTrip = false;
-    _isConnectingRide = false;
     _tripReconnectAttempts = 0;
   }
 }

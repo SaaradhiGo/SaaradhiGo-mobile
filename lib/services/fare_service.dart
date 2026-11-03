@@ -7,6 +7,32 @@ import '../core/market/booking_refusal.dart';
 import 'package:latlong2/latlong.dart';
 
 class FareService {
+  /// The classes priced at [lat],[lng], or null when the API cannot say.
+  /// An empty list is a real answer: nothing is priced there.
+  Future<List<String>?> vehicleTypesAt(double lat, double lng) async {
+    try {
+      final response = await http.get(
+        Uri.parse(
+          '${AppConfig.baseUrl}/pricing/vehicle-types/?lat=$lat&lng=$lng',
+        ),
+        headers: {'Content-Type': 'application/json'},
+      );
+      if (response.statusCode != 200) return null;
+      final body = json.decode(response.body);
+      final data = body is Map ? body['data'] : null;
+      final types = data is Map ? data['vehicle_types'] : null;
+      if (types is! List) return null;
+      return [
+        for (final t in types)
+          if (t is Map && (t['type']?.toString() ?? '').isNotEmpty)
+            t['type'].toString(),
+      ];
+    } catch (e) {
+      debugPrint('Error loading vehicle types: $e');
+      return null;
+    }
+  }
+
   Future<Map<String, dynamic>?> estimateFare({
     required double pickupLat,
     required double pickupLng,

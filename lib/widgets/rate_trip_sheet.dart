@@ -38,11 +38,16 @@ class RateTripSheet extends StatefulWidget {
     required this.tripId,
     this.driverName,
     this.service,
+    this.onDone,
   });
 
   final String tripId;
   final String? driverName;
   final RatingService? service;
+
+  /// Called with true once rated, false on "Not now". Defaults to popping the
+  /// sheet with that value; a full screen hosting the sheet passes its own.
+  final ValueChanged<bool>? onDone;
 
   @override
   State<RateTripSheet> createState() => _RateTripSheetState();
@@ -60,6 +65,15 @@ class _RateTripSheetState extends State<RateTripSheet> {
   void dispose() {
     _commentController.dispose();
     super.dispose();
+  }
+
+  void _done(bool rated) {
+    final onDone = widget.onDone;
+    if (onDone != null) {
+      onDone(rated);
+    } else {
+      Navigator.of(context).pop(rated);
+    }
   }
 
   Future<void> _submit() async {
@@ -83,7 +97,7 @@ class _RateTripSheetState extends State<RateTripSheet> {
 
     if (result.isSettled) {
       // Submitted, or already rated. Both mean stop asking.
-      Navigator.of(context).pop(true);
+      _done(true);
       return;
     }
 
@@ -200,9 +214,7 @@ class _RateTripSheetState extends State<RateTripSheet> {
             TextButton(
               // Skippable on purpose. A prompt a rider cannot dismiss is one
               // they learn to tap through without reading.
-              onPressed: _submitting
-                  ? null
-                  : () => Navigator.of(context).pop(false),
+              onPressed: _submitting ? null : () => _done(false),
               child: const Text(
                 'Not now',
                 style: TextStyle(color: Colors.white54),
