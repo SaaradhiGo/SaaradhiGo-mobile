@@ -58,7 +58,11 @@ class _FakeRideService implements RideService {
 
   // Other methods not used in tests - provide minimal implementations
   @override
-  Future<List<Trip>> fetchRideHistory(String token) async => [];
+  Future<List<Trip>> fetchRideHistory(
+    String token, {
+    Future<String?> Function()? onUnauthorized,
+  }) async =>
+      [];
 
   /// Added when CI was introduced: this fake did not implement `cancelTrip`, so
   /// the whole file failed to compile and none of its ride-state-recovery tests
