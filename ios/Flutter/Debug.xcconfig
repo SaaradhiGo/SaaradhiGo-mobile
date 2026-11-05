@@ -1,1 +1,3 @@
 #include "Generated.xcconfig"
+// MAPS_API_KEY = ... lives here, untracked (never commit a key).
+#include? "Maps.xcconfig"

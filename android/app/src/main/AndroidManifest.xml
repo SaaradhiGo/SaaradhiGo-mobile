@@ -47,11 +47,11 @@
              treated as compromised: it needs rotating or restricting in
              Google Cloud, which removing it from HEAD does not do.
 
-             It was also unused. This app renders maps with flutter_map over
-             OSM tiles and has no google_maps_flutter dependency, so nothing
-             reads this value. The placeholder is kept, supplied empty by
-             Gradle, so the wiring exists if the Maps SDK is ever adopted
-             without anyone re-committing a key. -->
+             Since 2026-11-02 (owner decision D1) the app renders maps with
+             the Google Maps SDK. The value is supplied at build time
+             (-Pmaps.apiKey, from the MAPS_API_KEY_ANDROID CI secret) and the
+             key is restricted to this package and the QA signing SHA-1.
+             Never commit a literal key here. -->
         <meta-data android:name="com.google.android.geo.API_KEY"
             android:value="${MAPS_API_KEY}"/>
 
