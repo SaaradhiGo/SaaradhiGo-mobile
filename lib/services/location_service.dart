@@ -53,14 +53,17 @@ class LocationService {
 
   Future<List<PlaceSuggestion>> getPlaceAutocomplete(
     String query,
-    String sessionToken,
-  ) async {
+    String sessionToken, {
+    LatLng? near,
+  }) async {
     if (query.length < 3) return [];
 
     try {
       final data = await _post(AppConfig.mapsAutocomplete, {
         'input': query,
         'session_token': sessionToken,
+        // The backend biases results to this point and derives the country.
+        if (near != null) 'location': '${near.latitude},${near.longitude}',
       });
       if (data != null && data['status'] == 'OK') {
         final List predictions = data['predictions'] ?? const [];

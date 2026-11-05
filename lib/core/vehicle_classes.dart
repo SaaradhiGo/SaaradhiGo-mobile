@@ -65,3 +65,43 @@ int vehicleClassSpeedKmh(String? type) {
       return 35;
   }
 }
+
+/// The gold line glyph for a class (assets/vehicles); unknown classes get the sedan.
+String vehicleClassAsset(String? type) {
+  switch ((type ?? '').trim().toLowerCase()) {
+    case 'bike':
+      return 'assets/vehicles/bike.svg';
+    case 'auto':
+      return 'assets/vehicles/auto.svg';
+    case 'hatchback':
+    case 'mini':
+      return 'assets/vehicles/hatchback.svg';
+    case 'suv':
+      return 'assets/vehicles/suv.svg';
+    case 'black':
+    case 'premium':
+    case 'car_premium':
+      return 'assets/vehicles/premium.svg';
+  }
+  return 'assets/vehicles/sedan.svg';
+}
+
+/// Seats a class carries, shown when the fare API does not say.
+int? vehicleClassSeats(String? type) {
+  switch ((type ?? '').trim().toLowerCase()) {
+    case 'bike':
+      return 1;
+    case 'auto':
+      return 3;
+    case 'hatchback':
+    case 'mini':
+    case 'sedan':
+    case 'black':
+    case 'premium':
+    case 'car_premium':
+      return 4;
+    case 'suv':
+      return 6;
+  }
+  return null;
+}

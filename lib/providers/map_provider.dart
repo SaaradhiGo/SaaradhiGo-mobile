@@ -2,6 +2,7 @@ import 'dart:async';
 
 import '../core/vehicle_classes.dart';
 import 'package:flutter/material.dart';
+import '../utils/recent_places.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:latlong2/latlong.dart';
 import 'package:uuid/uuid.dart';
@@ -214,6 +215,7 @@ class MapProvider extends ChangeNotifier {
       final results = await _locationService.getPlaceAutocomplete(
         query,
         _sessionToken,
+        near: _precisePickupLocation ?? _pickupLocation?.latLng,
       );
       _suggestions = results;
       _isLoadingSuggestions = false;
@@ -249,10 +251,9 @@ class MapProvider extends ChangeNotifier {
 
         _favoriteLocations = results[0] as List<FavoriteLocation>;
         final allHistory = results[1] as List<Trip>;
-        _recentLocations = allHistory
-            .where((t) => t.status.toLowerCase() == 'completed')
-            .take(2)
-            .toList();
+        _recentLocations = distinctRecentTrips(
+          allHistory.where((t) => t.status.toLowerCase() == 'completed'),
+        );
       }
     } catch (e) {
       debugPrint('Error fetching dynamic home data: $e');

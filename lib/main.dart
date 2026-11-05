@@ -2,7 +2,7 @@ import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:go_router/go_router.dart';
-import 'package:google_fonts/google_fonts.dart';
+import 'ui/sg_text.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import 'package:flutter_dotenv/flutter_dotenv.dart';
@@ -371,22 +371,10 @@ class SaaradhiGoApp extends StatelessWidget {
               surface: const Color(0xFFF8F7F6),
               brightness: Brightness.light,
             ),
-            textTheme: GoogleFonts.plusJakartaSansTextTheme(
-              Theme.of(context).textTheme,
-            ),
+            textTheme: ThemeData(brightness: Brightness.light).textTheme
+                .apply(fontFamily: SgText.sans),
           ),
-          darkTheme: ThemeData(
-            useMaterial3: true,
-            colorScheme: ColorScheme.fromSeed(
-              seedColor: const Color(0xFFEEBD2B),
-              primary: const Color(0xFFEEBD2B),
-              surface: const Color(0xFF221D10),
-              brightness: Brightness.dark,
-            ),
-            textTheme: GoogleFonts.plusJakartaSansTextTheme(
-              ThemeData(brightness: Brightness.dark).textTheme,
-            ),
-          ),
+          darkTheme: sgDarkTheme(),
           themeMode: ThemeMode.dark,
           routerConfig: router,
           scrollBehavior: const MaterialScrollBehavior().copyWith(
