@@ -3,8 +3,11 @@ import 'package:latlong2/latlong.dart';
 import '../../core/maps/sg_map.dart';
 import 'package:provider/provider.dart';
 import 'package:go_router/go_router.dart';
-import 'package:google_fonts/google_fonts.dart';
 import '../../providers/map_provider.dart';
+import '../../ui/choose_ride_sheet.dart';
+import '../../ui/sg_tokens.dart';
+import '../../ui/sg_widgets.dart';
+import '../../ui/trip_widgets.dart';
 import '../../utils/geometry_utils.dart';
 
 class PrecisePickupScreen extends StatefulWidget {
@@ -19,6 +22,10 @@ class _PrecisePickupScreenState extends State<PrecisePickupScreen> {
   LatLng? _centerLocation;
   MapProvider? _mapProvider;
   bool _isNavigated = false;
+
+  /// Where the pin is now, once the map has stopped after a drag.
+  String? _address;
+  int _lookup = 0;
 
   @override
   void initState() {
@@ -71,159 +78,96 @@ class _PrecisePickupScreenState extends State<PrecisePickupScreen> {
     });
   }
 
+  /// The new spot's address, if the geocoder answers; else the old one stays.
+  Future<void> _onIdle() async {
+    final at = _snappedLocation;
+    final provider = _mapProvider;
+    if (at == null || provider == null) return;
+    final ticket = ++_lookup;
+    final found = await provider.addressFor(at);
+    if (mounted && ticket == _lookup && found != null) setState(() => _address = found);
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFF12110E),
-      body: Stack(
-        children: [
-          // Map Background
-          Consumer<MapProvider>(
-            builder: (context, mapProvider, child) {
-              return SgMap(
-                initialCenter:
-                    mapProvider.pickupLocation?.latLng ??
-                    const LatLng(17.385044, 78.4867),
-                initialZoom: 17,
-                onCameraMove: (camera) {
-                  if (camera.byGesture) _updateSnapping(camera.center);
-                },
-                polylines: [
-                  SgPolyline(
-                    id: 'route',
-                    points: mapProvider.polylineCoordinates,
-                    width: 5,
-                    color: const Color(0xFFEEBD2B).withValues(alpha: 0.5),
-                  ),
-                  // The snap cue: from where the rider pointed to the road.
-                  if (_centerLocation != null && _snappedLocation != null)
-                    SgPolyline(
-                      id: 'snap',
-                      points: [_centerLocation!, _snappedLocation!],
-                      width: 2,
-                      color: const Color(0xFFEEBD2B).withValues(alpha: 0.3),
-                    ),
-                ],
-                markers: [
-                  if (_snappedLocation != null)
-                    SgMarker(
-                      id: 'pickup',
-                      point: _snappedLocation!,
-                      icon: const SgSvgMarker('assets/markers/pickup.svg'),
-                      label: 'Pickup',
-                    ),
-                ],
-              );
-            },
-          ),
-
-          // Header
-          Positioned(
-            top: 40,
-            left: 16,
-            right: 16,
-            child: Row(
-              children: [
-                CircleAvatar(
-                  backgroundColor: Colors.black.withValues(alpha: 0.5),
-                  child: IconButton(
-                    icon: const Icon(Icons.arrow_back, color: Colors.white),
-                    onPressed: () => context.pop(),
-                  ),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(
-                      vertical: 12,
-                      horizontal: 16,
-                    ),
-                    decoration: BoxDecoration(
-                      color: Colors.black.withValues(alpha: 0.5),
-                      borderRadius: BorderRadius.circular(30),
-                    ),
-                    child: Text(
-                      'Select precise pickup point',
-                      style: GoogleFonts.inter(
-                        color: Colors.white,
-                        fontWeight: FontWeight.w600,
+      backgroundColor: SgColors.bg000,
+      body: Consumer<MapProvider>(
+        builder: (context, mapProvider, child) {
+          final options = RideOption.fromEstimates(mapProvider.fareEstimates);
+          RideOption? chosen;
+          for (final o in options) {
+            if (o.type == mapProvider.selectedVehicleType) chosen = o;
+          }
+          final address = _address ??
+              mapProvider.pickupAddress ??
+              mapProvider.pickupLocation?.name ??
+              'Your pickup point';
+          final eta = chosen?.etaMin;
+          return Column(
+            children: [
+              Expanded(
+                child: Stack(
+                  children: [
+                    Positioned.fill(
+                      child: SgMap(
+                        initialCenter:
+                            mapProvider.pickupLocation?.latLng ?? const LatLng(17.385044, 78.4867),
+                        initialZoom: 17,
+                        onCameraMove: (camera) {
+                          if (camera.byGesture) _updateSnapping(camera.center);
+                        },
+                        onCameraIdle: _onIdle,
+                        polylines: [
+                          SgPolyline(
+                            id: 'route',
+                            points: mapProvider.polylineCoordinates,
+                            width: 5,
+                            color: SgColors.gold500.withValues(alpha: 0.5),
+                          ),
+                        ],
                       ),
                     ),
-                  ),
-                ),
-              ],
-            ),
-          ),
-
-          // Bottom Action
-          Positioned(
-            bottom: 24,
-            left: 16,
-            right: 16,
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Container(
-                  padding: const EdgeInsets.all(16),
-                  decoration: BoxDecoration(
-                    color: const Color(0xFF1E1C18),
-                    borderRadius: BorderRadius.circular(16),
-                    border: Border.all(
-                      color: Colors.white.withValues(alpha: 0.1),
+                    // The pin never moves; the map slides under it.
+                    Align(
+                      alignment: Alignment.center,
+                      child: Transform.translate(offset: const Offset(0, -44), child: const FixedPickupPin()),
                     ),
-                  ),
-                  child: Row(
-                    children: [
-                      const Icon(
-                        Icons.info_outline,
-                        color: Color(0xFFEEBD2B),
-                        size: 20,
-                      ),
-                      const SizedBox(width: 12),
-                      const Expanded(
-                        child: Text(
-                          'Move the map to align the center icon with your location. We will snap the pickup to the nearest road.',
-                          style: TextStyle(color: Colors.white70, fontSize: 12),
+                    if (eta != null)
+                      Align(
+                        alignment: Alignment.center,
+                        child: Transform.translate(
+                          offset: const Offset(0, -112),
+                          child: MapChip('Pickup in $eta min'),
                         ),
                       ),
-                    ],
-                  ),
+                    Positioned(
+                      top: MediaQuery.of(context).padding.top + SgSpace.s2,
+                      left: SgSpace.s4,
+                      child: SgMapButton(icon: SgIcons.back, label: 'Back', onTap: () => context.pop()),
+                    ),
+                  ],
                 ),
-                const SizedBox(height: 16),
-                SizedBox(
-                  width: double.infinity,
-                  height: 56,
-                  child: ElevatedButton(
-                    onPressed: () {
-                      if (_snappedLocation != null) {
+              ),
+              ConfirmPickupSheet(
+                address: address,
+                lockText: chosen == null
+                    ? 'Drivers see your fare before they accept.'
+                    : 'Fare locked at ${chosen.fareText}. Drivers see it before they accept.',
+                buttonLabel: chosen == null ? 'Request ride' : 'Request ${chosen.shortName}',
+                onConfirm: _snappedLocation == null
+                    ? null
+                    : () {
                         context.read<MapProvider>().setPrecisePickupLocation(
                           _snappedLocation!,
+                          address: _address,
                         );
                         context.push('/searching-driver');
-                      }
-                    },
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color(0xFFEEBD2B),
-                      foregroundColor: Colors.black,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(16),
-                      ),
-                      elevation: 0,
-                    ),
-                    child: Text(
-                      'CONFIRM PICKUP',
-                      style: GoogleFonts.inter(
-                        fontSize: 16,
-                        fontWeight: FontWeight.w800,
-                        letterSpacing: 1.0,
-                      ),
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ],
+                      },
+              ),
+            ],
+          );
+        },
       ),
     );
   }

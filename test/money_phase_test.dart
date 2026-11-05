@@ -615,10 +615,10 @@ void main() {
 
     testWidgets('India, no promo: exactly the card it always was', (t) async {
       await pumpSummary(t, frames: [tripCreatedPlain()]);
-      expect(find.text('Ride Fare'), findsOneWidget);
+      expect(find.text('FARE'), findsOneWidget);
       expect(find.text('₹169.02'), findsOneWidget);
       expect(find.text('Confirm & Pay'), findsOneWidget);
-      expect(find.text('Pay with Cash instead?'), findsOneWidget);
+      expect(find.text('Pay with Cash'), findsOneWidget, reason: 'booked as cash, so cash is preselected');
       expect(find.byKey(const Key('promo_discount_line')), findsNothing);
       expect(find.byKey(const Key('not_charged_label')), findsNothing);
     });

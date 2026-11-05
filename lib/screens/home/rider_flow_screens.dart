@@ -42,9 +42,15 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:provider/provider.dart' as p;
 import '../../utils/money.dart';
 import '../../widgets/safety_sheet.dart';
-import '../../widgets/rate_trip_sheet.dart';
 import '../../state/ride_notifier.dart';
 import '../../state/ride_state.dart';
+import '../../core/vehicle_classes.dart';
+import '../../ui/choose_ride_sheet.dart';
+import '../../ui/ride_rating_panel.dart';
+import '../../ui/sg_text.dart';
+import '../../ui/sg_tokens.dart';
+import '../../ui/sg_widgets.dart';
+import '../../ui/trip_widgets.dart';
 
 /// Cancel, and tell the rider when the server did not confirm it.
 ///
@@ -70,6 +76,121 @@ Future<bool> _cancelRideAndReport(BuildContext context) async {
   }
   return confirmed;
 }
+
+
+/// Who the rider is riding with, read from the ride payload the screens render.
+class _DriverView {
+  _DriverView(dynamic raw)
+      : ride = raw is Map ? raw : const {},
+        info = (raw is Map && raw['driver_info'] is Map) ? raw['driver_info'] as Map : const {},
+        vehicle = (raw is Map && raw['vehicle_info'] is Map) ? raw['vehicle_info'] as Map : const {};
+  final Map ride;
+  final Map info;
+  final Map vehicle;
+
+  String get name => (info['name'] ?? ride['driver_name'] ?? '').toString().trim();
+  String get first => firstNameOf(name);
+  String get plate => (vehicle['vehicle_number'] ?? ride['vehicle_number'] ?? '').toString().trim();
+  String get pin => (ride['otp'] ?? '').toString().trim();
+  String? get photo => info['photo_url']?.toString();
+  String? get tripId => (ride['trip_id'] ?? ride['id'])?.toString();
+
+  String get _model {
+    final m = '${vehicle['brand'] ?? ''} ${vehicle['model'] ?? ''}'.trim();
+    return m.isNotEmpty ? m : (ride['vehicle_model'] ?? ride['vehicle_info_summary'] ?? '').toString().trim();
+  }
+
+  String? get vehicleLine {
+    final color = (vehicle['color'] ?? '').toString().trim();
+    final line = [if (_model.isNotEmpty) _model, if (color.isNotEmpty) color].join(' \u00B7 ');
+    return line.isEmpty ? null : line;
+  }
+
+  DriverCardData get card => DriverCardData(
+        name: name.isEmpty ? 'Your driver' : name,
+        rating: ratingText(info['stars'] ?? info['rating']),
+        vehicleLine: vehicleLine,
+        plate: plate.isEmpty ? null : plate,
+      );
+
+  String? get meetLine {
+    for (final k in ['pickup_note', 'pickup_notes', 'meeting_point', 'meet_point']) {
+      final v = ride[k]?.toString().trim();
+      if (v != null && v.isNotEmpty) return v;
+    }
+    return null;
+  }
+
+  TripSafetyContext get safety => TripSafetyContext(
+        tripId: tripId,
+        driverName: name.isEmpty ? null : name,
+        vehicleNumber: plate.isEmpty ? null : plate,
+        vehicleModel: _model.isEmpty ? null : _model,
+      );
+}
+
+/// Whole minutes from "3 mins" / "1 hour 5 mins"; null when there is no number.
+int? _minutesOf(String? text) {
+  if (text == null) return null;
+  var total = 0;
+  var found = false;
+  for (final m in RegExp(r'(\d+)\s*(hour|hr|h|min)').allMatches(text.toLowerCase())) {
+    found = true;
+    final n = int.parse(m.group(1)!);
+    total += m.group(2) == 'min' ? n : n * 60;
+  }
+  if (found) return total;
+  final plain = int.tryParse(RegExp(r'\d+').firstMatch(text)?.group(0) ?? '');
+  return plain;
+}
+
+/// The quote the rider accepted, shown while we look for a driver.
+SgLockedFareCard _lockedFare(MapProvider mp) {
+  final type = mp.selectedVehicleType;
+  final est = type == null ? null : mp.fareEstimates[type];
+  final opt = (type == null || est == null) ? null : RideOption.fromEstimate(type, est);
+  final raw = mp.rideRequestResponse;
+  final fallback = raw is Map ? (raw['total_fare'] ?? raw['estimated_fare']) : null;
+  return SgLockedFareCard(
+    vehicleType: type,
+    className: opt?.name ?? 'Saaradhi ${vehicleClassName(type)}',
+    route: routeLine(mp.pickupAddress ?? mp.pickupLocation?.name, mp.destinationAddress),
+    fareText: opt?.fareText ??
+        formatMoney(fallback, raw is Map ? raw['currency'] as String? : null, decimals: 0) ??
+        '',
+  );
+}
+
+Future<void> _callDriver(BuildContext context, _DriverView d) async {
+  void say(String m) {
+    if (context.mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(m)));
+  }
+
+  // Only a tel: link; the number is never shown (privacy posture, Phase-0).
+  final raw = (d.info['phone'] ?? d.ride['driver_phone'] ?? '').toString();
+  if (raw.isEmpty) return say('Driver phone unavailable. Use in-app chat instead.');
+  try {
+    if (!await launchUrl(Uri(scheme: 'tel', path: raw))) say('Could not open dialer on this device.');
+  } catch (_) {
+    say('Could not start a call.');
+  }
+}
+
+void _openChat(BuildContext context, _DriverView d) {
+  final tripId = int.tryParse(d.tripId ?? '') ?? 0;
+  if (tripId <= 0) return;
+  Navigator.of(context).push(
+    MaterialPageRoute(builder: (_) => TripChatScreen(tripId: tripId, myRole: 'rider')),
+  );
+}
+
+SgActionData _safetyAction(Key key, VoidCallback onTap) => SgActionData(
+      key: (key as ValueKey<String>).value,
+      label: 'Safety',
+      icon: SgIcons.shield,
+      danger: true,
+      onTap: onTap,
+    );
 
 class SetDestinationScreen extends StatelessWidget {
   const SetDestinationScreen({super.key});
@@ -214,13 +335,20 @@ class _SearchingDriverScreenState extends State<SearchingDriverScreen> {
 
   /// Leave a search that already ended. Nothing is live on the server, so
   /// there is nothing to cancel there.
-  Future<void> _leaveFailedSearch() async {
+  Future<void> _leaveFailedSearch({bool toChooseRide = false}) async {
     await _mapProvider?.container
         ?.read(rideNotifierProvider.notifier)
         .clearState();
     if (!mounted) return;
+    final router = GoRouter.of(context);
     setState(() => _canPop = true);
-    if (context.mounted) Navigator.of(context).maybePop();
+    await Navigator.of(context).maybePop();
+    // Choose-ride sits under the pickup step, which has nothing left to confirm.
+    if (toChooseRide &&
+        router.routerDelegate.currentConfiguration.last.matchedLocation == '/precise-pickup' &&
+        router.canPop()) {
+      router.pop();
+    }
   }
 
   @override
@@ -230,6 +358,7 @@ class _SearchingDriverScreenState extends State<SearchingDriverScreen> {
         final failure = ref.watch(
           rideNotifierProvider.select((s) => s.searchFailure),
         );
+        final mp = context.watch<MapProvider>();
         return PopScope(
           canPop: _canPop,
           onPopInvokedWithResult: (didPop, result) async {
@@ -250,101 +379,36 @@ class _SearchingDriverScreenState extends State<SearchingDriverScreen> {
             }
           },
           child: _DarkMapScaffold(
-            title: failure == null ? 'Finding your ride…' : 'No ride yet',
-            backIcon: Icons.close,
-            bottom: failure == null
-                ? _searching(context)
-                : _failed(context, failure),
+            title: failure == null ? 'Finding your Saaradhi' : 'No Saaradhi nearby right now',
+            close: true,
+            searching: true,
+            pulse: failure == null,
+            mapBottom: 400,
+            sheet: failure == null ? _searching(context, mp) : _failed(context, mp, failure),
           ),
         );
       },
     );
   }
 
-  Widget _searching(BuildContext context) {
-    return Column(
-      mainAxisSize: MainAxisSize.min,
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        Semantics(
-          label: 'Searching for a driver',
-          child: ClipRRect(
-            borderRadius: BorderRadius.circular(10),
-            child: LinearProgressIndicator(
-              minHeight: 6,
-              backgroundColor: Colors.white.withValues(alpha: 0.1),
-              valueColor: const AlwaysStoppedAnimation<Color>(
-                Color(0xFFEEBD2B),
-              ),
-            ),
-          ),
-        ),
-        const SizedBox(height: 12),
-        Text(
-          'Asking drivers near your pickup.',
-          textAlign: TextAlign.center,
-          style: GoogleFonts.inter(color: Colors.white70, fontSize: 14),
-        ),
-        const SizedBox(height: 16),
-        OutlinedButton(
-          onPressed: () => Navigator.of(context).maybePop(),
-          style: OutlinedButton.styleFrom(
-            foregroundColor: Colors.white70,
-            side: BorderSide(color: Colors.white.withValues(alpha: 0.2)),
-            minimumSize: const Size.fromHeight(52),
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(12),
-            ),
-          ),
-          child: const Text('Cancel search'),
-        ),
-      ],
+  Widget _searching(BuildContext context, MapProvider mp) {
+    final type = mp.selectedVehicleType;
+    final nearby = type != null && mp.fareEstimates[type]?['drivers_nearby'] == true;
+    return FindingSheet(
+      subline: findingSubline(driversNearby: nearby),
+      fare: _lockedFare(mp),
+      onCancel: () => Navigator.of(context).maybePop(),
     );
   }
 
-  Widget _failed(BuildContext context, String message) {
-    return Column(
-      mainAxisSize: MainAxisSize.min,
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        Semantics(
-          liveRegion: true,
-          child: Text(
-            message,
-            textAlign: TextAlign.center,
-            style: GoogleFonts.inter(
-              color: Colors.white,
-              fontSize: 16,
-              fontWeight: FontWeight.w600,
-            ),
-          ),
-        ),
-        const SizedBox(height: 16),
-        ElevatedButton(
-          onPressed: _startSearch,
-          style: ElevatedButton.styleFrom(
-            backgroundColor: const Color(0xFFEEBD2B),
-            foregroundColor: const Color(0xFF12110E),
-            minimumSize: const Size.fromHeight(52),
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(12),
-            ),
-          ),
-          child: const Text(
-            'Try again',
-            style: TextStyle(fontWeight: FontWeight.w700),
-          ),
-        ),
-        const SizedBox(height: 8),
-        TextButton(
-          onPressed: _leaveFailedSearch,
-          style: TextButton.styleFrom(
-            foregroundColor: Colors.white70,
-            minimumSize: const Size.fromHeight(48),
-          ),
-          child: const Text('Change ride'),
-        ),
-      ],
+  Widget _failed(BuildContext context, MapProvider mp, String message) {
+    return NoDriverSheet(
+      subline: message == kNoDriverMessage
+          ? 'Drivers nearby are busy right now. Try again, or choose another ride.'
+          : message,
+      fare: _lockedFare(mp),
+      onTryAgain: _startSearch,
+      onChangeRide: () => _leaveFailedSearch(toChooseRide: true),
     );
   }
 
@@ -458,29 +522,14 @@ class _DriverFoundScreenState extends State<DriverFoundScreen> {
     return Consumer<MapProvider>(
       builder: (context, mapProvider, child) {
         final rideData = mapProvider.rideRequestResponse;
-
-        // Extracting data with fallbacks
-        final driverInfo = rideData?['driver_info'] as Map<String, dynamic>?;
-        final driverName =
-            driverInfo?['name'] ?? rideData?['driver_name'] ?? 'Searching...';
-        final driverStars = driverInfo?['stars']?.toString() ?? '5.0';
-        final driverPhoto = driverInfo?['photo_url'];
-
-        final vehicleData = rideData?['vehicle_info'] as Map<String, dynamic>?;
-        final vehicleBrand = vehicleData?['brand'] ?? '';
-        final vehicleModel = vehicleData?['model'] ?? '';
-        final vehicleColor = vehicleData?['color'] ?? '';
-        final vehicleNumber =
-            vehicleData?['vehicle_number'] ??
-            rideData?['vehicle_number'] ??
-            '...';
-
-        final vehicleSummary =
-            (vehicleBrand.isNotEmpty && vehicleModel.isNotEmpty)
-            ? '$vehicleColor $vehicleBrand $vehicleModel'
-            : rideData?['vehicle_info_summary'] ?? 'Vehicle Details';
-
-        final otp = rideData?['otp'] ?? '----';
+        final d = _DriverView(rideData);
+        final arrived =
+            mapProvider.container?.read(rideNotifierProvider).status == RideStatus.driverArrived;
+        final mins = mapProvider.driverLocation == null ? null : _minutesOf(mapProvider.duration);
+        final who = d.first.isEmpty ? 'Your driver' : d.first;
+        final headline = arrived
+            ? (d.first.isEmpty ? 'Your driver has arrived' : '$who has arrived')
+            : (mins == null ? '$who is on the way' : '$who is $mins min away');
 
         return PopScope(
           canPop: _canPop,
@@ -496,325 +545,44 @@ class _DriverFoundScreenState extends State<DriverFoundScreen> {
             }
           },
           child: _DarkMapScaffold(
-            // "Arriving" stayed up after the driver reached the pickup.
-            title: mapProvider.container?.read(rideNotifierProvider).status ==
-                    RideStatus.driverArrived
-                ? 'Your driver is here'
-                : 'Your driver is on the way',
-            backIcon: Icons.close,
+            title: headline,
+            close: true,
+            mapBottom: 470,
             onBack: () async {
               if (mounted && context.mounted) {
                 Navigator.of(context).maybePop();
               }
             },
-            bottom: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                // Driver & Vehicle Header
-                Padding(
-                  padding: const EdgeInsets.symmetric(vertical: 8.0),
-                  child: Row(
-                    children: [
-                      CircleAvatar(
-                        radius: 28,
-                        backgroundColor: const Color(
-                          0xFFEEBD2B,
-                        ).withValues(alpha: 0.2),
-                        backgroundImage: driverPhoto != null
-                            ? NetworkImage(driverPhoto)
-                            : null,
-                        child: driverPhoto == null
-                            ? const Icon(
-                                Icons.person,
-                                color: Color(0xFFEEBD2B),
-                                size: 32,
-                              )
-                            : null,
-                      ),
-                      const SizedBox(width: 16),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            FittedBox(
-                              fit: BoxFit.scaleDown,
-                              alignment: Alignment.centerLeft,
-                              child: Text(
-                                driverName,
-                                style: GoogleFonts.inter(
-                                  color: Colors.white,
-                                  fontSize: 18,
-                                  fontWeight: FontWeight.w700,
-                                ),
-                              ),
-                            ),
-                            FittedBox(
-                              fit: BoxFit.scaleDown,
-                              alignment: Alignment.centerLeft,
-                              child: Row(
-                                children: [
-                                  const Icon(
-                                    Icons.star,
-                                    color: Color(0xFFEEBD2B),
-                                    size: 14,
-                                  ),
-                                  const SizedBox(width: 4),
-                                  Text(
-                                    '$driverStars • Professional Driver',
-                                    style: GoogleFonts.inter(
-                                      color: Colors.white70,
-                                      fontSize: 12,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                      Row(
-                        children: [
-                          _ActionButton(
-                            icon: Icons.chat_bubble_outline,
-                            onTap: () {
-                              // Open in-trip chat. tripId is whatever
-                              // the rideData payload exposed; fall back
-                              // to 0 (skip) when not present.
-                              final tripIdRaw =
-                                  rideData?['trip_id'] ?? rideData?['id'];
-                              final tripId = tripIdRaw is int
-                                  ? tripIdRaw
-                                  : int.tryParse('$tripIdRaw') ?? 0;
-                              if (tripId <= 0) return;
-                              Navigator.of(context).push(
-                                MaterialPageRoute(
-                                  builder: (_) => TripChatScreen(
-                                    tripId: tripId,
-                                    myRole: 'rider',
-                                  ),
-                                ),
-                              );
-                            },
-                          ),
-                          const SizedBox(width: 12),
-                          _ActionButton(
-                            key: const Key('arriving_sos_button'),
-                            icon: Icons.shield_outlined,
-                            label: 'Safety and SOS',
-                            color: const Color(0xFFDC2626),
-                            onTap: () => showSafetySheet(
-                              context,
-                              trip: TripSafetyContext(
-                                tripId: (rideData?['trip_id'] ??
-                                        rideData?['id'])
-                                    ?.toString(),
-                                driverName: driverName?.toString(),
-                                vehicleNumber: vehicleNumber?.toString(),
-                                vehicleModel: vehicleModel?.toString(),
-                              ),
-                            ),
-                          ),
-                          const SizedBox(width: 12),
-                          _ActionButton(
-                            icon: Icons.phone_outlined,
-                            // Privacy posture (Phase-0): we launch the
-                            // OS dialer with a tel: deep link but never
-                            // display the driver's number on screen.
-                            // When we wire a phone-masking proxy
-                            // (Exotel / Knowlarity, Phase-1), the
-                            // backend will return a proxy number here
-                            // and the UX is unchanged for the rider.
-                            onTap: () async {
-                              final raw =
-                                  (driverInfo?['phone'] ??
-                                          rideData?['driver_phone'] ??
-                                          '')
-                                      .toString();
-                              if (raw.isEmpty) {
-                                if (context.mounted) {
-                                  ScaffoldMessenger.of(context).showSnackBar(
-                                    const SnackBar(
-                                      content: Text(
-                                        'Driver phone unavailable. Use in-app chat instead.',
-                                      ),
-                                    ),
-                                  );
-                                }
-                                return;
-                              }
-                              final uri = Uri(scheme: 'tel', path: raw);
-                              try {
-                                final ok = await launchUrl(uri);
-                                if (!ok && context.mounted) {
-                                  ScaffoldMessenger.of(context).showSnackBar(
-                                    const SnackBar(
-                                      content: Text(
-                                        'Could not open dialer on this device.',
-                                      ),
-                                    ),
-                                  );
-                                }
-                              } catch (_) {
-                                if (context.mounted) {
-                                  ScaffoldMessenger.of(context).showSnackBar(
-                                    const SnackBar(
-                                      content: Text('Could not start a call.'),
-                                    ),
-                                  );
-                                }
-                              }
-                            },
-                          ),
-                        ],
-                      ),
-                    ],
-                  ),
+            sheet: ArrivingSheet(
+              headline: headline,
+              badge: arrived ? 'Arrived' : 'On the way',
+              meetLine: d.meetLine,
+              driver: d.card,
+              photoUrl: d.photo,
+              pin: d.pin,
+              onCancel: () => Navigator.of(context).maybePop(),
+              actions: [
+                SgActionData(
+                  key: 'arriving_call',
+                  label: 'Call',
+                  icon: SgIcons.call,
+                  onTap: () => _callDriver(context, d),
                 ),
-
-                const SizedBox(height: 16),
-
-                // Vehicle Detail Card
-                Container(
-                  padding: const EdgeInsets.all(16),
-                  decoration: BoxDecoration(
-                    color: Colors.white.withValues(alpha: 0.05),
-                    borderRadius: BorderRadius.circular(16),
-                    border: Border.all(
-                      color: Colors.white.withValues(alpha: 0.1),
-                    ),
-                  ),
-                  child: Row(
-                    children: [
-                      const Icon(
-                        Icons.directions_car_filled_outlined,
-                        color: Color(0xFFEEBD2B),
-                        size: 32,
-                      ),
-                      const SizedBox(width: 16),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              vehicleSummary,
-                              style: GoogleFonts.inter(
-                                color: Colors.white,
-                                fontSize: 15,
-                                fontWeight: FontWeight.w600,
-                              ),
-                            ),
-                            Text(
-                              vehicleNumber.toUpperCase(),
-                              style: GoogleFonts.inter(
-                                color: const Color(0xFFEEBD2B),
-                                fontSize: 13,
-                                fontWeight: FontWeight.w800,
-                                letterSpacing: 0.5,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ],
-                  ),
+                SgActionData(
+                  key: 'arriving_message',
+                  label: 'Message',
+                  icon: SgIcons.message,
+                  onTap: () => _openChat(context, d),
                 ),
-
-                const SizedBox(height: 20),
-
-                // OTP Section
-                Container(
-                  width: double.infinity,
-                  padding: const EdgeInsets.symmetric(
-                    vertical: 20,
-                    horizontal: 16,
-                  ),
-                  decoration: BoxDecoration(
-                    gradient: LinearGradient(
-                      colors: [
-                        const Color(0xFFEEBD2B).withValues(alpha: 0.15),
-                        const Color(0xFFEEBD2B).withValues(alpha: 0.05),
-                      ],
-                      begin: Alignment.topLeft,
-                      end: Alignment.bottomRight,
-                    ),
-                    borderRadius: BorderRadius.circular(20),
-                    border: Border.all(
-                      color: const Color(0xFFEEBD2B).withValues(alpha: 0.3),
-                    ),
-                  ),
-                  child: Column(
-                    children: [
-                      Text(
-                        'PIN TO START THE TRIP',
-                        style: GoogleFonts.inter(
-                          color: const Color(0xFFEEBD2B),
-                          fontSize: 11,
-                          fontWeight: FontWeight.w800,
-                          letterSpacing: 2.0,
-                        ),
-                      ),
-                      const SizedBox(height: 8),
-                      Text(
-                        otp.toString(),
-                        style: GoogleFonts.inter(
-                          color: Colors.white,
-                          fontSize: 36,
-                          fontWeight: FontWeight.w900,
-                          letterSpacing: 12,
-                        ),
-                      ),
-                      const SizedBox(height: 4),
-                      Text(
-                        'Share this PIN with your driver only',
-                        style: GoogleFonts.inter(
-                          color: Colors.white38,
-                          fontSize: 10,
-                          fontWeight: FontWeight.w500,
-                        ),
-                      ),
-                    ],
-                  ),
+                SgActionData(
+                  key: 'arriving_share',
+                  label: 'Share trip',
+                  icon: SgIcons.share,
+                  onTap: () => shareTripDetails(context, d.safety),
                 ),
-
-                const SizedBox(height: 24),
-
-                // Primary Action
-                SizedBox(
-                  width: double.infinity,
-                  height: 56,
-                  child: ElevatedButton(
-                    onPressed: () => context.push('/tracking'),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color(0xFFEEBD2B),
-                      foregroundColor: Colors.black,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(16),
-                      ),
-                      elevation: 0,
-                    ),
-                    child: Text(
-                      'LIVE TRACKING',
-                      style: GoogleFonts.inter(
-                        fontSize: 16,
-                        fontWeight: FontWeight.w800,
-                        letterSpacing: 1.0,
-                      ),
-                    ),
-                  ),
-                ),
-
-                Center(
-                  child: TextButton(
-                    onPressed: () => Navigator.of(context).maybePop(),
-                    child: Text(
-                      'Cancel Ride',
-                      style: GoogleFonts.inter(
-                        color: Colors.redAccent.withValues(alpha: 0.8),
-                        fontSize: 14,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                  ),
+                _safetyAction(
+                  const ValueKey('arriving_sos_button'),
+                  () => showSafetySheet(context, trip: d.safety),
                 ),
               ],
             ),
@@ -873,44 +641,6 @@ class _DriverFoundScreenState extends State<DriverFoundScreen> {
     });
   }
 }
-
-class _ActionButton extends StatelessWidget {
-  final IconData icon;
-  final VoidCallback onTap;
-  final String? label;
-  final Color? color;
-
-  const _ActionButton({
-    super.key,
-    required this.icon,
-    required this.onTap,
-    this.label,
-    this.color,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Semantics(
-      button: true,
-      label: label,
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(12),
-        child: Container(
-          constraints: const BoxConstraints(minWidth: 48, minHeight: 48),
-          padding: const EdgeInsets.all(12),
-          decoration: BoxDecoration(
-            color: (color ?? Colors.white).withValues(alpha: color == null ? 0.1 : 0.2),
-            borderRadius: BorderRadius.circular(12),
-            border: color == null ? null : Border.all(color: color!),
-          ),
-          child: Icon(icon, color: Colors.white, size: 20),
-        ),
-      ),
-    );
-  }
-}
-
 
 class FullMapTrackingScreen extends StatefulWidget {
   const FullMapTrackingScreen({super.key});
@@ -1038,6 +768,14 @@ class _FullMapTrackingScreenState extends State<FullMapTrackingScreen> {
   Widget build(BuildContext context) {
     return Consumer<MapProvider>(
       builder: (context, mapProvider, child) {
+        final ride = mapProvider.rideRequestResponse;
+        final d = _DriverView(ride);
+        final drop = (mapProvider.destinationAddress ?? '').split(',').first.trim();
+        final mins = _minutesOf(mapProvider.duration);
+        final headline = [
+          drop.isEmpty ? 'On the way' : 'On the way to $drop',
+          if (mins != null) '$mins min',
+        ].join(' \u00B7 ');
         return PopScope(
           canPop: _canPop,
           onPopInvokedWithResult: (didPop, result) async {
@@ -1052,94 +790,36 @@ class _FullMapTrackingScreenState extends State<FullMapTrackingScreen> {
             }
           },
           child: _DarkMapScaffold(
-            title: 'Ride in Progress',
-            backIcon: Icons.close,
+            title: headline,
+            close: true,
+            mapBottom: 330,
             onBack: () async {
               if (mounted && context.mounted) {
                 Navigator.of(context).maybePop();
               }
             },
             forceInProgress: true,
-            bottom: Row(
-              children: [
-                Expanded(
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        mapProvider.duration ?? '-- min',
-                        style: GoogleFonts.inter(
-                          fontSize: 32,
-                          fontWeight: FontWeight.w800,
-                          color: Colors.white,
-                        ),
-                      ),
-                      Text(
-                        marketOf(
-                              context,
-                            ).displayDistance(mapProvider.distance) ??
-                            marketOf(context).distancePlaceholder,
-                        style: GoogleFonts.inter(
-                          color: Colors.white70,
-                          fontSize: 13,
-                          fontWeight: FontWeight.w500,
-                        ),
-                      ),
-                    ],
-                  ),
+            sheet: LiveTripSheet(
+              headline: headline,
+              driver: d.card,
+              extra: ride?['status'] == 'complete'
+                  ? SgPrimaryButton(label: 'View summary', onPressed: () => context.push('/ride-summary'))
+                  : null,
+              actions: [
+                SgActionData(
+                  key: 'tracking_share',
+                  label: 'Share trip',
+                  icon: SgIcons.share,
+                  onTap: () => shareTripDetails(context, _safetyContext(mapProvider)),
                 ),
-                // SOS.
-                //
-                // This button used to open a dialog that said "This will alert
-                // the nearest authorities and our support team", and on
-                // confirm showed the snackbar "Emergency Alert Sent! Support
-                // is on the way." It called no API. Nothing was sent, nobody
-                // was alerted, and the rider was told help was coming.
-                //
-                // It now opens the safety sheet, which POSTs to /sos/ (a
-                // durable row server-side, then an ops push and an SMS to the
-                // rider's emergency contact), offers 112 directly, and shows
-                // the failure if the POST does not succeed.
-                GestureDetector(
-                  key: const Key('tracking_sos_button'),
-                  onTap: () => showSafetySheet(
-                    context,
-                    trip: _safetyContext(mapProvider),
-                  ),
-                  child: Container(
-                    height: 58,
-                    width: 58,
-                    decoration: BoxDecoration(
-                      color: Colors.red.withValues(alpha: 0.9),
-                      shape: BoxShape.circle,
-                      boxShadow: [
-                        BoxShadow(
-                          color: Colors.red.withValues(alpha: 0.4),
-                          blurRadius: 12,
-                          spreadRadius: 2,
-                        ),
-                      ],
-                    ),
-                    alignment: Alignment.center,
-                    child: const Text(
-                      'SOS',
-                      style: TextStyle(
-                        fontWeight: FontWeight.w900,
-                        color: Colors.white,
-                        fontSize: 14,
-                      ),
-                    ),
-                  ),
+                // The safety sheet POSTs /sos/, offers 112, and shows a failure
+                // instead of swallowing it. Always one tap from this screen.
+                _safetyAction(
+                  const ValueKey('tracking_sos_button'),
+                  () => showSafetySheet(context, trip: _safetyContext(mapProvider)),
                 ),
               ],
             ),
-            action: mapProvider.rideRequestResponse?['status'] == 'complete'
-                ? ElevatedButton(
-                    onPressed: () => context.push('/ride-summary'),
-                    child: const Text('View Summary'),
-                  )
-                : null,
           ),
         );
       },
@@ -1169,7 +849,7 @@ class RidePaymentSummaryScreen extends StatefulWidget {
 }
 
 class _RidePaymentSummaryScreenState extends State<RidePaymentSummaryScreen> {
-  String _selectedPaymentMethod = 'wallet';
+  String _selectedPaymentMethod = 'cash';
   final PaymentService _paymentService = PaymentService();
   late final RideService _rideService = widget.rideService ?? RideService();
   bool _isProcessing = false;
@@ -1191,10 +871,24 @@ class _RidePaymentSummaryScreenState extends State<RidePaymentSummaryScreen> {
   String? _rateTripId;
   String? _rateDriverName;
 
-  void _goRate() {
+  /// Kept for the rating screen, for the same reason: the ride state is gone.
+  String? _dropName;
+  String? _durationText;
+  String? _fareText;
+  String? _payMethod;
+  final DateTime _openedAt = DateTime.now();
+
+  void _goRate({String? method, bool paid = true}) {
     context.go(
       '/rate-driver',
-      extra: {'trip_id': _rateTripId, 'driver_name': _rateDriverName},
+      extra: {
+        'trip_id': _rateTripId,
+        'driver_name': _rateDriverName,
+        'fare_text': _fareText,
+        'method': method ?? _payMethod,
+        'paid': paid,
+        'detail': tripDetailLine(_dropName, _openedAt, _durationText),
+      },
     );
   }
 
@@ -1205,12 +899,18 @@ class _RidePaymentSummaryScreenState extends State<RidePaymentSummaryScreen> {
   @override
   void initState() {
     super.initState();
+    // The method chosen at booking, never a wallet that may be empty.
+    _selectedPaymentMethod =
+        context.read<MapProvider>().selectedPaymentMethod == 'cash' ? 'cash' : 'upi_card';
     WidgetsBinding.instance.addPostFrameCallback((_) {
       final mp = context.read<MapProvider>();
       final raw = mp.rideRequestResponse;
       _rateTripId = mp.tripId ??
           (raw is Map ? (raw['trip_id'] ?? raw['id'])?.toString() : null);
       _rateDriverName = raw is Map ? raw['driver_name']?.toString() : null;
+      _dropName = mp.destinationAddress;
+      _durationText = mp.duration;
+      _payMethod = (raw is Map ? raw['payment_method'] : null)?.toString() ?? mp.selectedPaymentMethod;
       _cashSub = mp.container?.listen<RideState>(
         rideNotifierProvider,
         (_, next) {
@@ -1325,6 +1025,7 @@ class _RidePaymentSummaryScreenState extends State<RidePaymentSummaryScreen> {
           await _finishCashSelection(
             'Pay $amount to your driver in cash. '
             'They will confirm it once collected.',
+            paid: false,
           );
           return;
 
@@ -1370,7 +1071,7 @@ class _RidePaymentSummaryScreenState extends State<RidePaymentSummaryScreen> {
   /// The ride is over and the payment question is answered, so the local
   /// ride state goes. `clearRideStateLocally` -- never `cancelRideRequest`,
   /// which would ask the server to cancel a completed trip.
-  Future<void> _finishCashSelection(String message) async {
+  Future<void> _finishCashSelection(String message, {bool paid = true}) async {
     final mapProvider = p.Provider.of<MapProvider>(context, listen: false);
     await mapProvider.clearRideStateLocally();
     if (!mounted) return;
@@ -1378,7 +1079,7 @@ class _RidePaymentSummaryScreenState extends State<RidePaymentSummaryScreen> {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(content: Text(message), duration: const Duration(seconds: 5)),
     );
-    _goRate();
+    _goRate(method: 'cash', paid: paid);
   }
 
   void _showCashError(String message) {
@@ -1603,7 +1304,7 @@ class _RidePaymentSummaryScreenState extends State<RidePaymentSummaryScreen> {
         // server to cancel a ride that just succeeded.
         final mapProvider = p.Provider.of<MapProvider>(context, listen: false);
         await mapProvider.clearRideStateLocally();
-        if (mounted) _goRate();
+        if (mounted) _goRate(method: 'upi');
       case OnlinePaymentOutcome.notCharged:
         // Nothing is owed: say so, never open a checkout.
         setState(() {
@@ -1642,7 +1343,7 @@ class _RidePaymentSummaryScreenState extends State<RidePaymentSummaryScreen> {
   Future<void> _continueWhenNotCharged() async {
     final mapProvider = p.Provider.of<MapProvider>(context, listen: false);
     await mapProvider.clearRideStateLocally();
-    if (mounted) _goRate();
+    if (mounted) _goRate(paid: false);
   }
 
   @override
@@ -1690,33 +1391,21 @@ class _RidePaymentSummaryScreenState extends State<RidePaymentSummaryScreen> {
             ? (double.tryParse(charge.payable ?? '') ?? totalFare)
             : totalFare;
 
+        _fareText = exactMoney(payTotal, currencyCode);
+        final walletShort = walletProvider.balance < payTotal;
         return Scaffold(
-          backgroundColor: const Color(0xFF12110E),
-          appBar: AppBar(
-            backgroundColor: Colors.transparent,
-            elevation: 0,
-            leading: IconButton(
-              icon: const Icon(
-                Icons.arrow_back_ios_new,
-                color: Colors.white,
-                size: 20,
-              ),
-              onPressed: () => context.pop(),
-            ),
-            title: Text(
-              'Payment Methods',
-              style: GoogleFonts.inter(
-                color: Colors.white,
-                fontSize: 18,
-                fontWeight: FontWeight.w600,
-              ),
-            ),
-            centerTitle: true,
-          ),
+          backgroundColor: SgColors.bg000,
           body: SafeArea(
             child: ListView(
-              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+              padding: const EdgeInsets.fromLTRB(SgSpace.s4, SgSpace.s2, SgSpace.s4, SgSpace.s5),
               children: [
+                Align(
+                  alignment: Alignment.centerLeft,
+                  child: SgMapButton(icon: SgIcons.back, label: 'Back', onTap: () => context.pop()),
+                ),
+                const SizedBox(height: SgSpace.s3),
+                TripArrivedHeader(detailLine: tripDetailLine(_dropName, _openedAt, _durationText)),
+                const SizedBox(height: SgSpace.s5),
                 TripChargeCard(
                   fare: totalFareStr.toString(),
                   currencyCode: currencyCode,
@@ -1725,98 +1414,68 @@ class _RidePaymentSummaryScreenState extends State<RidePaymentSummaryScreen> {
                   distanceDriven: distanceDriven,
                 ),
                 if (_confirming != null) ...[
-                  const SizedBox(height: 12),
+                  const SizedBox(height: SgSpace.s3),
                   Text(
                     _confirming!,
                     key: const Key('payment_confirming'),
                     textAlign: TextAlign.center,
-                    style: GoogleFonts.inter(
-                      color: const Color(0xFFEEBD2B),
-                      fontSize: 14,
-                      fontWeight: FontWeight.w600,
-                    ),
+                    style: SgText.body.copyWith(color: SgColors.goldText, fontWeight: FontWeight.w600),
                   ),
                 ],
-                const SizedBox(height: 32),
+                const SizedBox(height: SgSpace.s5),
                 if (charge.notCharged)
                   NotChargedPanel(
                     message: _notChargedMessage,
                     onContinue: _continueWhenNotCharged,
                   )
                 else ...[
-                  // Payment Options List
+                  _buildPaymentOption(
+                    id: 'cash',
+                    title: 'Pay with Cash',
+                    subtitle: 'Hand it to your driver',
+                    icon: SgIcons.cash,
+                    isSelected: _selectedPaymentMethod == 'cash',
+                    onTap: () => setState(() => _selectedPaymentMethod = 'cash'),
+                  ),
+                  const SizedBox(height: SgSpace.s3),
                   _buildPaymentOption(
                     id: 'wallet',
                     title: 'Pay from Wallet',
-                    subtitle:
-                        'Current Balance: ${MarketConfigStore.instance.current.currencySymbol}${walletProvider.balance.toStringAsFixed(2)}',
-                    icon: Icons.account_balance_wallet,
+                    subtitle: walletShort
+                        ? 'Not enough balance'
+                        : 'Current Balance: ${MarketConfigStore.instance.current.currencySymbol}${walletProvider.balance.toStringAsFixed(2)}',
+                    icon: SgIcons.wallet,
                     isSelected: _selectedPaymentMethod == 'wallet',
-                    onTap: () =>
-                        setState(() => _selectedPaymentMethod = 'wallet'),
+                    onTap: () => setState(() => _selectedPaymentMethod = 'wallet'),
                   ),
-                  const SizedBox(height: 12),
+                  const SizedBox(height: SgSpace.s3),
                   _buildPaymentOption(
                     id: 'upi_card',
                     title: 'Pay via UPI/Card',
-                    icon: Icons.credit_card,
+                    icon: SgIcons.cash,
                     isSelected: _selectedPaymentMethod == 'upi_card',
-                    onTap: () =>
-                        setState(() => _selectedPaymentMethod = 'upi_card'),
+                    onTap: () => setState(() => _selectedPaymentMethod = 'upi_card'),
                   ),
-
-                  const SizedBox(height: 48),
-
-                  SizedBox(
-                    width: double.infinity,
-                    height: 56,
-                    child: ElevatedButton(
-                      onPressed: _isProcessing
-                          ? null
-                          : () => _processPayment(
-                              payTotal,
-                              walletProvider,
-                              rideData,
-                            ),
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: const Color(0xFFEEBD2B),
-                        foregroundColor: Colors.black,
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(16),
-                        ),
-                        elevation: 0,
-                      ),
-                      child: _isProcessing
-                          ? const SizedBox(
-                              width: 24,
-                              height: 24,
-                              child: CircularProgressIndicator(
-                                color: Colors.black,
-                                strokeWidth: 2,
-                              ),
-                            )
-                          : Text(
-                              'Confirm & Pay',
-                              style: GoogleFonts.inter(
-                                fontSize: 16,
-                                fontWeight: FontWeight.w700,
-                              ),
-                            ),
-                    ),
+                  const SizedBox(height: SgSpace.s5),
+                  SgPrimaryButton(
+                    label: _isProcessing ? 'Processing' : 'Confirm & Pay',
+                    onPressed: _isProcessing
+                        ? null
+                        : () => _selectedPaymentMethod == 'cash'
+                            ? _payWithCash(payTotal, currencyCode, rideData)
+                            : _processPayment(payTotal, walletProvider, rideData),
                   ),
-                  const SizedBox(height: 16),
+                  const SizedBox(height: SgSpace.s2),
+                  if (_selectedPaymentMethod != 'cash')
                   Center(
                     child: TextButton(
                       onPressed: _isProcessing
                           ? null
-                          : () =>
-                                _payWithCash(payTotal, currencyCode, rideData),
+                          : () => _payWithCash(payTotal, currencyCode, rideData),
                       child: Text(
                         'Pay with Cash instead?',
-                        style: GoogleFonts.inter(
-                          color: const Color(0xFF94A3B8),
-                          fontSize: 14,
-                          fontWeight: FontWeight.w500,
+                        style: SgText.body.copyWith(
+                          color: SgColors.inkMuted,
                           decoration: TextDecoration.underline,
                         ),
                       ),
@@ -1835,65 +1494,46 @@ class _RidePaymentSummaryScreenState extends State<RidePaymentSummaryScreen> {
     required String id,
     required String title,
     String? subtitle,
-    required IconData icon,
+    required String icon,
     required bool isSelected,
     required VoidCallback onTap,
   }) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        padding: const EdgeInsets.all(20),
-        decoration: BoxDecoration(
-          color: isSelected
-              ? const Color(0xFFEEBD2B).withValues(alpha: 0.1)
-              : const Color(0xFF24211C),
-          borderRadius: BorderRadius.circular(16),
-          border: Border.all(
-            color: isSelected
-                ? const Color(0xFFEEBD2B)
-                : const Color(0x1AFFFFFF),
-            width: isSelected ? 2 : 1,
+    return Semantics(
+      button: true,
+      selected: isSelected,
+      child: InkWell(
+        borderRadius: BorderRadius.circular(SgRadius.md),
+        onTap: onTap,
+        child: Container(
+          constraints: const BoxConstraints(minHeight: 68),
+          padding: const EdgeInsets.symmetric(horizontal: SgSpace.s4, vertical: SgSpace.s3),
+          decoration: BoxDecoration(
+            color: isSelected ? SgColors.goldSoft : SgColors.bg200,
+            borderRadius: BorderRadius.circular(SgRadius.md),
+            border: Border.all(
+              color: isSelected ? SgColors.gold500 : SgColors.lineStrong,
+              width: isSelected ? 1.5 : 1,
+            ),
           ),
-        ),
-        child: Row(
-          children: [
-            Icon(
-              icon,
-              color: isSelected ? const Color(0xFFEEBD2B) : Colors.white70,
-              size: 28,
-            ),
-            const SizedBox(width: 16),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    title,
-                    style: GoogleFonts.inter(
-                      color: Colors.white,
-                      fontSize: 16,
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
-                  if (subtitle != null) ...[
-                    const SizedBox(height: 4),
-                    Text(
-                      subtitle,
-                      style: GoogleFonts.inter(
-                        color: const Color(0xFF94A3B8),
-                        fontSize: 13,
-                        fontWeight: FontWeight.w400,
-                      ),
-                    ),
+          child: Row(
+            children: [
+              SgIcon(icon, size: 24, color: isSelected ? SgColors.goldText : SgColors.inkMuted),
+              const SizedBox(width: SgSpace.s4),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(title, style: SgText.body.copyWith(fontSize: 16, fontWeight: FontWeight.w700)),
+                    if (subtitle != null) Text(subtitle, style: SgText.caption),
                   ],
-                ],
+                ),
               ),
-            ),
-            if (isSelected)
-              const Icon(Icons.radio_button_checked, color: Color(0xFFEEBD2B))
-            else
-              const Icon(Icons.radio_button_unchecked, color: Colors.white30),
-          ],
+              Icon(
+                isSelected ? Icons.radio_button_checked : Icons.radio_button_unchecked,
+                color: isSelected ? SgColors.gold500 : SgColors.lineStrong,
+              ),
+            ],
+          ),
         ),
       ),
     );
@@ -1906,10 +1546,24 @@ class _RidePaymentSummaryScreenState extends State<RidePaymentSummaryScreen> {
 /// It used to show a hard-coded driver ("Rajesh Kumar", a Toyota Innova) and
 /// a Submit button that went home without saving anything.
 class RateReviewDriverScreen extends StatelessWidget {
-  const RateReviewDriverScreen({super.key, this.tripId, this.driverName});
+  const RateReviewDriverScreen({
+    super.key,
+    this.tripId,
+    this.driverName,
+    this.fareText,
+    this.method,
+    this.paid = true,
+    this.detail = '',
+  });
 
   final String? tripId;
   final String? driverName;
+
+  /// What the summary knew, so this screen can show what was paid.
+  final String? fareText;
+  final String? method;
+  final bool paid;
+  final String detail;
 
   @override
   Widget build(BuildContext context) {
@@ -1919,27 +1573,33 @@ class RateReviewDriverScreen extends StatelessWidget {
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (context.mounted) context.go('/home');
       });
-      return const Scaffold(backgroundColor: Color(0xFF12110E));
+      return const Scaffold(backgroundColor: SgColors.bg000);
     }
     return Scaffold(
-      backgroundColor: const Color(0xFF12110E),
+      backgroundColor: SgColors.bg000,
       body: SafeArea(
-        child: Align(
-          alignment: Alignment.bottomCenter,
-          child: SingleChildScrollView(
-            child: RateTripSheet(
-              tripId: id,
-              driverName: driverName,
-              onDone: (rated) {
-                if (rated) {
-                  ScaffoldMessenger.maybeOf(context)?.showSnackBar(
-                    const SnackBar(content: Text('Thanks for rating your trip.')),
-                  );
-                }
-                context.go('/home');
-              },
+        child: ListView(
+          padding: const EdgeInsets.fromLTRB(SgSpace.s4, SgSpace.s6, SgSpace.s4, SgSpace.s5),
+          children: [
+            TripCompleteView(
+              detailLine: detail,
+              paidLabel: paidLabelFor(method, paid: paid),
+              fareText: fareText,
+              paid: paid,
+              below: RideRatingPanel(
+                tripId: id,
+                driverName: driverName,
+                onDone: (rated) {
+                  if (rated) {
+                    ScaffoldMessenger.maybeOf(context)?.showSnackBar(
+                      const SnackBar(content: Text('Thanks for rating your trip.')),
+                    );
+                  }
+                  context.go('/home');
+                },
+              ),
             ),
-          ),
+          ],
         ),
       ),
     );
@@ -1949,19 +1609,34 @@ class RateReviewDriverScreen extends StatelessWidget {
 class _DarkMapScaffold extends StatefulWidget {
   const _DarkMapScaffold({
     required this.title,
-    required this.bottom,
-    this.action,
+    this.bottom,
+    this.sheet,
     this.onBack,
-    this.backIcon,
+    this.close = false,
     this.forceInProgress = false,
+    this.searching = false,
+    this.pulse = false,
+    this.mapBottom = 300,
   });
 
+  /// Read by screen readers; the sheet carries the visible words.
   final String title;
-  final Widget bottom;
-  final Widget? action;
+
+  /// Content wrapped in the standard sheet, or a ready-made [sheet].
+  final Widget? bottom;
+  final Widget? sheet;
   final VoidCallback? onBack;
-  final IconData? backIcon;
+  final bool close;
   final bool forceInProgress;
+
+  /// Only the pickup (and nearby cars) on the map, no route.
+  final bool searching;
+
+  /// Green rings pulse out from the pickup.
+  final bool pulse;
+
+  /// How much of the map the sheet covers.
+  final double mapBottom;
 
   @override
   State<_DarkMapScaffold> createState() => _DarkMapScaffoldState();
@@ -2101,6 +1776,7 @@ class _DarkMapScaffoldState extends State<_DarkMapScaffold>
           }
 
           if (mapProvider.dropLocation != null &&
+              !widget.searching &&
               (!mapProvider.isDriverArriving || isInProgress)) {
             markers.add(
               SgMarker(
@@ -2118,11 +1794,7 @@ class _DarkMapScaffoldState extends State<_DarkMapScaffold>
               SgMarker(
                 id: 'driver',
                 point: _animatedDriverLocation!,
-                icon: const SgIconMarker(
-                  Icons.directions_car,
-                  Color(0xFFEEBD2B),
-                  size: 34,
-                ),
+                icon: const SgCarMarker(),
                 anchor: const Offset(0.5, 0.5),
                 label: 'Your driver',
               ),
@@ -2149,96 +1821,65 @@ class _DarkMapScaffoldState extends State<_DarkMapScaffold>
             }
           }
 
+          // Gold is the trip; the way to the pickup is a quiet dotted line.
           final polylines = <SgPolyline>[
-            if (mapProvider.polylineCoordinates.isNotEmpty)
+            if (!widget.searching &&
+                mapProvider.polylineCoordinates.isNotEmpty &&
+                (isInProgress || mapProvider.driverLocation != null))
               SgPolyline(
                 id: 'route',
                 points: mapProvider.polylineCoordinates,
-                color: const Color(0xFFEEBD2B),
+                color: isInProgress ? SgColors.gold500 : SgColors.inkMuted,
+                width: isInProgress ? 4.5 : 3,
+                dotted: !isInProgress,
               ),
           ];
 
-          final initialCenter =
-              mapProvider.dropLocation?.latLng ??
-              mapProvider.pickupLocation?.latLng ??
-              const LatLng(17.385044, 78.4867);
+          final pickupPoint =
+              mapProvider.precisePickupLocation ?? mapProvider.pickupLocation?.latLng;
+          final initialCenter = widget.searching
+              ? (pickupPoint ?? const LatLng(17.385044, 78.4867))
+              : (mapProvider.dropLocation?.latLng ??
+                  mapProvider.pickupLocation?.latLng ??
+                  const LatLng(17.385044, 78.4867));
 
           return Stack(
             children: [
               SgMap(
                 initialCenter: initialCenter,
-                initialZoom: 14,
+                initialZoom: widget.searching ? 15 : 14,
                 markers: markers,
                 polylines: polylines,
                 // The sheet covers the lower part of the map.
-                padding: const EdgeInsets.only(bottom: 260, top: 72),
+                padding: EdgeInsets.only(bottom: widget.mapBottom, top: 96),
                 onMapCreated: (c) {
                   _mapController = c;
                   _fitDriverAndTarget();
                 },
               ),
-              SafeArea(
-                child: Padding(
-                  padding: const EdgeInsets.all(12),
-                  child: Row(
-                    children: [
-                      IconButton(
-                        onPressed: widget.onBack ?? () => context.pop(),
-                        icon: CircleAvatar(
-                          radius: 20,
-                          backgroundColor: const Color(0x77000000),
-                          child: Icon(
-                            widget.backIcon ?? Icons.arrow_back,
-                            color: Colors.white,
-                          ),
-                        ),
-                      ),
-                      Expanded(
-                        child: Text(
-                          widget.title,
-                          textAlign: TextAlign.center,
-                          style: const TextStyle(
-                            color: Colors.white,
-                            fontWeight: FontWeight.w700,
-                            fontSize: 20,
-                          ),
-                        ),
-                      ),
-                      const SizedBox(width: 48),
-                    ],
-                  ),
+              if (widget.pulse)
+                Positioned(
+                  top: 96,
+                  bottom: widget.mapBottom,
+                  left: 0,
+                  right: 0,
+                  child: const PulseRings(),
+                ),
+              Positioned(
+                top: MediaQuery.of(context).padding.top + SgSpace.s2,
+                left: SgSpace.s4,
+                child: SgMapButton(
+                  icon: widget.close ? SgIcons.close : SgIcons.back,
+                  label: widget.close ? 'Close' : 'Back',
+                  onTap: widget.onBack ?? () => context.pop(),
                 ),
               ),
               Align(
                 alignment: Alignment.bottomCenter,
-                child: Container(
-                  width: double.infinity,
-                  decoration: const BoxDecoration(
-                    color: Color(0xFF1E1C18),
-                    borderRadius: BorderRadius.vertical(
-                      top: Radius.circular(30),
-                    ),
-                  ),
-                  padding: const EdgeInsets.all(16),
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Container(
-                        height: 4,
-                        width: 44,
-                        decoration: BoxDecoration(
-                          color: Colors.white24,
-                          borderRadius: BorderRadius.circular(8),
-                        ),
-                      ),
-                      const SizedBox(height: 12),
-                      widget.bottom,
-                      if (widget.action != null) ...[
-                        const SizedBox(height: 10),
-                        widget.action!,
-                      ],
-                    ],
-                  ),
+                child: Semantics(
+                  container: true,
+                  label: widget.title,
+                  child: widget.sheet ?? SgSheetSurface(child: widget.bottom!),
                 ),
               ),
             ],

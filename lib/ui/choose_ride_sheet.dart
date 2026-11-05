@@ -24,6 +24,8 @@ class RideOption {
     required this.fareText,
     required this.meta,
     this.reason,
+    this.etaMin,
+    this.driversNearby = true,
   });
 
   /// Backend identifier (`sedan`); never shown.
@@ -36,6 +38,12 @@ class RideOption {
 
   /// "5 min · 4 seats", from what the API returned.
   final String meta;
+
+  /// Minutes until a driver reaches the pickup; null when the quote has none.
+  final int? etaMin;
+
+  /// False only when the quote says no driver is near; unknown counts as true.
+  final bool driversNearby;
 
   /// Why the price is higher than usual, if the API says so.
   final String? reason;
@@ -78,8 +86,9 @@ class RideOption {
     if (fare == null) return null;
     final eta = _num(e, _etaKeys);
     final seats = _num(e, _seatKeys) ?? vehicleClassSeats(type);
+    final nearby = e['drivers_nearby'] != false;
     final parts = <String>[
-      if (eta != null) '${eta.ceil()} min',
+      if (!nearby) 'No drivers nearby' else if (eta != null) '${eta.ceil()} min',
       if (seats != null) '${seats.toInt()} ${seats == 1 ? 'seat' : 'seats'}',
     ];
     return RideOption(
@@ -89,6 +98,8 @@ class RideOption {
       fareText: _money(fare, currencySymbol(e['currency']?.toString())),
       meta: parts.join(' · '),
       reason: _reason(e),
+      etaMin: nearby ? eta?.ceil() : null,
+      driversNearby: nearby,
     );
   }
 
@@ -264,7 +275,11 @@ class _RideRow extends StatelessWidget {
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                         style: SgText.body.copyWith(fontSize: 16, fontWeight: FontWeight.w700)),
-                    if (option.meta.isNotEmpty) Text(option.meta, style: SgText.caption),
+                    if (option.meta.isNotEmpty)
+                      Text(option.meta,
+                          style: option.driversNearby
+                              ? SgText.caption
+                              : SgText.caption.copyWith(color: SgColors.inkSubtle)),
                   ],
                 ),
               ),

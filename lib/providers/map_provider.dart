@@ -85,6 +85,7 @@ class MapProvider extends ChangeNotifier {
   List<Trip> _recentLocations = [];
   bool _isLoadingHomeData = false;
   LatLng? _precisePickupLocation;
+  String? _precisePickupAddress;
   bool _showComingSoonOverlay = false;
 
   List<FavoriteLocation> get favoriteLocations => _favoriteLocations;
@@ -183,7 +184,12 @@ class MapProvider extends ChangeNotifier {
         status == RideStatus.driverArrived;
   }
 
-  void setPrecisePickupLocation(LatLng location) {
+  /// The address of a map point, for the pickup the rider dragged to.
+  Future<String?> addressFor(LatLng point) =>
+      _locationService.getAddressFromCoordinates(point.latitude, point.longitude);
+
+  void setPrecisePickupLocation(LatLng location, {String? address}) {
+    _precisePickupAddress = address;
     if (_precisePickupLocation == location) return;
     _precisePickupLocation = location;
     notifyListeners();
@@ -380,6 +386,7 @@ class MapProvider extends ChangeNotifier {
     LatLng? presetPickup,
     required String pickupName,
     required String dropPlaceId,
+    String? dropName,
   }) async {
     _isLoadingRoute = true;
     notifyListeners();
@@ -415,7 +422,17 @@ class MapProvider extends ChangeNotifier {
         _sessionToken,
       );
       if (dropDetails != null) {
-        _dropLocation = dropDetails;
+        // A saved or recent place arrives as bare coordinates; keep its name.
+        final named = dropName != null && dropName.trim().isNotEmpty && dropPlaceId.contains(',');
+        _dropLocation = named
+            ? PlaceDetails(
+                placeId: dropDetails.placeId,
+                name: dropName.trim(),
+                formattedAddress: dropDetails.formattedAddress,
+                latitude: dropDetails.latitude,
+                longitude: dropDetails.longitude,
+              )
+            : dropDetails;
         resetSessionToken();
         clearSuggestions();
 
@@ -454,6 +471,7 @@ class MapProvider extends ChangeNotifier {
     _pickupLocation = null;
     _dropLocation = null;
     _precisePickupLocation = null;
+    _precisePickupAddress = null;
     _polylineCoordinates = [];
     _distance = null;
     _duration = null;
@@ -602,7 +620,7 @@ class MapProvider extends ChangeNotifier {
           destinationLng: _dropLocation!.longitude,
           distanceKm: km,
           durationMin: mins,
-          pickupAddress: _pickupLocation!.name,
+          pickupAddress: _precisePickupAddress ?? _pickupLocation!.name,
           destinationAddress: _dropLocation!.name,
           vehicleType: _selectedVehicleType!,
           paymentMethod: selectedPaymentMethod,

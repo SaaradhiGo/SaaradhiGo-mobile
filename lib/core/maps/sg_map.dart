@@ -46,6 +46,38 @@ class SgIconMarker extends SgMarkerIcon {
   String get key => 'icon:${icon.codePoint}:${color.toARGB32()}@$size';
 }
 
+/// The driver's car seen from above: light body, gold outline.
+class SgCarMarker extends SgMarkerIcon {
+  const SgCarMarker({double size = 28}) : super(size);
+  @override
+  String get key => 'car@$size';
+}
+
+/// Draws the car glyph centred on [c], nose up.
+void paintCarGlyph(Canvas canvas, Offset c, double size) {
+  final w = size * 0.5, h = size * 0.92;
+  final body = RRect.fromRectAndRadius(
+      Rect.fromCenter(center: c, width: w, height: h), Radius.circular(w * 0.38));
+  canvas.drawRRect(body, Paint()..color = const Color(0xFFF1F5F9));
+  canvas.drawRRect(
+      body,
+      Paint()
+        ..color = const Color(0xFFFFD700)
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = 2);
+  final glass = Paint()..color = const Color(0xFF18181B);
+  canvas.drawRRect(
+      RRect.fromRectAndRadius(
+          Rect.fromCenter(center: c.translate(0, -h * 0.17), width: w * 0.68, height: h * 0.2),
+          const Radius.circular(2)),
+      glass);
+  canvas.drawRRect(
+      RRect.fromRectAndRadius(
+          Rect.fromCenter(center: c.translate(0, h * 0.2), width: w * 0.62, height: h * 0.14),
+          const Radius.circular(2)),
+      glass);
+}
+
 @immutable
 class SgMarker {
   const SgMarker({
@@ -77,12 +109,16 @@ class SgPolyline {
     required this.points,
     required this.color,
     this.width = 4,
+    this.dotted = false,
   });
 
   final String id;
   final List<LatLng> points;
   final Color color;
   final double width;
+
+  /// Drawn as dots, for a line that is not the route (driver to pickup).
+  final bool dotted;
 }
 
 /// Moves the camera. Handed to the screen through [SgMap.onMapCreated].

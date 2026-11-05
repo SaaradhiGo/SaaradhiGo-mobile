@@ -85,6 +85,20 @@ class TripSafetyContext {
   }
 }
 
+/// Offers the trip details to an SMS composer, else copies them.
+Future<void> shareTripDetails(BuildContext context, TripSafetyContext trip) async {
+  final message = trip.shareMessage();
+  final sms = Uri(scheme: 'sms', queryParameters: {'body': message});
+  final launched = await launchUrl(sms, mode: LaunchMode.externalApplication);
+  if (!launched) {
+    await Clipboard.setData(ClipboardData(text: message));
+    if (!context.mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('Trip details copied — paste to share')),
+    );
+  }
+}
+
 Future<void> showSafetySheet(
   BuildContext context, {
   required TripSafetyContext trip,
@@ -177,26 +191,7 @@ class _SafetySheetState extends State<SafetySheet> {
     await launchUrl(uri, mode: LaunchMode.externalApplication);
   }
 
-  Future<void> _shareTrip() async {
-    final message = widget.trip.shareMessage();
-
-    // SMS composer, not a share sheet. `url_launcher` is already a dependency;
-    // adding a share plugin would add an Android build surface that cannot be
-    // verified on this machine. The rider picks the recipient either way.
-    final sms = Uri(scheme: 'sms', queryParameters: {'body': message});
-    final launched =
-        await launchUrl(sms, mode: LaunchMode.externalApplication);
-
-    if (!launched) {
-      // Clipboard is the honest fallback: the details are still in the rider's
-      // hands and they can paste them anywhere.
-      await Clipboard.setData(ClipboardData(text: message));
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Trip details copied — paste to share')),
-      );
-    }
-  }
+  Future<void> _shareTrip() => shareTripDetails(context, widget.trip);
 
   @override
   Widget build(BuildContext context) {

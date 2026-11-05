@@ -61,6 +61,8 @@ class MarkerBitmaps {
         canvas.scale(scale);
         canvas.drawPicture(info.picture);
         info.picture.dispose();
+      case SgCarMarker():
+        paintCarGlyph(canvas, Offset(px / 2, px / 2), px.toDouble());
       case SgIconMarker(:final icon, :final color):
         final tp = TextPainter(
           text: TextSpan(
@@ -190,6 +192,7 @@ class _GoogleSgMapState extends State<_GoogleSgMap> {
           points: [for (final pt in p.points) _g(pt)],
           color: p.color,
           width: p.width.round(),
+          patterns: p.dotted ? [gm.PatternItem.dot, gm.PatternItem.gap(8)] : const [],
         ),
   };
 

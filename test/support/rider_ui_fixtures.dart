@@ -8,6 +8,7 @@ import 'package:saaradhigo_rider/ui/home_sheet.dart';
 import 'package:saaradhigo_rider/ui/sg_text.dart';
 import 'package:saaradhigo_rider/ui/sg_tokens.dart';
 import 'package:saaradhigo_rider/ui/sg_widgets.dart';
+import 'package:saaradhigo_rider/ui/trip_widgets.dart';
 
 const _mapProvider = PlaceholderMapsProvider();
 
@@ -136,6 +137,61 @@ Widget chooseFrame({
       ),
     ],
   );
+}
+
+/// The pickup and drop used by the trip frames.
+const tripPickup = LatLng(17.40, 78.37);
+const tripDrop = LatLng(17.45, 78.45);
+
+/// Full-height map with a sheet on the bottom: Finding, Arriving, Live trip.
+Widget tripFrame({
+  required Widget sheet,
+  List<SgMarker> markers = const [],
+  List<SgPolyline> polylines = const [],
+  bool pulse = false,
+  double sheetHeight = 420,
+}) {
+  return Stack(children: [
+    Positioned.fill(
+      child: SgMap(
+        provider: _mapProvider,
+        initialCenter: tripPickup,
+        initialZoom: 15,
+        padding: EdgeInsets.only(bottom: sheetHeight, top: 96),
+        markers: markers,
+        polylines: polylines,
+      ),
+    ),
+    if (pulse) Positioned(top: 96, bottom: sheetHeight, left: 0, right: 0, child: const PulseRings()),
+    Positioned(
+      top: 52,
+      left: 16,
+      child: SgMapButton(icon: SgIcons.close, label: 'Close', onTap: () {}),
+    ),
+    Align(alignment: Alignment.bottomCenter, child: sheet),
+  ]);
+}
+
+/// Confirm pickup: map above, fixed pin in its middle, sheet below.
+Widget confirmFrame({required Widget sheet, String? chip}) {
+  return Column(children: [
+    Expanded(
+      child: Stack(children: [
+        const Positioned.fill(child: SgMap(provider: _mapProvider, initialCenter: tripPickup, initialZoom: 17)),
+        Align(
+          alignment: Alignment.center,
+          child: Transform.translate(offset: const Offset(0, -44), child: const FixedPickupPin()),
+        ),
+        if (chip != null)
+          Align(
+            alignment: Alignment.center,
+            child: Transform.translate(offset: const Offset(0, -112), child: MapChip(chip)),
+          ),
+        Positioned(top: 52, left: 16, child: SgMapButton(icon: SgIcons.back, label: 'Back', onTap: () {})),
+      ]),
+    ),
+    sheet,
+  ]);
 }
 
 void setPhoneSurface(dynamic tester) {
