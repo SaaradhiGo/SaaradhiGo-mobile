@@ -9,7 +9,8 @@ String _normName(String address) => address
     .replaceAll(RegExp(r'[^a-z0-9]'), '');
 
 /// The first [max] destinations with repeats of one place dropped: the same
-/// normalised name, and either no coordinates to compare or under 100 m apart.
+/// normalised name, and either no coordinates to compare or under 1.5 km apart
+/// (one mall's gates and geocoder drift read as two places otherwise).
 List<Trip> distinctRecentTrips(Iterable<Trip> trips, {int max = 2}) {
   const dist = Distance();
   final out = <Trip>[];
@@ -23,7 +24,7 @@ List<Trip> distinctRecentTrips(Iterable<Trip> trips, {int max = 2}) {
         return true;
       }
       return dist(LatLng(o.destinationLat!, o.destinationLng!),
-              LatLng(t.destinationLat!, t.destinationLng!)) < 100;
+              LatLng(t.destinationLat!, t.destinationLng!)) < 1500;
     });
     if (!dup) out.add(t);
     if (out.length == max) break;

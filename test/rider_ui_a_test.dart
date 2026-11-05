@@ -137,6 +137,8 @@ void main() {
         trip(1, 'Inorbit Mall', 17.4335, 78.3860),
         trip(2, 'Inorbit Mall, Madhapur, Hyderabad', 17.4336, 78.3861),
         trip(3, 'Charminar, Old City', 17.3616, 78.4747),
+        // The same mall geocoded ~1 km away (another gate) is still one place.
+        trip(4, 'Inorbit Mall, Madhapur', 17.4400, 78.3920),
       ]);
       expect(out.map((t) => t.id), [1, 3]);
     });
