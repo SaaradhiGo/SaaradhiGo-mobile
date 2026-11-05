@@ -77,12 +77,16 @@ class SgPolyline {
     required this.points,
     required this.color,
     this.width = 4,
+    this.dotted = false,
   });
 
   final String id;
   final List<LatLng> points;
   final Color color;
   final double width;
+
+  /// Drawn as dots, for a line that is not the route (driver to pickup).
+  final bool dotted;
 }
 
 /// Moves the camera. Handed to the screen through [SgMap.onMapCreated].

@@ -18,6 +18,7 @@ class SgIcons {
   static const clock = '<circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/>';
   static const pin =
       '<path d="M12 21s-7-6-7-11a7 7 0 0114 0c0 5-7 11-7 11z"/><circle cx="12" cy="10" r="2.5"/>';
+  static const close = '<path d="M6 6l12 12M18 6L6 18"/>';
   static const back = '<path d="M15 5l-7 7 7 7"/>';
   static const cash =
       '<rect x="3" y="6" width="18" height="12" rx="2"/><circle cx="12" cy="12" r="2.5"/>';
@@ -26,6 +27,15 @@ class SgIcons {
   static const history = '<path d="M3 12a9 9 0 109-9 9 9 0 00-6.4 2.6L3 8"/><path d="M3 3v5h5M12 7v5l3 2"/>';
   static const wallet =
       '<path d="M3 7a2 2 0 012-2h13v4"/><rect x="3" y="7" width="18" height="13" rx="2"/><path d="M16 13.5h2"/>';
+  static const call =
+      '<path d="M5 4h4l2 5-2.5 1.5a11 11 0 005 5L15 13l5 2v4a2 2 0 01-2 2A16 16 0 013 6a2 2 0 012-2"/>';
+  static const message = '<path d="M4 5h16v11H9l-5 4z"/>';
+  static const share = '<path d="M12 3v12M7 8l5-5 5 5M5 14v6h14v-6"/>';
+  static const shield =
+      '<path d="M12 3l8 3v6c0 5-4 8-8 9-4-1-8-4-8-9V6z"/><path d="M12 8v5M12 16v.5"/>';
+  static const check = '<path d="M5 12l5 5 9-10"/>';
+  static const lock =
+      '<rect x="5" y="11" width="14" height="9" rx="2"/><path d="M8 11V8a4 4 0 018 0v3"/>';
   static const help = '<circle cx="12" cy="12" r="9"/><path d="M9.5 9.5a2.5 2.5 0 115 0c0 1.5-2.5 2-2.5 3.5M12 17h.01"/>';
 }
 

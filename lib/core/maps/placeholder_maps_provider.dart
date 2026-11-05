@@ -19,26 +19,58 @@ class PlaceholderMapsProvider extends MapsProvider {
   Widget build(SgMap map) => _PlaceholderMap(map: map);
 }
 
-class _PlaceholderMap extends StatelessWidget {
+class _PlaceholderMap extends StatefulWidget {
   const _PlaceholderMap({required this.map});
   final SgMap map;
 
   @override
+  State<_PlaceholderMap> createState() => _PlaceholderMapState();
+}
+
+class _PlaceholderMapState extends State<_PlaceholderMap> {
+  Offset _pan = Offset.zero;
+
+  /// Degrees per pixel at the map's zoom (web-mercator, square pixels).
+  LatLng _centerFor(Offset pan) {
+    final map = widget.map;
+    final c = map.initialCenter;
+    final metres = 156543.03392 * math.cos(c.latitude * math.pi / 180) / math.pow(2, map.initialZoom);
+    final dLat = pan.dy * metres / 111320;
+    final dLng = -pan.dx * metres / (111320 * math.cos(c.latitude * math.pi / 180));
+    return LatLng(c.latitude + dLat, c.longitude + dLng);
+  }
+
+  @override
   Widget build(BuildContext context) {
-    return ExcludeSemantics(
-      child: Stack(
-        fit: StackFit.expand,
-        children: [
-          const CustomPaint(painter: _GroundPainter()),
-          Center(
-            child: Opacity(
-              opacity: 0.05,
-              child: SvgPicture.asset('assets/brand/saaradhigo-emblem-gold.svg', width: 190),
+    final map = widget.map;
+    final canvas = ExcludeSemantics(
+      child: Transform.translate(
+        offset: _pan,
+        child: Stack(
+          fit: StackFit.expand,
+          children: [
+            const CustomPaint(painter: _GroundPainter()),
+            Center(
+              child: Opacity(
+                opacity: 0.05,
+                child: SvgPicture.asset('assets/brand/saaradhigo-emblem-gold.svg', width: 190),
+              ),
             ),
-          ),
-          CustomPaint(painter: _OverlayPainter(map)),
-        ],
+            CustomPaint(painter: _OverlayPainter(map)),
+          ],
+        ),
       ),
+    );
+    if (!map.interactive || (map.onCameraMove == null && map.onCameraIdle == null)) return canvas;
+    // Dragging moves the ground under a fixed centre and reports where it is.
+    return GestureDetector(
+      behavior: HitTestBehavior.opaque,
+      onPanUpdate: (d) {
+        setState(() => _pan += d.delta);
+        map.onCameraMove?.call(SgCamera(_centerFor(_pan), map.initialZoom, byGesture: true));
+      },
+      onPanEnd: (_) => map.onCameraIdle?.call(),
+      child: ClipRect(child: canvas),
     );
   }
 }
@@ -154,20 +186,32 @@ class _OverlayPainter extends CustomPainter {
         final o = at(line.points[i]);
         i == 0 ? path.moveTo(o.dx, o.dy) : path.lineTo(o.dx, o.dy);
       }
+      if (line.dotted) {
+        for (final metric in path.computeMetrics()) {
+          for (var d = 0.0; d < metric.length; d += 10) {
+            final t = metric.getTangentForOffset(d);
+            if (t != null) canvas.drawCircle(t.position, 1.8, Paint()..color = line.color);
+          }
+        }
+        continue;
+      }
       final w = line.width.clamp(4.0, 5.0);
+      final gold = line.color == SgColors.gold500;
+      if (gold) {
+        canvas.drawPath(
+          path,
+          Paint()
+            ..color = SgColors.gold500.withValues(alpha: 0.22)
+            ..style = PaintingStyle.stroke
+            ..strokeWidth = w * 3
+            ..strokeCap = StrokeCap.round
+            ..strokeJoin = StrokeJoin.round,
+        );
+      }
       canvas.drawPath(
         path,
         Paint()
-          ..color = SgColors.gold500.withValues(alpha: 0.22)
-          ..style = PaintingStyle.stroke
-          ..strokeWidth = w * 3
-          ..strokeCap = StrokeCap.round
-          ..strokeJoin = StrokeJoin.round,
-      );
-      canvas.drawPath(
-        path,
-        Paint()
-          ..color = SgColors.gold500
+          ..color = line.color
           ..style = PaintingStyle.stroke
           ..strokeWidth = w
           ..strokeCap = StrokeCap.round

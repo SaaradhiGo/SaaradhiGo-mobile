@@ -28,6 +28,7 @@ class SgColors {
   static const mapHighway = Color(0xFF3A3205);
   static const mapWater = Color(0xFF0A1418);
   static const mapPark = Color(0xFF0D140E);
+  static const champagne = Color(0xFFFFF4BF);
   static const pickup = Color(0xFF46C98B);
   static const danger = Color(0xFFFF8A6B);
 }

@@ -281,6 +281,10 @@ class SaaradhiGoApp extends StatelessWidget {
             return RateReviewDriverScreen(
               tripId: extra['trip_id']?.toString(),
               driverName: extra['driver_name']?.toString(),
+              fareText: extra['fare_text']?.toString(),
+              method: extra['method']?.toString(),
+              paid: extra['paid'] != false,
+              detail: extra['detail']?.toString() ?? '',
             );
           },
         ),

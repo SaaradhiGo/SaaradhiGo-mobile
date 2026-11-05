@@ -190,6 +190,7 @@ class _GoogleSgMapState extends State<_GoogleSgMap> {
           points: [for (final pt in p.points) _g(pt)],
           color: p.color,
           width: p.width.round(),
+          patterns: p.dotted ? [gm.PatternItem.dot, gm.PatternItem.gap(8)] : const [],
         ),
   };
 
