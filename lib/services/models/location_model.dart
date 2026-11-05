@@ -38,11 +38,25 @@ class PlaceSuggestion {
     } else {
       // Google Places Autocomplete format
       final structuredFormatting = json['structured_formatting'] ?? {};
+      final description = (json['description'] ?? '').toString();
+      var mainText = (structuredFormatting['main_text'] ?? '').toString();
+      var secondaryText =
+          (structuredFormatting['secondary_text'] ?? '').toString();
+      if (mainText.trim().isEmpty) {
+        // Places (New) sends only `description`, and a cached answer from
+        // before the backend added the parts still does. Every row rendered
+        // blank (PRODUCT_AUDIT §2, "Where to"): split the description instead.
+        final comma = description.indexOf(',');
+        mainText = comma < 0 ? description : description.substring(0, comma);
+        if (secondaryText.trim().isEmpty && comma >= 0) {
+          secondaryText = description.substring(comma + 1).trim();
+        }
+      }
       return PlaceSuggestion(
         placeId: json['place_id'],
-        description: json['description'] ?? '',
-        mainText: structuredFormatting['main_text'] ?? '',
-        secondaryText: structuredFormatting['secondary_text'] ?? '',
+        description: description,
+        mainText: mainText.trim(),
+        secondaryText: secondaryText.trim(),
       );
     }
   }

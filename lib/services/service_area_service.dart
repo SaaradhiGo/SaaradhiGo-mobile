@@ -1,3 +1,4 @@
+import '../utils/position.dart';
 import 'dart:math' as math;
 import 'package:flutter/foundation.dart';
 import 'package:geolocator/geolocator.dart';
@@ -140,11 +141,8 @@ class ServiceAreaService {
         return false;
       }
 
-      final position = await Geolocator.getCurrentPosition(
-        locationSettings: const LocationSettings(
-          accuracy: LocationAccuracy.high,
-        ),
-      );
+      final position = await currentOrLastKnownPosition();
+      if (position == null) return false;
 
       final location = LatLng(position.latitude, position.longitude);
       debugPrint(

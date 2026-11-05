@@ -119,7 +119,13 @@ class MarketConfig {
     this.promosAvailable = false,
     this.referralsAvailable = false,
     this.isBuiltIn = false,
+    this.supportPhone,
   });
+
+  /// `country.support.phone`: SaaradhiGo's own support line, or null while
+  /// none is configured. The call row is hidden then; the app showed the
+  /// placeholder 1800-000-0000 before (PRODUCT_AUDIT §8).
+  final String? supportPhone;
 
   /// ISO country code, upper case ("IN", "US").
   final String countryCode;
@@ -347,6 +353,7 @@ class MarketConfig {
           : (country.isEmpty ? base.nationalNumberLengths : const <int>[]),
       promosAvailable: data['promos_available'] == true,
       referralsAvailable: data['referrals_available'] == true,
+      supportPhone: _str(_map(country['support'])['phone']),
     );
   }
 }

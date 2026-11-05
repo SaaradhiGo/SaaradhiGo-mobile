@@ -1,3 +1,4 @@
+import '../../core/vehicle_classes.dart';
 import '../components/market_overlays.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -312,22 +313,7 @@ class _HistoryRideCard extends StatelessWidget {
 
   const _HistoryRideCard({required this.trip});
 
-  String _getVehicleDisplayName(String? type) {
-    switch (type) {
-      case 'bike':
-        return 'Bike';
-      case 'auto':
-        return 'Auto';
-      case 'car':
-        return 'Car';
-      case 'car_xl':
-        return 'Car XL';
-      case 'car_premium':
-        return 'Premium';
-      default:
-        return 'Car';
-    }
-  }
+  String _getVehicleDisplayName(String? type) => vehicleClassName(type);
 
   @override
   Widget build(BuildContext context) {

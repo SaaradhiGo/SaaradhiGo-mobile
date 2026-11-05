@@ -122,7 +122,7 @@ class _LoginScreenState extends State<LoginScreen> {
     final authProvider = Provider.of<AuthProvider>(context, listen: false);
     // India still builds +91XXXXXXXXXX exactly as before; another market uses its own
     // dialling code from app-config.
-    final formattedPhone = '${marketOf(context).dialPrefix}$phone';
+    final formattedPhone = '${marketOf(context, listen: false).dialPrefix}$phone';
     final response = await authProvider.requestOtp(formattedPhone);
 
     if (!mounted) return;
@@ -332,7 +332,7 @@ class _LoginScreenState extends State<LoginScreen> {
                                 child: Row(
                                   children: [
                                     Text(
-                                      marketOf(context).dialPrefix,
+                                      marketOf(context, listen: false).dialPrefix,
                                       style: const TextStyle(
                                         color: Colors.white,
                                         fontSize: 18,

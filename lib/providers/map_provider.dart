@@ -1,4 +1,6 @@
 import 'dart:async';
+
+import '../core/vehicle_classes.dart';
 import 'package:flutter/material.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:latlong2/latlong.dart';
@@ -510,33 +512,36 @@ class MapProvider extends ChangeNotifier {
     PromoSelection.instance.clear();
     notifyListeners();
 
-    final vehicleSpeeds = {
-      'bike': 40,
-      'auto': 30,
-      'car': 35,
-      'car_xl': 35,
-      'car_premium': 40,
-    };
-
     final effectivePickup = _precisePickupLocation ?? _pickupLocation!.latLng;
+    final types = await _fareService.vehicleTypesAt(
+          effectivePickup.latitude,
+          effectivePickup.longitude,
+        ) ??
+        kFallbackVehicleTypes;
 
-    for (var type in vehicleSpeeds.keys) {
-      final estimate = await _fareService.estimateFare(
-        pickupLat: effectivePickup.latitude,
-        pickupLng: effectivePickup.longitude,
-        destinationLat: _dropLocation!.latitude,
-        destinationLng: _dropLocation!.longitude,
-        distanceKm: km,
-        durationMin: mins,
-        vehicleType: type,
-      );
-
-      if (estimate != null) {
-        final speed = vehicleSpeeds[type] ?? 30;
-        final timeToDrop = (km / speed * 60).round();
-        estimate['time_to_drop'] = timeToDrop;
-        _fareEstimates[type] = estimate;
-      }
+    final results = await Future.wait([
+      for (final type in types)
+        _fareService.estimateFare(
+          pickupLat: effectivePickup.latitude,
+          pickupLng: effectivePickup.longitude,
+          destinationLat: _dropLocation!.latitude,
+          destinationLng: _dropLocation!.longitude,
+          distanceKm: km,
+          durationMin: mins,
+          vehicleType: type,
+        ),
+    ]);
+    for (var i = 0; i < types.length; i++) {
+      final estimate = results[i];
+      if (estimate == null || estimate['estimated_fare'] == null) continue;
+      estimate['time_to_drop'] =
+          (km / vehicleClassSpeedKmh(types[i]) * 60).round();
+      _fareEstimates[types[i]] = estimate;
+    }
+    // A class chosen for the previous route may not be priced on this one.
+    if (_selectedVehicleType != null &&
+        !_fareEstimates.containsKey(_selectedVehicleType)) {
+      _selectedVehicleType = null;
     }
     _isLoadingFares = false;
     notifyListeners();

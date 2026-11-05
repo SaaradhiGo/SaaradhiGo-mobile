@@ -22,6 +22,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
 import 'package:saaradhigo_rider/services/sos_service.dart';
+import 'package:saaradhigo_rider/widgets/hold_to_send_button.dart';
 import 'package:saaradhigo_rider/widgets/safety_sheet.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -186,6 +187,10 @@ void main() {
 
   group('the safety sheet', () {
     Future<void> pump(WidgetTester tester, SosService service) async {
+      // A phone, not the default 800x600 landscape surface.
+      tester.view.physicalSize = const Size(1170, 2532);
+      tester.view.devicePixelRatio = 3;
+      addTearDown(tester.view.reset);
       await tester.pumpWidget(
         MaterialApp(
           home: Scaffold(
@@ -229,6 +234,56 @@ void main() {
       expect(find.textContaining('#12'), findsOneWidget);
     });
 
+    testWidgets('tapping a category or the send button sends nothing', (tester) async {
+      // The audit sent a real alert with one accidental tap (PRODUCT_AUDIT §2).
+      var posts = 0;
+      await pump(
+        tester,
+        SosService(client: MockClient((_) async {
+          posts++;
+          return http.Response(jsonEncode({'data': {'sos_id': 3}}), 201);
+        })),
+      );
+
+      await tester.tap(find.byKey(const Key('sos_panic')));
+      await tester.tap(find.byKey(const Key('sos_hold')));
+      await tester.pump(const Duration(milliseconds: 500));
+      expect(posts, 0);
+    });
+
+    testWidgets('after sending, "Tap if this was a mistake" closes it as a false alarm',
+        (tester) async {
+      final paths = <String>[];
+      await pump(
+        tester,
+        SosService(client: MockClient((req) async {
+          paths.add(req.url.path);
+          return http.Response(jsonEncode({'data': {'sos_id': 12}}), 201);
+        })),
+      );
+      await _raiseAndSettle(tester, const Key('sos_panic'));
+      expect(find.textContaining('Alert sent'), findsOneWidget);
+
+      await tester.runAsync(() async {
+        await tester.tap(find.byKey(const Key('sos_mistake')));
+        await Future<void>.delayed(const Duration(milliseconds: 100));
+      });
+      await tester.pump();
+
+      expect(paths.last, endsWith('/sos/12/mistake/'));
+      expect(find.textContaining('Marked as a mistake'), findsOneWidget);
+    });
+
+    testWidgets('no support number configured: no support call row', (tester) async {
+      // Never the old placeholder 1800-000-0000.
+      await pump(
+        tester,
+        SosService(client: MockClient((_) async => http.Response('{}', 200))),
+      );
+      expect(find.byKey(const Key('safety_call_support')), findsNothing);
+      expect(find.textContaining('1800'), findsNothing);
+    });
+
     testWidgets('a failed SOS shows the failure AND a 112 button',
         (tester) async {
       // The whole point. The old screen showed "Emergency Alert Sent!" here.
@@ -248,7 +303,8 @@ void main() {
 }
 
 
-/// Taps a category and waits for the request to produce its banner.
+/// Chooses a category, holds the send button for the full 2 seconds, and
+/// waits for the request to produce its banner (owner decision D4).
 ///
 /// `runAsync` is required, not stylistic: the token read goes through the
 /// SharedPreferences platform channel and `MockClient` completes on a real
@@ -256,8 +312,14 @@ void main() {
 /// alone. And `pumpAndSettle` cannot be used at all here, because the sheet
 /// shows a progress indicator whose animation never settles.
 Future<void> _raiseAndSettle(WidgetTester tester, Key category) async {
+  await tester.tap(find.byKey(category));
+  await tester.pump();
+  // The hold itself is covered in hold_to_send_button_test.dart; here the
+  // completed hold is what matters, and its send needs real async.
   await tester.runAsync(() async {
-    await tester.tap(find.byKey(category));
+    tester
+        .widget<HoldToSendButton>(find.byKey(const Key('sos_hold')))
+        .onConfirmed();
     await Future<void>.delayed(const Duration(milliseconds: 100));
   });
   await tester.pump();

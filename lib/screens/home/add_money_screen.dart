@@ -41,7 +41,7 @@ class _AddMoneyScreenState extends State<AddMoneyScreen> {
       ScaffoldMessenger.of(
         context,
       ).showSnackBar(
-        SnackBar(content: Text('Minimum amount is ${marketOf(context).currencySymbol}100')),
+        SnackBar(content: Text('Minimum amount is ${marketOf(context, listen: false).currencySymbol}100')),
       );
       return;
     }
@@ -49,7 +49,7 @@ class _AddMoneyScreenState extends State<AddMoneyScreen> {
       ScaffoldMessenger.of(
         context,
       ).showSnackBar(
-        SnackBar(content: Text('Maximum amount is ${marketOf(context).currencySymbol}2000')),
+        SnackBar(content: Text('Maximum amount is ${marketOf(context, listen: false).currencySymbol}2000')),
       );
       return;
     }

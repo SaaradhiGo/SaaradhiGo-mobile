@@ -1,3 +1,4 @@
+import '../../utils/position.dart';
 import 'dart:ui';
 
 import 'package:cached_network_image_ce/cached_network_image.dart';
@@ -299,9 +300,19 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
         return;
       }
 
-      Position position = await Geolocator.getCurrentPosition(
-        desiredAccuracy: LocationAccuracy.bestForNavigation,
-      );
+      final position = await currentOrLastKnownPosition();
+      if (position == null) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text(
+                "We couldn't find your location. Enter your pickup point.",
+              ),
+            ),
+          );
+        }
+        return;
+      }
 
       if (mounted) {
         setState(() {

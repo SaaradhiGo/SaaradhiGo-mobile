@@ -23,6 +23,7 @@ import 'package:url_launcher/url_launcher.dart';
 
 import '../core/market/market_config_store.dart';
 import '../services/sos_service.dart';
+import 'hold_to_send_button.dart';
 
 /// India's single emergency number. One constant, named, because a literal
 /// '112' three screens deep is how a market launch ships the wrong number.
@@ -117,6 +118,13 @@ class _SafetySheetState extends State<SafetySheet> {
   bool _sending = false;
   SosResult? _result;
 
+  /// What the hold will send. A tap on a chip only chooses; it never sends.
+  SosCategory _category = SosCategory.panic;
+
+  /// null: not asked. true: the server recorded the mistake. false: it did not.
+  bool? _mistake;
+  bool _reportingMistake = false;
+
   @override
   void dispose() {
     if (widget.service == null) _sos.dispose();
@@ -128,6 +136,7 @@ class _SafetySheetState extends State<SafetySheet> {
     setState(() {
       _sending = true;
       _result = null;
+      _mistake = null;
     });
 
     final result = await _sos.raise(
@@ -142,6 +151,23 @@ class _SafetySheetState extends State<SafetySheet> {
       _sending = false;
       _result = result;
     });
+  }
+
+  Future<void> _reportMistake() async {
+    final id = _result?.sosId;
+    if (id == null || _reportingMistake) return;
+    setState(() => _reportingMistake = true);
+    final ok = await _sos.reportMistake(id);
+    if (!mounted) return;
+    setState(() {
+      _reportingMistake = false;
+      _mistake = ok;
+    });
+  }
+
+  Future<void> _callSupport(String number) async {
+    await launchUrl(Uri.parse('tel:$number'),
+        mode: LaunchMode.externalApplication);
   }
 
   Future<void> _call112() async {
@@ -177,7 +203,9 @@ class _SafetySheetState extends State<SafetySheet> {
     final result = _result;
 
     return SafeArea(
-      child: Padding(
+      // Scrolls: with the categories, the hold button and the support row it
+      // is taller than a small phone's half-height sheet.
+      child: SingleChildScrollView(
         padding: const EdgeInsets.fromLTRB(20, 16, 20, 24),
         child: Column(
           mainAxisSize: MainAxisSize.min,
@@ -248,28 +276,59 @@ class _SafetySheetState extends State<SafetySheet> {
             ),
             const SizedBox(height: 10),
 
-            if (result != null) _ResultBanner(result: result, onCall: _call112),
+            if (result != null)
+              _ResultBanner(
+                result: result,
+                onCall: _call112,
+                mistake: _mistake,
+                reportingMistake: _reportingMistake,
+                onMistake: result.ok && result.sosId != null
+                    ? _reportMistake
+                    : null,
+              ),
 
             if (_sending)
               const Padding(
                 padding: EdgeInsets.symmetric(vertical: 18),
                 child: Center(child: CircularProgressIndicator()),
               )
-            else if (result?.ok != true)
+            else if (result?.ok != true) ...[
               Wrap(
                 spacing: 8,
                 runSpacing: 8,
                 children: [
                   for (final category in SosCategory.values)
-                    ActionChip(
+                    ChoiceChip(
                       key: Key('sos_${category.wireValue}'),
                       label: Text(category.label),
+                      selected: _category == category,
+                      selectedColor: const Color(0xFF7F1D1D),
                       backgroundColor: const Color(0xFF262522),
                       labelStyle: const TextStyle(color: Colors.white),
-                      onPressed: () => _raise(category),
+                      onSelected: (_) => setState(() => _category = category),
                     ),
                 ],
               ),
+              const SizedBox(height: 14),
+              HoldToSendButton(
+                key: const Key('sos_hold'),
+                label: 'Hold to send alert',
+                onConfirmed: () => _raise(_category),
+              ),
+            ],
+            if (MarketConfigStore.instance.current.supportPhone
+                case final support?) ...[
+              const SizedBox(height: 10),
+              TextButton.icon(
+                key: const Key('safety_call_support'),
+                onPressed: () => _callSupport(support),
+                icon: const Icon(Icons.support_agent, color: Colors.white70),
+                label: const Text(
+                  'Call SaaradhiGo support',
+                  style: TextStyle(color: Colors.white70),
+                ),
+              ),
+            ],
           ],
         ),
       ),
@@ -278,14 +337,24 @@ class _SafetySheetState extends State<SafetySheet> {
 }
 
 class _ResultBanner extends StatelessWidget {
-  const _ResultBanner({required this.result, required this.onCall});
+  const _ResultBanner({
+    required this.result,
+    required this.onCall,
+    this.mistake,
+    this.reportingMistake = false,
+    this.onMistake,
+  });
 
   final SosResult result;
   final VoidCallback onCall;
+  final bool? mistake;
+  final bool reportingMistake;
+  final VoidCallback? onMistake;
 
   @override
   Widget build(BuildContext context) {
     if (result.ok) {
+      final reference = result.sosId != null ? ' Reference #${result.sosId}.' : '';
       return Container(
         key: const Key('sos_success'),
         padding: const EdgeInsets.all(14),
@@ -293,20 +362,44 @@ class _ResultBanner extends StatelessWidget {
           color: const Color(0xFF064E3B),
           borderRadius: BorderRadius.circular(12),
         ),
-        child: Row(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Icon(Icons.verified_user, color: Color(0xFF6EE7B7)),
-            const SizedBox(width: 10),
-            Expanded(
-              child: Text(
-                result.sosId != null
-                    ? 'Our safety team has been alerted. Reference '
-                        '#${result.sosId}. Keep your phone with you.'
-                    : 'Our safety team has been alerted. Keep your phone '
-                        'with you.',
-                style: const TextStyle(color: Colors.white, fontSize: 13),
-              ),
+            Row(
+              children: [
+                const Icon(Icons.verified_user, color: Color(0xFF6EE7B7)),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Semantics(
+                    liveRegion: true,
+                    child: Text(
+                      mistake == true
+                          ? 'Marked as a mistake. Our safety team has been told.$reference'
+                          : 'Alert sent. Our safety team has been alerted.$reference '
+                              'Keep your phone with you.',
+                      style: const TextStyle(color: Colors.white, fontSize: 13),
+                    ),
+                  ),
+                ),
+              ],
             ),
+            if (onMistake != null && mistake != true) ...[
+              const SizedBox(height: 6),
+              TextButton(
+                key: const Key('sos_mistake'),
+                onPressed: reportingMistake ? null : onMistake,
+                style: TextButton.styleFrom(
+                  foregroundColor: Colors.white,
+                  minimumSize: const Size(48, 48),
+                ),
+                child: Text(
+                  mistake == false
+                      ? 'That did not go through. Tap to try again'
+                      : 'Tap if this was a mistake',
+                  style: const TextStyle(decoration: TextDecoration.underline),
+                ),
+              ),
+            ],
           ],
         ),
       );

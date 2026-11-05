@@ -152,6 +152,30 @@ class SosService {
     }
   }
 
+  /// "Tap if this was a mistake" (D4): closes the rider's own alert as a
+  /// false alarm through the same audited path ops use. True when the server
+  /// recorded it. Never throws.
+  Future<bool> reportMistake(int sosId) async {
+    final token = await TokenStore.readAccessToken();
+    if (token == null || token.isEmpty) return false;
+    try {
+      final response = await _client
+          .post(
+            Uri.parse('${AppConfig.baseUrl}${AppConfig.sos}$sosId/mistake/'),
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': 'Bearer $token',
+            },
+            body: '{}',
+          )
+          .timeout(_timeout);
+      return response.statusCode >= 200 && response.statusCode < 300;
+    } on Object catch (error) {
+      if (kDebugMode) debugPrint('SOS mistake report failed: $error');
+      return false;
+    }
+  }
+
   /// Pulls the id out of either response shape the API uses.
   int? _sosIdFrom(String raw) {
     try {

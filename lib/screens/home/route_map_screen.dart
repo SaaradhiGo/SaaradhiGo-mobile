@@ -1,4 +1,5 @@
 
+import '../../core/vehicle_classes.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_map/flutter_map.dart';
@@ -31,22 +32,7 @@ class _RouteMapScreenState extends State<RouteMapScreen> {
   bool _showTiles = false; // New flag to delay tile loading
   double _lastSnapExtent = 0.15;
 
-  String _getVehicleTypeDisplay(String? type) {
-    switch (type) {
-      case 'bike':
-        return 'Bike';
-      case 'auto':
-        return 'Auto';
-      case 'car':
-        return 'Car';
-      case 'car_xl':
-        return 'Car XL';
-      case 'car_premium':
-        return 'Premium';
-      default:
-        return 'Car';
-    }
-  }
+  String _getVehicleTypeDisplay(String? type) => vehicleClassName(type);
 
   /// Validates if a LatLng coordinate is within reasonable bounds
   bool _isValidCoordinate(LatLng? coordinate) {
@@ -808,58 +794,19 @@ class _RouteMapScreenState extends State<RouteMapScreen> {
       mainAxisSize: MainAxisSize.min,
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        _buildRideOption(
-          title: 'Bike',
-          isSelected: provider.selectedVehicleType == 'bike',
-          onTap: () => provider.selectVehicleType('bike'),
-          time: _getTimeToDrop(fareEstimates['bike']),
-          price: _getEstimatedFare(fareEstimates['bike']),
-          fareData: fareEstimates['bike'],
-          icon: Icons.two_wheeler,
-          isRecommended: false,
-        ),
-        _buildRideOption(
-          title: 'Auto',
-          isSelected: provider.selectedVehicleType == 'auto',
-          onTap: () => provider.selectVehicleType('auto'),
-          time: _getTimeToDrop(fareEstimates['auto']),
-          price: _getEstimatedFare(fareEstimates['auto']),
-          fareData: fareEstimates['auto'],
-          icon: Icons.electric_rickshaw,
-          isRecommended: true,
-        ),
-        _buildRideOption(
-          title: 'Car',
-          isSelected: provider.selectedVehicleType == 'car',
-          onTap: () => provider.selectVehicleType('car'),
-          time: _getTimeToDrop(fareEstimates['car']),
-          price: _getEstimatedFare(fareEstimates['car']),
-          fareData: fareEstimates['car'],
-          icon: Icons.directions_car,
-          isRecommended: false,
-        ),
-        _buildRideOption(
-          title: 'Car XL',
-          subtitle: 'More Space',
-          isSelected: provider.selectedVehicleType == 'car_xl',
-          onTap: () => provider.selectVehicleType('car_xl'),
-          time: _getTimeToDrop(fareEstimates['car_xl']),
-          price: _getEstimatedFare(fareEstimates['car_xl']),
-          fareData: fareEstimates['car_xl'],
-          icon: Icons.airline_seat_recline_extra,
-          isRecommended: false,
-        ),
-        _buildRideOption(
-          title: 'Premium',
-          subtitle: 'Luxury Ride',
-          isSelected: provider.selectedVehicleType == 'car_premium',
-          onTap: () => provider.selectVehicleType('car_premium'),
-          time: _getTimeToDrop(fareEstimates['car_premium']),
-          price: _getEstimatedFare(fareEstimates['car_premium']),
-          icon: Icons.diamond_outlined,
-          isRecommended: false,
-          fareData: fareEstimates['car_premium'],
-        ),
+        // Only what the server priced, cheapest first. A class with no fare is
+        // not a choice, so it is not shown ("₹…" rows could never be booked).
+        for (final entry in _pricedClasses(fareEstimates))
+          _buildRideOption(
+            title: vehicleClassName(entry.key),
+            isSelected: provider.selectedVehicleType == entry.key,
+            onTap: () => provider.selectVehicleType(entry.key),
+            time: _getTimeToDrop(entry.value),
+            price: _getEstimatedFare(entry.value),
+            fareData: entry.value,
+            icon: vehicleClassIcon(entry.key),
+            isRecommended: false,
+          ),
         _buildFareDetailsLink(fareEstimates[provider.selectedVehicleType]),
         // Hidden unless app-config says a promo is available (promos_available).
         PromoEntrySection(
@@ -913,6 +860,19 @@ class _RouteMapScreenState extends State<RouteMapScreen> {
         ),
       ),
     );
+  }
+
+  List<MapEntry<String, Map<String, dynamic>>> _pricedClasses(
+    Map<String, Map<String, dynamic>> estimates,
+  ) {
+    double fareOf(Map<String, dynamic> e) =>
+        double.tryParse(e['estimated_fare']?.toString() ?? '') ??
+        double.infinity;
+    final priced = estimates.entries
+        .where((e) => e.value['estimated_fare'] != null)
+        .toList()
+      ..sort((a, b) => fareOf(a.value).compareTo(fareOf(b.value)));
+    return priced;
   }
 
   String _getTimeToDrop(Map<String, dynamic>? estimate) {
