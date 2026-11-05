@@ -14,6 +14,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:saaradhigo_rider/screens/components/payment_pending_banner.dart';
+import 'package:saaradhigo_rider/screens/profile/profile_setup_screen.dart';
 import 'package:saaradhigo_rider/services/models/location_model.dart';
 import 'package:saaradhigo_rider/services/ride_service.dart';
 import 'package:saaradhigo_rider/services/websocket_service.dart';
@@ -250,6 +251,29 @@ void main() {
       expect(opened, 1);
       expect(find.textContaining('Pending'), findsNothing,
           reason: 'sentence case, and it says what to do');
+    });
+  });
+
+  group('paid in cash', () {
+    test("the driver's cash confirmation marks the trip paid", () {
+      final n = container.read(rideNotifierProvider.notifier);
+      n.updateFromWebSocket({'type': 'cash_payment_confirmed', 'trip_id': 118});
+      expect(state().rawResponse?['cash_confirmed'], isTrue,
+          reason: 'the payment screen kept offering the wallet for a ride paid in cash');
+      expect(state().rawResponse?['payment_status'], 'completed');
+    });
+  });
+
+  group('completing the profile', () {
+    test('blank fields are left out, so an empty date of birth cannot fail the save', () {
+      final body = profileUpdatePayload({
+        'full_name': 'QA Rider',
+        'dob': '',
+        'emergency_contact': '',
+        'gender': 'male',
+        'home_city': null,
+      });
+      expect(body, {'full_name': 'QA Rider', 'gender': 'male'});
     });
   });
 

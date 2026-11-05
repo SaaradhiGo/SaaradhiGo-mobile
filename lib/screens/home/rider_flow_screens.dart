@@ -496,7 +496,11 @@ class _DriverFoundScreenState extends State<DriverFoundScreen> {
             }
           },
           child: _DarkMapScaffold(
-            title: 'Your Driver is Arriving',
+            // "Arriving" stayed up after the driver reached the pickup.
+            title: mapProvider.container?.read(rideNotifierProvider).status ==
+                    RideStatus.driverArrived
+                ? 'Your driver is here'
+                : 'Your driver is on the way',
             backIcon: Icons.close,
             onBack: () async {
               if (mounted && context.mounted) {
@@ -1194,6 +1198,10 @@ class _RidePaymentSummaryScreenState extends State<RidePaymentSummaryScreen> {
     );
   }
 
+  /// The driver confirming the cash, heard while this screen is open.
+  riverpod.ProviderSubscription<RideState>? _cashSub;
+  bool _cashHandled = false;
+
   @override
   void initState() {
     super.initState();
@@ -1203,9 +1211,51 @@ class _RidePaymentSummaryScreenState extends State<RidePaymentSummaryScreen> {
       _rateTripId = mp.tripId ??
           (raw is Map ? (raw['trip_id'] ?? raw['id'])?.toString() : null);
       _rateDriverName = raw is Map ? raw['driver_name']?.toString() : null;
+      _cashSub = mp.container?.listen<RideState>(
+        rideNotifierProvider,
+        (_, next) {
+          if (next.rawResponse?['cash_confirmed'] == true) _onCashConfirmed();
+        },
+        fireImmediately: true,
+      );
+      // The frame is best-effort, and after `complete` the rider's sockets
+      // may already be closed (trip 121 on QA: confirmed, never heard). The
+      // trip record is the authority, so ask it too.
+      _settledPoll = Timer.periodic(
+        const Duration(seconds: 5),
+        (_) => _checkSettled(),
+      );
       context.read<WalletProvider>().refreshWallet();
       _loadReceiptIfEndedBySupport();
     });
+  }
+
+  Timer? _settledPoll;
+
+  Future<void> _checkSettled() async {
+    final id = _rateTripId;
+    if (id == null || _cashHandled) return;
+    final token = (await SharedPreferences.getInstance()).getString(
+      'access_token',
+    );
+    if (token == null) return;
+    final body = await _rideService.getTripStatus(token, id);
+    if (isSettledCompletedTrip(body?['data'])) _onCashConfirmed();
+  }
+
+  @override
+  void dispose() {
+    _settledPoll?.cancel();
+    _cashSub?.close();
+    super.dispose();
+  }
+
+  /// Paid in cash and confirmed by the driver: nothing is owed here.
+  Future<void> _onCashConfirmed() async {
+    if (_cashHandled || !mounted) return;
+    _cashHandled = true;
+    _settledPoll?.cancel();
+    await _finishCashSelection('Cash payment received. Thank you.');
   }
 
   Future<void> _loadReceiptIfEndedBySupport() async {
