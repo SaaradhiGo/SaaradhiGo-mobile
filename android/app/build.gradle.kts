@@ -139,6 +139,20 @@ android {
         }
     }
 
+    // Local QA only: `qa.debugKeystore=<path>` in the untracked local.properties
+    // signs debug builds with that keystore. Without it the default debug key is used.
+    val qaDebugKeystore = Properties().apply {
+        rootProject.file("local.properties").takeIf { it.exists() }?.inputStream()?.use { load(it) }
+    }.getProperty("qa.debugKeystore")?.trim()?.takeIf { it.isNotEmpty() && file(it).exists() }
+    if (qaDebugKeystore != null) {
+        signingConfigs.getByName("debug") {
+            storeFile = file(qaDebugKeystore)
+            storePassword = "android"
+            keyAlias = "androiddebugkey"
+            keyPassword = "android"
+        }
+    }
+
     defaultConfig {
         // TODO: Specify your own unique Application ID (https://developer.android.com/studio/build/application-id.html).
         applicationId = "com.deeptrics.saaradhigo"

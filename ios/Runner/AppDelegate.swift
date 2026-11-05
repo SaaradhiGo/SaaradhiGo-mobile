@@ -13,6 +13,8 @@ import UIKit
 // With no key supplied the app still starts; the map simply has no tiles.
 @main
 @objc class AppDelegate: FlutterAppDelegate, FlutterImplicitEngineDelegate {
+  private var hasMapsKey = false
+
   override func application(
     _ application: UIApplication,
     didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]?
@@ -21,11 +23,19 @@ import UIKit
       !key.isEmpty, !key.hasPrefix("$(")
     {
       GMSServices.provideAPIKey(key)
+      hasMapsKey = true
     }
     return super.application(application, didFinishLaunchingWithOptions: launchOptions)
   }
 
   func didInitializeImplicitFlutterEngine(_ engineBridge: FlutterImplicitEngineBridge) {
     GeneratedPluginRegistrant.register(with: engineBridge.pluginRegistry)
+    // The app draws its branded placeholder map unless a key was built in.
+    let channel = FlutterMethodChannel(
+      name: "saaradhigo/maps",
+      binaryMessenger: engineBridge.applicationRegistrar.messenger())
+    channel.setMethodCallHandler { [weak self] call, result in
+      if call.method == "hasKey" { result(self?.hasMapsKey ?? false) } else { result(FlutterMethodNotImplemented) }
+    }
   }
 }
