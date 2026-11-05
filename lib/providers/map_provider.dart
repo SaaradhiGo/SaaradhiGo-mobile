@@ -20,6 +20,8 @@ import '../state/ride_state.dart';
 import '../services/websocket_service.dart';
 import '../services/token_store.dart';
 import '../core/promo/promo_selection.dart';
+import '../core/route_follow.dart';
+import 'package:flutter_polyline_points/flutter_polyline_points.dart';
 
 enum LocationStatus { unknown, loading, confirmed, failed }
 
@@ -450,6 +452,7 @@ class MapProvider extends ChangeNotifier {
   }
 
   void resetRoute() {
+    _followedLeg = null;
     _pickupLocation = null;
     _dropLocation = null;
     _precisePickupLocation = null;
@@ -513,7 +516,8 @@ class MapProvider extends ChangeNotifier {
     notifyListeners();
 
     final effectivePickup = _precisePickupLocation ?? _pickupLocation!.latLng;
-    final types = await _fareService.vehicleTypesAt(
+    final types =
+        await _fareService.vehicleTypesAt(
           effectivePickup.latitude,
           effectivePickup.longitude,
         ) ??
@@ -534,8 +538,8 @@ class MapProvider extends ChangeNotifier {
     for (var i = 0; i < types.length; i++) {
       final estimate = results[i];
       if (estimate == null || estimate['estimated_fare'] == null) continue;
-      estimate['time_to_drop'] =
-          (km / vehicleClassSpeedKmh(types[i]) * 60).round();
+      estimate['time_to_drop'] = (km / vehicleClassSpeedKmh(types[i]) * 60)
+          .round();
       _fareEstimates[types[i]] = estimate;
     }
     // A class chosen for the previous route may not be priced on this one.
@@ -693,47 +697,82 @@ class MapProvider extends ChangeNotifier {
     return true;
   }
 
-  Future<void> updateRidingPolyline() async {
-    final driverLoc = driverLocation;
-    final dropLoc = _dropLocation?.latLng;
+  // Live tracking must not buy routes: each leg is fetched once (or taken
+  // from the backend's planned route), then trimmed locally. A re-fetch needs
+  // the driver >150 m off the line AND >=60 s since the last fetch.
+  String? _followedLeg;
+  DateTime? _lastRouteFetch;
+  bool _routeFetchInFlight = false;
 
-    if (driverLoc == null || dropLoc == null) return;
+  Future<void> updateRidingPolyline() => _followLeg('trip');
 
-    final directions = await _locationService.getDirections(
-      origin: driverLoc,
-      destination: dropLoc,
-    );
+  Future<void> updateArrivingPolyline() => _followLeg('arrival');
 
-    if (directions != null) {
-      _polylineCoordinates = List<LatLng>.from(
-        directions['polylineCoordinates'],
-      );
-      _distance = directions['distance'];
-      _duration = directions['duration'];
-      _bounds = directions['bounds'];
-      notifyListeners();
-    }
+  /// Encoded planned route the backend stored on accept, if the trip payload
+  /// carries it; null otherwise.
+  List<LatLng>? _plannedRoute() {
+    final raw = container?.read(rideNotifierProvider).rawResponse;
+    final enc = raw?['planned_route_polyline'];
+    if (enc is! String || enc.isEmpty) return null;
+    final pts = PolylinePoints.decodePolyline(
+      enc,
+    ).map((p) => LatLng(p.latitude, p.longitude)).toList();
+    return pts.length >= 2 ? pts : null;
   }
 
-  Future<void> updateArrivingPolyline() async {
+  Future<void> _followLeg(String leg) async {
     final driverLoc = driverLocation;
-    final pickupLoc = _precisePickupLocation ?? _pickupLocation?.latLng;
+    final target = leg == 'trip'
+        ? _dropLocation?.latLng
+        : (_precisePickupLocation ?? _pickupLocation?.latLng);
+    if (driverLoc == null || target == null) return;
 
-    if (driverLoc == null || pickupLoc == null) return;
+    if (_followedLeg != leg) {
+      _followedLeg = leg;
+      _lastRouteFetch = null;
+      _polylineCoordinates = [];
+      final planned = leg == 'trip' ? _plannedRoute() : null;
+      if (planned != null) _polylineCoordinates = planned;
+    }
+    // The planned route can land after the leg started.
+    if (leg == 'trip' && _polylineCoordinates.isEmpty) {
+      final planned = _plannedRoute();
+      if (planned != null) _polylineCoordinates = planned;
+    }
 
-    final directions = await _locationService.getDirections(
-      origin: driverLoc,
-      destination: pickupLoc,
-    );
-
-    if (directions != null) {
-      _polylineCoordinates = List<LatLng>.from(
-        directions['polylineCoordinates'],
-      );
-      _distance = directions['distance'];
-      _duration = directions['duration'];
-      _bounds = directions['bounds'];
+    if (_polylineCoordinates.isNotEmpty) {
+      _polylineCoordinates = RouteFollow.trim(driverLoc, _polylineCoordinates);
       notifyListeners();
+    }
+
+    final now = DateTime.now();
+    if (_routeFetchInFlight ||
+        !RouteFollow.shouldRefetch(
+          driver: driverLoc,
+          line: _polylineCoordinates,
+          lastFetch: _lastRouteFetch,
+          now: now,
+        )) {
+      return;
+    }
+    _routeFetchInFlight = true;
+    _lastRouteFetch = now;
+    try {
+      final directions = await _locationService.getDirections(
+        origin: driverLoc,
+        destination: target,
+      );
+      if (directions != null && _followedLeg == leg) {
+        _polylineCoordinates = List<LatLng>.from(
+          directions['polylineCoordinates'],
+        );
+        _distance = directions['distance'];
+        _duration = directions['duration'];
+        _bounds = directions['bounds'];
+        notifyListeners();
+      }
+    } finally {
+      _routeFetchInFlight = false;
     }
   }
 

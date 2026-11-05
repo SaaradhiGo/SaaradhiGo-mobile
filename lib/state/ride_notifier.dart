@@ -300,6 +300,9 @@ class RideNotifier extends Notifier<RideState> {
       if (dData['otp'] != null) mergedResponse['otp'] = dData['otp'];
       if (dData['driver_rating'] != null)
         mergedResponse['driver_rating'] = dData['driver_rating'];
+      // Drawn for the trip leg instead of a directions call per ping (Maps M1).
+      if (dData['planned_route_polyline'] != null)
+        mergedResponse['planned_route_polyline'] = dData['planned_route_polyline'];
     }
 
     state = state.copyWith(
