@@ -91,7 +91,9 @@ class HomeSheet extends StatelessWidget {
               Text('Where to?', style: SgText.displayLg),
               const SizedBox(height: SgSpace.s3),
             ],
-            search,
+            // Keyed: opening the search removes the lines above it, and an
+            // unkeyed field would be rebuilt there, losing focus and the keyboard.
+            KeyedSubtree(key: const ValueKey('home-search'), child: search),
             if (expanded)
               const SizedBox.shrink()
             else ...[

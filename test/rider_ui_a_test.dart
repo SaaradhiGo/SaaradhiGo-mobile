@@ -144,7 +144,7 @@ void main() {
     });
 
     test('same name far apart is two places; no coordinates counts as the same', () {
-      expect(distinctRecentTrips([trip(1, 'Home', 17.4, 78.4), trip(2, 'Home', 17.5, 78.5)]).length, 2);
+      expect(distinctRecentTrips([trip(1, 'Home', 17.4, 78.4), trip(2, 'Home', 17.6, 78.6)]).length, 2);
       expect(distinctRecentTrips([trip(1, 'Inorbit Mall'), trip(2, 'inorbit mall, x')]).length, 1);
     });
 

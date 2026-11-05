@@ -54,6 +54,7 @@ Future<void> _pumpHome(WidgetTester tester) async {
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
   setUp(stubStartupPluginChannels);
+  _focusSurvivesOpening();
 
   testWidgets('no tab bar, and no pickup suggestions open by themselves', (
     tester,
@@ -111,6 +112,24 @@ void main() {
       expect(find.text('Where to?'), findsOneWidget);
     },
   );
+}
+
+// Seen on the emulator: opening the search rebuilt the field, so the keyboard
+// closed and the typed text was lost.
+void _focusSurvivesOpening() {
+  testWidgets('the destination field keeps focus and text when the sheet opens', (
+    tester,
+  ) async {
+    await _pumpHome(tester);
+    await tester.tap(find.byType(TextField).last);
+    await _settle(tester);
+    final field = find.byType(TextField).last;
+    expect(tester.widget<TextField>(field).focusNode!.hasFocus, isTrue);
+    await tester.enterText(field, 'Charminar');
+    await _settle(tester);
+    expect(find.text('Charminar'), findsWidgets);
+    expect(tester.widget<TextField>(find.byType(TextField).last).focusNode!.hasFocus, isTrue);
+  });
 }
 
 Future<void> _settle(WidgetTester tester) async {
