@@ -10,6 +10,7 @@ import '../services/location_service.dart';
 import '../services/fare_service.dart';
 import '../services/driver_service.dart';
 import '../services/favorite_location_service.dart';
+import '../services/api_service.dart';
 import '../services/ride_service.dart';
 import '../services/service_area_service.dart';
 import '../services/models/location_model.dart';
@@ -252,7 +253,10 @@ class MapProvider extends ChangeNotifier {
       if (token != null) {
         final results = await Future.wait([
           _favoriteLocationService.fetchFavoriteLocations(),
-          _rideService.fetchRideHistory(token),
+          _rideService.fetchRideHistory(
+            token,
+            onUnauthorized: () => ApiService().refreshAccessToken(),
+          ),
         ]);
 
         _favoriteLocations = results[0] as List<FavoriteLocation>;

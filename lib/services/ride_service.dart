@@ -22,17 +22,27 @@ class RideService {
   Stream<dynamic>? get rideUpdates => _rideRequestChannel?.stream;
   Stream<dynamic>? get tripUpdates => _tripChannel?.stream;
 
-  Future<List<Trip>> fetchRideHistory(String token) async {
+  /// [onUnauthorized] refreshes an expired access token; the call is retried
+  /// once with the new one (a cold start otherwise showed no recent places).
+  Future<List<Trip>> fetchRideHistory(
+    String token, {
+    Future<String?> Function()? onUnauthorized,
+  }) async {
     String url = '${AppConfig.baseUrl}${AppConfig.rideHistory}';
 
     try {
-      final response = await _client.get(
-        Uri.parse(url),
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': 'Bearer $token',
-        },
-      );
+      Future<http.Response> get(String t) => _client.get(
+            Uri.parse(url),
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': 'Bearer $t',
+            },
+          );
+      var response = await get(token);
+      if (response.statusCode == 401 && onUnauthorized != null) {
+        final fresh = await onUnauthorized();
+        if (fresh != null && fresh.isNotEmpty) response = await get(fresh);
+      }
 
       if (response.statusCode == 200) {
         final dynamic data = jsonDecode(response.body);
