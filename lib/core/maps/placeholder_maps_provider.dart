@@ -151,6 +151,16 @@ class _OverlayPainter extends CustomPainter {
 
   /// Projects lat/lng into the part of the box the sheet leaves free.
   Offset Function(LatLng) _projector(Size size) {
+    if (map.onCameraMove != null) {
+      // A draggable map is centred on its start point at the real zoom scale.
+      final c = map.initialCenter;
+      final k = math.cos(c.latitude * math.pi / 180);
+      final perDeg = 111320 / (156543.03392 * k / math.pow(2, map.initialZoom));
+      return (p) => Offset(
+            size.width / 2 + (p.longitude - c.longitude) * k * perDeg,
+            size.height / 2 - (p.latitude - c.latitude) * perDeg,
+          );
+    }
     final pad = map.fitPadding ?? map.padding;
     final area = Rect.fromLTRB(pad.left + 24, pad.top + 24, size.width - pad.right - 24,
         size.height - pad.bottom - 24);
@@ -247,6 +257,12 @@ class _OverlayPainter extends CustomPainter {
             Rect.fromCenter(center: c, width: 6, height: 6), const Radius.circular(1.5)),
         Paint()..color = SgColors.bg000,
       );
+    } else if (icon is SgCarMarker) {
+      canvas.save();
+      canvas.translate(c.dx, c.dy);
+      canvas.rotate(m.rotation * math.pi / 180);
+      paintCarGlyph(canvas, Offset.zero, icon.size);
+      canvas.restore();
     } else {
       canvas.save();
       canvas.translate(c.dx, c.dy);

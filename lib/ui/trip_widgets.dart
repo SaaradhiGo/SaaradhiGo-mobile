@@ -6,6 +6,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 
 import '../core/vehicle_classes.dart';
+import '../utils/money.dart' show formatMoney;
 import 'choose_ride_sheet.dart' show minLabel;
 import 'sg_text.dart';
 import 'sg_tokens.dart';
@@ -74,7 +75,7 @@ class SgPlate extends StatelessWidget {
   Widget build(BuildContext context) => Container(
         padding: const EdgeInsets.symmetric(horizontal: SgSpace.s2, vertical: 4),
         decoration: BoxDecoration(color: SgColors.champagne, borderRadius: BorderRadius.circular(SgRadius.sm)),
-        child: Text(number.toUpperCase(),
+        child: Text(formatPlate(number),
             style: SgText.fare.copyWith(fontSize: 14, height: 20 / 14, color: SgColors.onGold, letterSpacing: 1.1)),
       );
 }
@@ -236,10 +237,21 @@ class DriverCardData {
   final String? plate;
 }
 
+/// "TS09QT0059" becomes "TS 09 QT 0059"; other formats stay as given, uppercase.
+String formatPlate(String raw) {
+  final up = raw.trim().toUpperCase();
+  final m = RegExp(r'^([A-Z]{2})(\d{1,2})([A-Z]{1,3})(\d{1,4})$').firstMatch(up.replaceAll(' ', ''));
+  return m == null ? up : '${m[1]} ${m[2]} ${m[3]} ${m[4]}';
+}
+
+/// The amount as charged: no decimals when the paise are zero, else two.
+String exactMoney(num amount, String? code) =>
+    formatMoney(amount, code, decimals: (amount * 100).round() % 100 == 0 ? 0 : 2) ?? '';
+
 /// Two decimals, as printed in the design ("4.92"); null if not a number.
 String? ratingText(Object? raw) {
   final v = raw is num ? raw.toDouble() : double.tryParse('${raw ?? ''}');
-  return v?.toStringAsFixed(2);
+  return (v == null || v <= 0) ? null : v.toStringAsFixed(2);
 }
 
 class SgDriverCard extends StatelessWidget {

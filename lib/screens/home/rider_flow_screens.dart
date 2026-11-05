@@ -849,7 +849,7 @@ class RidePaymentSummaryScreen extends StatefulWidget {
 }
 
 class _RidePaymentSummaryScreenState extends State<RidePaymentSummaryScreen> {
-  String _selectedPaymentMethod = 'wallet';
+  String _selectedPaymentMethod = 'cash';
   final PaymentService _paymentService = PaymentService();
   late final RideService _rideService = widget.rideService ?? RideService();
   bool _isProcessing = false;
@@ -899,6 +899,9 @@ class _RidePaymentSummaryScreenState extends State<RidePaymentSummaryScreen> {
   @override
   void initState() {
     super.initState();
+    // The method chosen at booking, never a wallet that may be empty.
+    _selectedPaymentMethod =
+        context.read<MapProvider>().selectedPaymentMethod == 'cash' ? 'cash' : 'upi_card';
     WidgetsBinding.instance.addPostFrameCallback((_) {
       final mp = context.read<MapProvider>();
       final raw = mp.rideRequestResponse;
@@ -1388,7 +1391,8 @@ class _RidePaymentSummaryScreenState extends State<RidePaymentSummaryScreen> {
             ? (double.tryParse(charge.payable ?? '') ?? totalFare)
             : totalFare;
 
-        _fareText = formatMoney(payTotal, currencyCode, decimals: 0);
+        _fareText = exactMoney(payTotal, currencyCode);
+        final walletShort = walletProvider.balance < payTotal;
         return Scaffold(
           backgroundColor: SgColors.bg000,
           body: SafeArea(
@@ -1426,10 +1430,20 @@ class _RidePaymentSummaryScreenState extends State<RidePaymentSummaryScreen> {
                   )
                 else ...[
                   _buildPaymentOption(
+                    id: 'cash',
+                    title: 'Pay with Cash',
+                    subtitle: 'Hand it to your driver',
+                    icon: SgIcons.cash,
+                    isSelected: _selectedPaymentMethod == 'cash',
+                    onTap: () => setState(() => _selectedPaymentMethod = 'cash'),
+                  ),
+                  const SizedBox(height: SgSpace.s3),
+                  _buildPaymentOption(
                     id: 'wallet',
                     title: 'Pay from Wallet',
-                    subtitle:
-                        'Current Balance: ${MarketConfigStore.instance.current.currencySymbol}${walletProvider.balance.toStringAsFixed(2)}',
+                    subtitle: walletShort
+                        ? 'Not enough balance'
+                        : 'Current Balance: ${MarketConfigStore.instance.current.currencySymbol}${walletProvider.balance.toStringAsFixed(2)}',
                     icon: SgIcons.wallet,
                     isSelected: _selectedPaymentMethod == 'wallet',
                     onTap: () => setState(() => _selectedPaymentMethod = 'wallet'),
@@ -1447,9 +1461,12 @@ class _RidePaymentSummaryScreenState extends State<RidePaymentSummaryScreen> {
                     label: _isProcessing ? 'Processing' : 'Confirm & Pay',
                     onPressed: _isProcessing
                         ? null
-                        : () => _processPayment(payTotal, walletProvider, rideData),
+                        : () => _selectedPaymentMethod == 'cash'
+                            ? _payWithCash(payTotal, currencyCode, rideData)
+                            : _processPayment(payTotal, walletProvider, rideData),
                   ),
                   const SizedBox(height: SgSpace.s2),
+                  if (_selectedPaymentMethod != 'cash')
                   Center(
                     child: TextButton(
                       onPressed: _isProcessing
@@ -1777,11 +1794,7 @@ class _DarkMapScaffoldState extends State<_DarkMapScaffold>
               SgMarker(
                 id: 'driver',
                 point: _animatedDriverLocation!,
-                icon: const SgIconMarker(
-                  Icons.directions_car,
-                  Color(0xFFEEBD2B),
-                  size: 34,
-                ),
+                icon: const SgCarMarker(),
                 anchor: const Offset(0.5, 0.5),
                 label: 'Your driver',
               ),

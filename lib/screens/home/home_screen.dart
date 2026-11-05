@@ -504,7 +504,7 @@ class _HomeTab extends StatelessWidget {
   final VoidCallback onProfileTap;
   final ValueNotifier<bool> searchOpen;
 
-  Future<void> _goTo(BuildContext context, String dropPlaceId) async {
+  Future<void> _goTo(BuildContext context, String dropPlaceId, {String? dropName}) async {
     final provider = context.read<MapProvider>();
     if (provider.isTripInProgress) {
       onActiveRideTap();
@@ -531,6 +531,7 @@ class _HomeTab extends StatelessWidget {
             : 'Current Location',
         presetPickup: currentPosition,
         dropPlaceId: dropPlaceId,
+        dropName: dropName,
       );
     } catch (e) {
       // Pickup outside our service area: show ComingSoonOverlay and stop.
@@ -563,6 +564,7 @@ class _HomeTab extends StatelessWidget {
           onTap: () => _goTo(
             context,
             fav.latitude != 0 ? '${fav.latitude},${fav.longitude}' : 'current',
+            dropName: fav.addressText,
           ),
           // Removing a saved place stays one long-press away.
           onLongPress: () => context.read<MapProvider>().deleteLocation(fav.id),
@@ -591,6 +593,7 @@ class _HomeTab extends StatelessWidget {
               await _goTo(
                 context,
                 '${trip.destinationLat},${trip.destinationLng}',
+                dropName: trip.destinationAddress,
               );
             } else if (!provider.isTripInProgress) {
               context.push('/route-map');

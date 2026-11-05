@@ -30,8 +30,6 @@ const _carAt = LatLng(17.395, 78.375);
 
 const _pickup = SgMarker(
     id: 'pickup', point: tripPickup, icon: SgSvgMarker('assets/markers/pickup.svg'));
-const _drop = SgMarker(
-    id: 'drop', point: tripDrop, icon: SgSvgMarker('assets/markers/dropoff.svg'));
 const _car = SgMarker(
     id: 'driver',
     point: _carAt,

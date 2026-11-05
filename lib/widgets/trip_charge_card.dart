@@ -26,7 +26,7 @@ class TripChargeCard extends StatelessWidget {
     required this.charge,
     this.endedBySupport = false,
     this.distanceDriven,
-    this.fareTitle = 'Ride Fare',
+    this.fareTitle = 'FARE',
   });
 
   /// The fare string the server sent.
@@ -86,8 +86,9 @@ class TripChargeCard extends StatelessWidget {
             charge.notCharged ? 'Your ride' : fareTitle,
             style: GoogleFonts.inter(
               color: _muted,
-              fontSize: 14,
-              fontWeight: FontWeight.w500,
+              fontSize: 11,
+              fontWeight: FontWeight.w700,
+              letterSpacing: 1.3,
             ),
           ),
           const SizedBox(height: 8),

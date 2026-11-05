@@ -61,6 +61,8 @@ class MarkerBitmaps {
         canvas.scale(scale);
         canvas.drawPicture(info.picture);
         info.picture.dispose();
+      case SgCarMarker():
+        paintCarGlyph(canvas, Offset(px / 2, px / 2), px.toDouble());
       case SgIconMarker(:final icon, :final color):
         final tp = TextPainter(
           text: TextSpan(

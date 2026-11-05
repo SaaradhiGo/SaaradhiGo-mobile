@@ -244,6 +244,8 @@ void main() {
       expect(initialsOf('ravi kumar'), 'RK');
       expect(ratingText('4.9'), '4.90');
       expect(ratingText(null), isNull);
+      expect(ratingText(0), isNull);
+      expect(ratingText('0.00'), isNull);
       expect(tripDetailLine('Inorbit Mall, Madhapur', DateTime(2026, 1, 1, 21, 41), '24 mins'),
           'Inorbit Mall · 9:41 pm · 24 min');
     });
@@ -303,6 +305,18 @@ void main() {
       expect(find.text('FARE BY CASH'), findsOneWidget);
       expect(find.textContaining('Tip'), findsNothing);
       expect(find.byType(SgPrimaryButton), findsOneWidget);
+    });
+
+    test('plates print as written on the car; other formats stay', () {
+      expect(formatPlate('TS09QT0059'), 'TS 09 QT 0059');
+      expect(formatPlate('ts 09 ex 4821'), 'TS 09 EX 4821');
+      expect(formatPlate('KA5A12'), 'KA 5 A 12');
+      expect(formatPlate('abc-123'), 'ABC-123');
+    });
+
+    test('the paid amount is exact: no decimals only when paise are zero', () {
+      expect(exactMoney(121.46, 'INR'), '₹121.46');
+      expect(exactMoney(248.0, 'INR'), '₹248');
     });
 
     test('payment method names', () {

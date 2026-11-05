@@ -386,6 +386,7 @@ class MapProvider extends ChangeNotifier {
     LatLng? presetPickup,
     required String pickupName,
     required String dropPlaceId,
+    String? dropName,
   }) async {
     _isLoadingRoute = true;
     notifyListeners();
@@ -421,7 +422,17 @@ class MapProvider extends ChangeNotifier {
         _sessionToken,
       );
       if (dropDetails != null) {
-        _dropLocation = dropDetails;
+        // A saved or recent place arrives as bare coordinates; keep its name.
+        final named = dropName != null && dropName.trim().isNotEmpty && dropPlaceId.contains(',');
+        _dropLocation = named
+            ? PlaceDetails(
+                placeId: dropDetails.placeId,
+                name: dropName.trim(),
+                formattedAddress: dropDetails.formattedAddress,
+                latitude: dropDetails.latitude,
+                longitude: dropDetails.longitude,
+              )
+            : dropDetails;
         resetSessionToken();
         clearSuggestions();
 
