@@ -153,8 +153,12 @@ android {
         // SDK (owner decision D1). Passed at build time, never committed:
         //   flutter build apk --android-project-arg maps.apiKey=<key>
         // Empty when not passed: the app builds and runs, the map has no tiles.
+        // CI passes -Pmaps.apiKey; a local build reads MAPS_API_KEY from the untracked local.properties.
         manifestPlaceholders["MAPS_API_KEY"] =
-            (project.findProperty("maps.apiKey") as String?) ?: ""
+            (project.findProperty("maps.apiKey") as String?)
+                ?: Properties().apply {
+                    rootProject.file("local.properties").takeIf { it.exists() }?.inputStream()?.use { load(it) }
+                }.getProperty("MAPS_API_KEY", "")
     }
 
     buildTypes {
