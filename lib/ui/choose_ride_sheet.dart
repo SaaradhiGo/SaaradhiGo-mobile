@@ -11,6 +11,10 @@ import 'sg_text.dart';
 import 'sg_tokens.dart';
 import 'sg_widgets.dart';
 
+/// "92 mins" -> "92 min": the app says min everywhere.
+String minLabel(String s) =>
+    s.replaceAllMapped(RegExp(r'\b(mins|minutes|minute)\b'), (_) => 'min');
+
 /// One bookable class, built from a `/ride/estimate-fare/` response.
 class RideOption {
   const RideOption({
@@ -73,13 +77,11 @@ class RideOption {
     final fare = double.tryParse(e['estimated_fare']?.toString() ?? '');
     if (fare == null) return null;
     final eta = _num(e, _etaKeys);
-    final seats = _num(e, _seatKeys);
-    final drop = e['time_to_drop'];
+    final seats = _num(e, _seatKeys) ?? vehicleClassSeats(type);
     final parts = <String>[
       if (eta != null) '${eta.ceil()} min',
       if (seats != null) '${seats.toInt()} ${seats == 1 ? 'seat' : 'seats'}',
     ];
-    if (parts.isEmpty && drop is num) parts.add('Drop in ${drop.ceil()} min');
     return RideOption(
       type: type,
       name: 'Saaradhi ${vehicleClassName(type)}',

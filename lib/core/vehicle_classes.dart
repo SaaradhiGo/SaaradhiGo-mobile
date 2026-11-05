@@ -85,3 +85,23 @@ String vehicleClassAsset(String? type) {
   }
   return 'assets/vehicles/sedan.svg';
 }
+
+/// Seats a class carries, shown when the fare API does not say.
+int? vehicleClassSeats(String? type) {
+  switch ((type ?? '').trim().toLowerCase()) {
+    case 'bike':
+      return 1;
+    case 'auto':
+      return 3;
+    case 'hatchback':
+    case 'mini':
+    case 'sedan':
+    case 'black':
+    case 'premium':
+    case 'car_premium':
+      return 4;
+    case 'suv':
+      return 6;
+  }
+  return null;
+}

@@ -127,6 +127,7 @@ class SgMap extends StatelessWidget {
     this.onCameraMove,
     this.onCameraIdle,
     this.padding = EdgeInsets.zero,
+    this.fitPadding,
     this.interactive = true,
     this.showMyLocation = false,
     this.provider,
@@ -142,6 +143,9 @@ class SgMap extends StatelessWidget {
 
   /// Map UI (logo, attribution) is kept clear of this, e.g. a bottom sheet.
   final EdgeInsets padding;
+
+  /// Where the route and pins are kept clear of (a back button, a sheet).
+  final EdgeInsets? fitPadding;
   final bool interactive;
   final bool showMyLocation;
 

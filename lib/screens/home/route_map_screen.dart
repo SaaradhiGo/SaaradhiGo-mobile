@@ -168,7 +168,12 @@ class _RouteMapScreenState extends State<RouteMapScreen> {
           : [pickup];
       _mapController?.fitPoints(
         points,
-        padding: const EdgeInsets.symmetric(horizontal: 50, vertical: 80),
+        padding: EdgeInsets.fromLTRB(
+          32,
+          MediaQuery.of(context).padding.top + 72,
+          32,
+          32,
+        ),
       );
 
       // Delay tile rendering until the camera has fitted its target bounds
@@ -338,7 +343,12 @@ class _RouteMapScreenState extends State<RouteMapScreen> {
                           initialZoom: initialZoom,
                           markers: markers,
                           polylines: polylines,
-                                                    padding: EdgeInsets.zero,
+                                                    fitPadding: EdgeInsets.fromLTRB(
+                            32,
+                            MediaQuery.of(context).padding.top + 72,
+                            32,
+                            32,
+                          ),
                           onMapCreated: (c) {
                             _mapController = c;
                             _fitBoundsIfNeeded(mapProvider);
@@ -482,7 +492,7 @@ class _RouteMapScreenState extends State<RouteMapScreen> {
       onSelect: provider.selectVehicleType,
       summary: (distance == null && provider.duration == null)
           ? null
-          : '${distance ?? '--'} · ${provider.duration ?? '--'}',
+          : '${distance ?? '--'} · ${minLabel(provider.duration ?? '--')}',
       paymentLabel: payment.toLowerCase() == 'cash'
           ? 'Cash'
           : payment[0].toUpperCase() + payment.substring(1),

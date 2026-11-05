@@ -1,11 +1,16 @@
 // Rider UI group A: the "Where to?" sheet, "Choose a ride", and the map seam.
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:saaradhigo_rider/core/maps/maps_availability.dart';
 import 'package:saaradhigo_rider/core/maps/placeholder_maps_provider.dart';
 import 'package:saaradhigo_rider/core/maps/sg_map.dart';
 import 'package:saaradhigo_rider/ui/choose_ride_sheet.dart';
+import 'package:saaradhigo_rider/core/vehicle_classes.dart';
+import 'package:saaradhigo_rider/services/models/trip_model.dart';
 import 'package:saaradhigo_rider/ui/home_sheet.dart';
+import 'package:saaradhigo_rider/utils/recent_places.dart';
 
 import 'support/rider_ui_fixtures.dart';
 
@@ -114,6 +119,51 @@ void main() {
       expect(find.text('Higher demand right now'), findsOneWidget);
       final texts = tester.widgetList<Text>(find.byType(Text)).map((t) => (t.data ?? '').toLowerCase());
       expect(texts.where((t) => t.contains('surge')), isEmpty);
+    });
+  });
+
+  group('group A fixes', () {
+    Trip trip(int id, String dest, [double? lat, double? lng]) => Trip(
+          id: id,
+          pickupAddress: 'A',
+          destinationAddress: dest,
+          status: 'completed',
+          destinationLat: lat,
+          destinationLng: lng,
+        );
+
+    test('the same place is listed once', () {
+      final out = distinctRecentTrips([
+        trip(1, 'Inorbit Mall', 17.4335, 78.3860),
+        trip(2, 'Inorbit Mall, Madhapur, Hyderabad', 17.4336, 78.3861),
+        trip(3, 'Charminar, Old City', 17.3616, 78.4747),
+      ]);
+      expect(out.map((t) => t.id), [1, 3]);
+    });
+
+    test('same name far apart is two places; no coordinates counts as the same', () {
+      expect(distinctRecentTrips([trip(1, 'Home', 17.4, 78.4), trip(2, 'Home', 17.5, 78.5)]).length, 2);
+      expect(distinctRecentTrips([trip(1, 'Inorbit Mall'), trip(2, 'inorbit mall, x')]).length, 1);
+    });
+
+    test('rows show class seats and only an API ETA; min, never mins', () {
+      final o = RideOption.fromEstimates({
+        'sedan': {'estimated_fare': '248', 'time_to_drop': 30},
+        'bike': {'estimated_fare': '90', 'pickup_eta_min': 2},
+      });
+      expect(o.firstWhere((e) => e.type == 'sedan').meta, '4 seats');
+      expect(o.firstWhere((e) => e.type == 'bike').meta, '2 min · 1 seat');
+      expect(o.map((e) => e.meta).join(), isNot(contains('Drop in')));
+      expect(minLabel('92 mins'), '92 min');
+      expect(vehicleClassSeats('suv'), 6);
+      expect(vehicleClassSeats('mini'), 4);
+    });
+
+    test('Mini and Sedan have different icons', () {
+      expect(vehicleClassAsset('hatchback'), isNot(vehicleClassAsset('sedan')));
+      final a = File('assets/vehicles/hatchback.svg').readAsStringSync();
+      final b = File('assets/vehicles/sedan.svg').readAsStringSync();
+      expect(a, isNot(b));
     });
   });
 

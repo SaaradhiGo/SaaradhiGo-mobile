@@ -8,7 +8,12 @@ import 'sg_tokens.dart';
 import 'sg_widgets.dart';
 
 class SavedChipData {
-  const SavedChipData({required this.label, required this.onTap, this.onLongPress, this.icon});
+  const SavedChipData({
+    required this.label,
+    required this.onTap,
+    this.onLongPress,
+    this.icon,
+  });
   final String label;
   final String? icon;
   final VoidCallback onTap;
@@ -38,7 +43,11 @@ String greetingFor(DateTime now) {
 
 /// "Inorbit Mall, Madhapur" -> name "Inorbit Mall", address "Madhapur".
 ({String name, String address}) splitPlace(String full) {
-  final parts = full.split(',').map((s) => s.trim()).where((s) => s.isNotEmpty).toList();
+  final parts = full
+      .split(',')
+      .map((s) => s.trim())
+      .where((s) => s.isNotEmpty)
+      .toList();
   if (parts.isEmpty) return (name: full, address: '');
   return (name: parts.first, address: parts.skip(1).join(', '));
 }
@@ -52,6 +61,7 @@ class HomeSheet extends StatelessWidget {
     required this.recents,
     this.banner,
     this.loading = false,
+    this.expanded = false,
   });
 
   final String greeting;
@@ -65,6 +75,9 @@ class HomeSheet extends StatelessWidget {
   final Widget? banner;
   final bool loading;
 
+  /// Searching: only the fields and their results show.
+  final bool expanded;
+
   @override
   Widget build(BuildContext context) {
     return SgSheetSurface(
@@ -73,47 +86,62 @@ class HomeSheet extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.stretch,
           mainAxisSize: MainAxisSize.min,
           children: [
-            Text(greeting, style: SgText.caption),
-            Text('Where to?', style: SgText.displayLg),
-            const SizedBox(height: SgSpace.s3),
-            search,
-            if (banner != null) ...[const SizedBox(height: SgSpace.s3), banner!],
-            if (chips.isNotEmpty) ...[
+            if (!expanded) ...[
+              Text(greeting, style: SgText.caption),
+              Text('Where to?', style: SgText.displayLg),
               const SizedBox(height: SgSpace.s3),
-              SizedBox(
-                height: kSgTouch,
-                child: ListView(
-                  scrollDirection: Axis.horizontal,
-                  children: [
-                    for (final c in chips)
-                      Padding(
-                        padding: const EdgeInsets.only(right: SgSpace.s2),
-                        child: _Chip(data: c),
-                      ),
-                  ],
-                ),
-              ),
             ],
-            const SizedBox(height: SgSpace.s2),
-            if (loading && recents.isEmpty && chips.isEmpty)
-              const Padding(
-                padding: EdgeInsets.all(SgSpace.s4),
-                child: Center(
-                  child: SizedBox(
-                    width: 20,
-                    height: 20,
-                    child: CircularProgressIndicator(strokeWidth: 2, color: SgColors.gold500),
+            search,
+            if (expanded)
+              const SizedBox.shrink()
+            else ...[
+              if (banner != null) ...[
+                const SizedBox(height: SgSpace.s3),
+                banner!,
+              ],
+              if (chips.isNotEmpty) ...[
+                const SizedBox(height: SgSpace.s3),
+                SizedBox(
+                  height: kSgTouch,
+                  child: ListView(
+                    scrollDirection: Axis.horizontal,
+                    children: [
+                      for (final c in chips)
+                        Padding(
+                          padding: const EdgeInsets.only(right: SgSpace.s2),
+                          child: _Chip(data: c),
+                        ),
+                    ],
                   ),
                 ),
-              )
-            else if (recents.isEmpty)
-              Padding(
-                padding: const EdgeInsets.symmetric(vertical: SgSpace.s3),
-                child: Text('Places you ride to will appear here.', style: SgText.caption),
-              )
-            else
-              for (var i = 0; i < recents.length; i++)
-                _Place(data: recents[i], last: i == recents.length - 1),
+              ],
+              const SizedBox(height: SgSpace.s2),
+              if (loading && recents.isEmpty && chips.isEmpty)
+                const Padding(
+                  padding: EdgeInsets.all(SgSpace.s4),
+                  child: Center(
+                    child: SizedBox(
+                      width: 20,
+                      height: 20,
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2,
+                        color: SgColors.gold500,
+                      ),
+                    ),
+                  ),
+                )
+              else if (recents.isEmpty)
+                Padding(
+                  padding: const EdgeInsets.symmetric(vertical: SgSpace.s3),
+                  child: Text(
+                    'Places you ride to will appear here.',
+                    style: SgText.caption,
+                  ),
+                )
+              else
+                for (var i = 0; i < recents.length; i++)
+                  _Place(data: recents[i], last: i == recents.length - 1),
+            ],
           ],
         ),
       ),
@@ -127,32 +155,40 @@ class _Chip extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Semantics(
-        button: true,
-        child: InkWell(
+    button: true,
+    child: InkWell(
+      borderRadius: BorderRadius.circular(SgRadius.pill),
+      onTap: data.onTap,
+      onLongPress: data.onLongPress,
+      child: Container(
+        constraints: const BoxConstraints(minHeight: kSgTouch, maxWidth: 200),
+        padding: const EdgeInsets.symmetric(horizontal: SgSpace.s4),
+        decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(SgRadius.pill),
-          onTap: data.onTap,
-          onLongPress: data.onLongPress,
-          child: Container(
-            constraints: const BoxConstraints(minHeight: kSgTouch, maxWidth: 200),
-            padding: const EdgeInsets.symmetric(horizontal: SgSpace.s4),
-            decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(SgRadius.pill),
-              border: Border.all(color: SgColors.lineStrong),
-            ),
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                SgIcon(data.icon ?? SgIcons.pin, size: 16, color: SgColors.goldText),
-                const SizedBox(width: SgSpace.s2),
-                Flexible(
-                  child: Text(data.label,
-                      maxLines: 1, overflow: TextOverflow.ellipsis, style: SgText.body),
-                ),
-              ],
-            ),
-          ),
+          border: Border.all(color: SgColors.lineStrong),
         ),
-      );
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            SgIcon(
+              data.icon ?? SgIcons.pin,
+              size: 16,
+              color: SgColors.goldText,
+            ),
+            const SizedBox(width: SgSpace.s2),
+            Flexible(
+              child: Text(
+                data.label,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: SgText.body,
+              ),
+            ),
+          ],
+        ),
+      ),
+    ),
+  );
 }
 
 class _Place extends StatelessWidget {
@@ -162,44 +198,60 @@ class _Place extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => InkWell(
-        onTap: data.onTap,
-        onLongPress: data.onLongPress,
-        child: Container(
-          constraints: const BoxConstraints(minHeight: 64),
-          decoration: BoxDecoration(
-            border: last ? null : const Border(bottom: BorderSide(color: SgColors.line)),
+    onTap: data.onTap,
+    onLongPress: data.onLongPress,
+    child: Container(
+      constraints: const BoxConstraints(minHeight: 64),
+      decoration: BoxDecoration(
+        border: last
+            ? null
+            : const Border(bottom: BorderSide(color: SgColors.line)),
+      ),
+      child: Row(
+        children: [
+          Container(
+            width: 40,
+            height: 40,
+            decoration: const BoxDecoration(
+              color: SgColors.bg200,
+              shape: BoxShape.circle,
+            ),
+            child: const Center(child: SgIcon(SgIcons.clock, size: 18)),
           ),
-          child: Row(
-            children: [
-              Container(
-                width: 40,
-                height: 40,
-                decoration: const BoxDecoration(color: SgColors.bg200, shape: BoxShape.circle),
-                child: const Center(child: SgIcon(SgIcons.clock, size: 18)),
-              ),
-              const SizedBox(width: SgSpace.s3),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Text(data.name,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: SgText.body.copyWith(fontWeight: FontWeight.w700)),
-                    if (data.address.isNotEmpty)
-                      Text(data.address,
-                          maxLines: 1, overflow: TextOverflow.ellipsis, style: SgText.caption),
-                  ],
+          const SizedBox(width: SgSpace.s3),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  data.name,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: SgText.body.copyWith(fontWeight: FontWeight.w700),
                 ),
-              ),
-              if (data.distance != null)
-                Text(data.distance!,
-                    style: SgText.caption.copyWith(color: SgColors.inkSubtle, fontSize: 12)),
-            ],
+                if (data.address.isNotEmpty)
+                  Text(
+                    data.address,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: SgText.caption,
+                  ),
+              ],
+            ),
           ),
-        ),
-      );
+          if (data.distance != null)
+            Text(
+              data.distance!,
+              style: SgText.caption.copyWith(
+                color: SgColors.inkSubtle,
+                fontSize: 12,
+              ),
+            ),
+        ],
+      ),
+    ),
+  );
 }
 
 /// The search field's look: gold square, text, "Now" chip. The screen puts its
@@ -210,34 +262,36 @@ class SgSearchBar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Container(
-        height: 52,
-        padding: const EdgeInsets.symmetric(horizontal: SgSpace.s4),
-        decoration: BoxDecoration(
-          color: SgColors.bg300,
-          borderRadius: BorderRadius.circular(SgRadius.md),
+    height: 52,
+    padding: const EdgeInsets.symmetric(horizontal: SgSpace.s4),
+    decoration: BoxDecoration(
+      color: SgColors.bg300,
+      borderRadius: BorderRadius.circular(SgRadius.md),
+    ),
+    child: Row(
+      children: [
+        Container(
+          width: 14,
+          height: 14,
+          decoration: BoxDecoration(
+            color: SgColors.gold500,
+            borderRadius: BorderRadius.circular(3),
+          ),
         ),
-        child: Row(
-          children: [
-            Container(
-              width: 14,
-              height: 14,
-              decoration: BoxDecoration(
-                color: SgColors.gold500,
-                borderRadius: BorderRadius.circular(3),
-              ),
-            ),
-            const SizedBox(width: SgSpace.s3),
-            Expanded(child: field),
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-              decoration: BoxDecoration(
-                color: SgColors.bg100,
-                borderRadius: BorderRadius.circular(SgRadius.pill),
-              ),
-              child: Text('Now',
-                  style: SgText.caption.copyWith(fontWeight: FontWeight.w600)),
-            ),
-          ],
+        const SizedBox(width: SgSpace.s3),
+        Expanded(child: field),
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+          decoration: BoxDecoration(
+            color: SgColors.bg100,
+            borderRadius: BorderRadius.circular(SgRadius.pill),
+          ),
+          child: Text(
+            'Now',
+            style: SgText.caption.copyWith(fontWeight: FontWeight.w600),
+          ),
         ),
-      );
+      ],
+    ),
+  );
 }

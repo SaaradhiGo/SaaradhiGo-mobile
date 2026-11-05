@@ -83,9 +83,10 @@ class _GroundPainter extends CustomPainter {
             size.height * .65, size.width * fx, size.height + 40);
       canvas.drawPath(p, arterial);
     }
+    // Roads stay neutral grey: gold is only ever the route.
     final highway = Paint()
-      ..color = SgColors.mapHighway
-      ..strokeWidth = 10
+      ..color = SgColors.mapArterial
+      ..strokeWidth = 9
       ..style = PaintingStyle.stroke
       ..strokeCap = StrokeCap.round;
     canvas.drawPath(
@@ -118,9 +119,9 @@ class _OverlayPainter extends CustomPainter {
 
   /// Projects lat/lng into the part of the box the sheet leaves free.
   Offset Function(LatLng) _projector(Size size) {
-    final pad = map.padding;
-    final area = Rect.fromLTRB(pad.left + 36, pad.top + 56, size.width - pad.right - 36,
-        size.height - pad.bottom - 36);
+    final pad = map.fitPadding ?? map.padding;
+    final area = Rect.fromLTRB(pad.left + 24, pad.top + 24, size.width - pad.right - 24,
+        size.height - pad.bottom - 24);
     final pts = <LatLng>[
       for (final l in map.polylines) ...l.points,
       for (final m in map.markers) m.point,
