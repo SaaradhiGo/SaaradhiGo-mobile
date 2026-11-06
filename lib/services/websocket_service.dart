@@ -32,6 +32,9 @@ class WebSocketService {
   bool _isConnectingTrip = false;
   int _tripReconnectAttempts = 0;
 
+  /// True while the trip socket is open (ready, or a frame arrived).
+  bool _tripOpen = false;
+
   /// The ride-request frame the booking socket sends. `promo_code` is present
   /// only when the rider applied a code, so a booking without one is the frame
   /// the app has always sent.
@@ -237,6 +240,7 @@ class WebSocketService {
   void _connectTripChannel(String wsUrl) {
     debugPrint("WebSocketService: _connectTripChannel starting for $wsUrl");
     _isConnectingTrip = true;
+    _tripOpen = false;
     _activeTripWsUrl = wsUrl;
 
     try {
@@ -250,6 +254,7 @@ class WebSocketService {
         (data) {
           // On first successful message, we consider it "connected"
           _isConnectingTrip = false;
+          _tripOpen = true;
           _tripReconnectAttempts = 0; // Reset backoff on success
 
           try {
@@ -264,6 +269,7 @@ class WebSocketService {
             "Trip WS closed. URL: $wsUrl, Code: ${_tripChannel?.closeCode}, Reason: ${_tripChannel?.closeReason}",
           );
           _isConnectingTrip = false;
+          _tripOpen = false;
           // Note: we KEEP _activeTripWsUrl to track what we are reconnecting to
           _scheduleTripReconnect(wsUrl);
         },
@@ -272,6 +278,7 @@ class WebSocketService {
             "Trip WS error: $err, Code: ${_tripChannel?.closeCode}, Reason: ${_tripChannel?.closeReason}",
           );
           _isConnectingTrip = false;
+          _tripOpen = false;
           _scheduleTripReconnect(wsUrl);
         },
       );
@@ -280,6 +287,7 @@ class WebSocketService {
           .then((_) {
             debugPrint("Trip WS Ready for $wsUrl");
             _isConnectingTrip = false;
+            _tripOpen = true;
             _tripReconnectAttempts = 0;
           })
           .catchError((error) {
@@ -312,6 +320,19 @@ class WebSocketService {
     });
   }
 
+  /// Called when the app comes forward. Android drops sockets in the
+  /// background and the reconnect backs off up to 30 s; a cancel sent in that
+  /// gap is only learned from the greeting of the next connect, so make that
+  /// connect now rather than after the backoff.
+  void reconnectTripIfDown() {
+    final url = _activeTripWsUrl;
+    if (url == null || _isIntentionalDisconnect) return;
+    if (_tripOpen || _isConnectingTrip) return;
+    _tripReconnectTimer?.cancel();
+    _tripReconnectAttempts = 0;
+    _connectTripChannel(url);
+  }
+
   void disconnectAll() {
     debugPrint("WebSocketService: Disconnecting all channels intentionally.");
     _isIntentionalDisconnect = true;
@@ -329,6 +350,7 @@ class WebSocketService {
     _lastRideRequestPayload = null;
     _activeTripWsUrl = null;
     _isConnectingTrip = false;
+    _tripOpen = false;
     _tripReconnectAttempts = 0;
   }
 }
