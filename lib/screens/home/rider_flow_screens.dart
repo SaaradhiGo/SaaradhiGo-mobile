@@ -608,7 +608,12 @@ class _AlternativeRow extends StatelessWidget {
           children: [
             SgClassChip(type: option.type, label: option.shortName),
             const SizedBox(width: SgSpace.s3),
-            Expanded(child: Text(option.meta, style: SgText.caption)),
+            Expanded(
+              child: Text(
+                option.metaIn(sgStrings(context)),
+                style: SgText.caption,
+              ),
+            ),
             Text(option.fareText, style: SgText.fare.copyWith(fontSize: 18)),
             const SizedBox(width: SgSpace.s2),
           ],

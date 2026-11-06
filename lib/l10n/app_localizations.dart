@@ -693,6 +693,18 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Go home'**
   String get goHome;
+
+  /// Every fare: a class with no driver near.
+  ///
+  /// In en, this message translates to:
+  /// **'No drivers nearby'**
+  String get noDriversNearby;
+
+  /// Every fare: seats in the class.
+  ///
+  /// In en, this message translates to:
+  /// **'{n, plural, =1{1 seat} other{{n} seats}}'**
+  String seatsCount(int n);
 }
 
 class _AppLocalizationsDelegate

@@ -197,5 +197,9 @@
   "talkSupportPayment": "इस भुगतान के बारे में सपोर्ट से बात करें",
   "@talkSupportPayment": {"description": "needs native review"},
   "goHome": "होम पर जाएँ",
-  "@goHome": {"description": "needs native review"}
+  "@goHome": {"description": "needs native review"},
+  "noDriversNearby": "पास में कोई ड्राइवर नहीं",
+  "@noDriversNearby": {"description": "needs native review"},
+  "seatsCount": "{n, plural, =1{1 सीट} other{{n} सीटें}}",
+  "@seatsCount": {"description": "needs native review"}
 }

@@ -355,4 +355,18 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get goHome => 'Go home';
+
+  @override
+  String get noDriversNearby => 'No drivers nearby';
+
+  @override
+  String seatsCount(int n) {
+    String _temp0 = intl.Intl.pluralLogic(
+      n,
+      locale: localeName,
+      other: '$n seats',
+      one: '1 seat',
+    );
+    return '$_temp0';
+  }
 }

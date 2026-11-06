@@ -197,5 +197,9 @@
   "talkSupportPayment": "Talk to support about this payment",
   "@talkSupportPayment": {"description": "Payment failed: support row."},
   "goHome": "Go home",
-  "@goHome": {"description": "Go to the home screen."}
+  "@goHome": {"description": "Go to the home screen."},
+  "noDriversNearby": "No drivers nearby",
+  "@noDriversNearby": {"description": "Every fare: a class with no driver near."},
+  "seatsCount": "{n, plural, =1{1 seat} other{{n} seats}}",
+  "@seatsCount": {"description": "Every fare: seats in the class.", "placeholders": {"n": {"type": "int"}}}
 }
