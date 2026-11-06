@@ -1,3 +1,4 @@
+import '../../ui/appearance_settings.dart' show sgStrings;
 import '../components/market_overlays.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
@@ -62,7 +63,7 @@ class ManagePaymentMethodsScreen extends StatelessWidget {
               ),
               const SizedBox(height: 16),
               _PaymentTile(
-                title: 'SaaradhiGo Wallet',
+                title: sgStrings(context).saaradhiWallet,
                 subtitle: 'Balance: ${formatter.format(provider.balance)}',
                 icon: Icons.account_balance_wallet,
                 isWallet: true,
@@ -74,7 +75,7 @@ class ManagePaymentMethodsScreen extends StatelessWidget {
               OutlinedButton.icon(
                 onPressed: () {},
                 icon: const Icon(Icons.add, size: 20),
-                label: const Text('Add New Payment Method'),
+                label: Text(sgStrings(context).addPaymentMethod),
                 style: OutlinedButton.styleFrom(
                   padding: const EdgeInsets.symmetric(vertical: 20),
                   foregroundColor: SgColors.goldText,

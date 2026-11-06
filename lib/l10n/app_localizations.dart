@@ -1257,6 +1257,186 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Update'**
   String get update;
+
+  /// Rider screen text, moved from code: Home
+  ///
+  /// In en, this message translates to:
+  /// **'Home'**
+  String get navHome;
+
+  /// Rider screen text, moved from code: History
+  ///
+  /// In en, this message translates to:
+  /// **'History'**
+  String get navHistory;
+
+  /// Rider screen text, moved from code: Ride Issues
+  ///
+  /// In en, this message translates to:
+  /// **'Ride Issues'**
+  String get helpRideIssues;
+
+  /// Rider screen text, moved from code: Payment & Wallet
+  ///
+  /// In en, this message translates to:
+  /// **'Payment & Wallet'**
+  String get helpPaymentWallet;
+
+  /// Rider screen text, moved from code: Account & App
+  ///
+  /// In en, this message translates to:
+  /// **'Account & App'**
+  String get helpAccountApp;
+
+  /// Rider screen text, moved from code: Report a problem
+  ///
+  /// In en, this message translates to:
+  /// **'Report a problem'**
+  String get reportProblem;
+
+  /// Rider screen text, moved from code: Support replies in the app
+  ///
+  /// In en, this message translates to:
+  /// **'Support replies in the app'**
+  String get supportRepliesInApp;
+
+  /// Rider screen text, moved from code: Email Support
+  ///
+  /// In en, this message translates to:
+  /// **'Email Support'**
+  String get emailSupport;
+
+  /// Rider screen text, moved from code: Search for issues...
+  ///
+  /// In en, this message translates to:
+  /// **'Search for issues...'**
+  String get searchIssues;
+
+  /// Rider screen text, moved from code: Two-Factor Authentication
+  ///
+  /// In en, this message translates to:
+  /// **'Two-Factor Authentication'**
+  String get twoFactor;
+
+  /// Rider screen text, moved from code: Change Password
+  ///
+  /// In en, this message translates to:
+  /// **'Change Password'**
+  String get changePassword;
+
+  /// Rider screen text, moved from code: Location Permissions
+  ///
+  /// In en, this message translates to:
+  /// **'Location Permissions'**
+  String get locationPermissions;
+
+  /// Rider screen text, moved from code: Notification Preferences
+  ///
+  /// In en, this message translates to:
+  /// **'Notification Preferences'**
+  String get notificationPreferences;
+
+  /// Rider screen text, moved from code: Manage My Data
+  ///
+  /// In en, this message translates to:
+  /// **'Manage My Data'**
+  String get manageMyData;
+
+  /// Rider screen text, moved from code: Always on. Needed for your rides and your safety.
+  ///
+  /// In en, this message translates to:
+  /// **'Always on. Needed for your rides and your safety.'**
+  String get alwaysOnRides;
+
+  /// Rider screen text, moved from code: Off unless you turn it on.
+  ///
+  /// In en, this message translates to:
+  /// **'Off unless you turn it on.'**
+  String get offUnlessOn;
+
+  /// Rider screen text, moved from code: Ride updates on WhatsApp
+  ///
+  /// In en, this message translates to:
+  /// **'Ride updates on WhatsApp'**
+  String get rideUpdatesWhatsapp;
+
+  /// Rider screen text, moved from code: Offers on WhatsApp
+  ///
+  /// In en, this message translates to:
+  /// **'Offers on WhatsApp'**
+  String get offersWhatsapp;
+
+  /// Rider screen text, moved from code: Copied. Paste it into any chat.
+  ///
+  /// In en, this message translates to:
+  /// **'Copied. Paste it into any chat.'**
+  String get copiedPasteChat;
+
+  /// Rider screen text, moved from code: Referral code copied
+  ///
+  /// In en, this message translates to:
+  /// **'Referral code copied'**
+  String get referralCopied;
+
+  /// Rider screen text, moved from code: Copy
+  ///
+  /// In en, this message translates to:
+  /// **'Copy'**
+  String get copy;
+
+  /// Rider screen text, moved from code: Share
+  ///
+  /// In en, this message translates to:
+  /// **'Share'**
+  String get share;
+
+  /// Rider screen text, moved from code: Camera
+  ///
+  /// In en, this message translates to:
+  /// **'Camera'**
+  String get camera;
+
+  /// Rider screen text, moved from code: Gallery
+  ///
+  /// In en, this message translates to:
+  /// **'Gallery'**
+  String get gallery;
+
+  /// Rider screen text, moved from code: Emergency phone number
+  ///
+  /// In en, this message translates to:
+  /// **'Emergency phone number'**
+  String get emergencyPhoneHint;
+
+  /// Rider screen text, moved from code: Type of problem
+  ///
+  /// In en, this message translates to:
+  /// **'Type of problem'**
+  String get problemType;
+
+  /// Rider screen text, moved from code: Describe the problem
+  ///
+  /// In en, this message translates to:
+  /// **'Describe the problem'**
+  String get describeProblem;
+
+  /// Rider screen text, moved from code: Submit
+  ///
+  /// In en, this message translates to:
+  /// **'Submit'**
+  String get submit;
+
+  /// Rider screen text, moved from code: SaaradhiGo Wallet
+  ///
+  /// In en, this message translates to:
+  /// **'SaaradhiGo Wallet'**
+  String get saaradhiWallet;
+
+  /// Rider screen text, moved from code: Add New Payment Method
+  ///
+  /// In en, this message translates to:
+  /// **'Add New Payment Method'**
+  String get addPaymentMethod;
 }
 
 class _AppLocalizationsDelegate

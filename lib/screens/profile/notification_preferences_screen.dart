@@ -1,3 +1,4 @@
+import '../../ui/appearance_settings.dart' show sgStrings;
 import 'package:flutter/material.dart';
 
 import '../../core/notifications/notification_prefs.dart';
@@ -170,7 +171,7 @@ class _NotificationPreferencesScreenState
             channel: channel,
             category: kTransactional,
             title: _channelNames[channel]!,
-            subtitle: 'Always on. Needed for your rides and your safety.',
+            subtitle: sgStrings(context).alwaysOnRides,
             fixed: true,
           ),
     ];
@@ -181,7 +182,7 @@ class _NotificationPreferencesScreenState
             channel: channel,
             category: kPromotional,
             title: _channelNames[channel]!,
-            subtitle: 'Off unless you turn it on.',
+            subtitle: sgStrings(context).offUnlessOn,
             fixed: prefs.isLocked(channel, kPromotional),
           ),
     ];
@@ -190,16 +191,16 @@ class _NotificationPreferencesScreenState
         _row(
           channel: 'whatsapp',
           category: kTransactional,
-          title: 'Ride updates on WhatsApp',
-          subtitle: 'Off unless you turn it on.',
+          title: sgStrings(context).rideUpdatesWhatsapp,
+          subtitle: sgStrings(context).offUnlessOn,
           fixed: prefs.isLocked('whatsapp', kTransactional),
         ),
       if (prefs.has('whatsapp', kPromotional))
         _row(
           channel: 'whatsapp',
           category: kPromotional,
-          title: 'Offers on WhatsApp',
-          subtitle: 'Off unless you turn it on.',
+          title: sgStrings(context).offersWhatsapp,
+          subtitle: sgStrings(context).offUnlessOn,
           fixed: prefs.isLocked('whatsapp', kPromotional),
         ),
     ];
@@ -256,7 +257,7 @@ class _NotificationPreferencesScreenState
                     OutlinedButton(
                       key: const Key('prefs_retry'),
                       onPressed: _load,
-                      child: const Text('Try again'),
+                      child: Text(sgStrings(context).tryAgain),
                     ),
                   ],
                 ),

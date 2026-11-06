@@ -663,4 +663,94 @@ class AppLocalizationsTe extends AppLocalizations {
 
   @override
   String get update => 'అప్‌డేట్';
+
+  @override
+  String get navHome => 'హోమ్';
+
+  @override
+  String get navHistory => 'చరిత్ర';
+
+  @override
+  String get helpRideIssues => 'రైడ్ సమస్యలు';
+
+  @override
+  String get helpPaymentWallet => 'చెల్లింపు, వాలెట్';
+
+  @override
+  String get helpAccountApp => 'ఖాతా, యాప్';
+
+  @override
+  String get reportProblem => 'సమస్య చెప్పండి';
+
+  @override
+  String get supportRepliesInApp => 'సపోర్ట్ యాప్‌లోనే జవాబిస్తుంది';
+
+  @override
+  String get emailSupport => 'ఈమెయిల్ సపోర్ట్';
+
+  @override
+  String get searchIssues => 'సమస్యలు వెతకండి...';
+
+  @override
+  String get twoFactor => 'రెండు దశల ధృవీకరణ';
+
+  @override
+  String get changePassword => 'పాస్‌వర్డ్ మార్చండి';
+
+  @override
+  String get locationPermissions => 'లొకేషన్ అనుమతులు';
+
+  @override
+  String get notificationPreferences => 'నోటిఫికేషన్ ఎంపికలు';
+
+  @override
+  String get manageMyData => 'నా డేటా';
+
+  @override
+  String get alwaysOnRides => 'ఎప్పుడూ ఆన్. రైడ్‌లకు, భద్రతకు అవసరం.';
+
+  @override
+  String get offUnlessOn => 'మీరు ఆన్ చేస్తేనే.';
+
+  @override
+  String get rideUpdatesWhatsapp => 'WhatsAppలో రైడ్ అప్‌డేట్లు';
+
+  @override
+  String get offersWhatsapp => 'WhatsAppలో ఆఫర్లు';
+
+  @override
+  String get copiedPasteChat => 'కాపీ అయింది. ఏ చాట్‌లోనైనా పేస్ట్ చేయండి.';
+
+  @override
+  String get referralCopied => 'రెఫరల్ కోడ్ కాపీ అయింది';
+
+  @override
+  String get copy => 'కాపీ';
+
+  @override
+  String get share => 'పంచుకోండి';
+
+  @override
+  String get camera => 'కెమెరా';
+
+  @override
+  String get gallery => 'గ్యాలరీ';
+
+  @override
+  String get emergencyPhoneHint => 'అత్యవసర ఫోన్ నంబర్';
+
+  @override
+  String get problemType => 'సమస్య రకం';
+
+  @override
+  String get describeProblem => 'సమస్య వివరించండి';
+
+  @override
+  String get submit => 'పంపండి';
+
+  @override
+  String get saaradhiWallet => 'SaaradhiGo వాలెట్';
+
+  @override
+  String get addPaymentMethod => 'కొత్త చెల్లింపు పద్ధతి';
 }
