@@ -34,6 +34,7 @@ import 'state/ride_notifier.dart';
 import 'state/ride_state.dart';
 
 import 'screens/splash/splash_screen.dart';
+import 'services/api_service.dart';
 import 'screens/auth/login_screen.dart';
 import 'screens/auth/otp_verification_screen.dart';
 import 'screens/profile/profile_setup_screen.dart';
@@ -119,6 +120,11 @@ Future<void> _main() async {
   final prefs = await SharedPreferences.getInstance();
   // Theme and language before the first frame, so nothing flashes.
   await SgAppearance.instance.restore(prefs);
+  SgAppearance.onLanguagePicked = (code) {
+    final token = prefs.getString('access_token');
+    if (token == null || token.isEmpty) return;
+    unawaited(ApiService().patchPreferredLanguage(code));
+  };
   final isFirstLaunch = prefs.getBool('isFirstLaunch') ?? true;
   final token = prefs.getString('access_token');
   final isLoggedIn = token != null && token.isNotEmpty;

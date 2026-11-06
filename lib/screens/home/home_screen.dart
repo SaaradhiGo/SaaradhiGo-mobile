@@ -8,10 +8,11 @@ import 'package:latlong2/latlong.dart';
 import '../../providers/notification_provider.dart';
 import 'package:geolocator/geolocator.dart';
 
-import '../../core/maps/sg_map.dart';
 import '../../core/market/market_config_store.dart';
 import '../../ui/account_widgets.dart';
-import '../../ui/home_sheet.dart';
+import '../../ui/home_widgets.dart';
+import '../../ui/sg_appearance.dart';
+import '../../services/home_fares.dart';
 import '../../ui/sg_text.dart';
 import '../../ui/sg_tokens.dart';
 import '../../ui/sg_widgets.dart';
@@ -23,7 +24,6 @@ import '../../screens/components/coming_soon_overlay.dart';
 import 'history_screen.dart';
 import 'wallet_screen.dart';
 import '../../ui/appearance_settings.dart';
-import '../../ui/sg_brand.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key, this.initialTabIndex = 0});
@@ -378,8 +378,9 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
       ),
       const HistoryScreen(),
       const WalletScreen(),
-      const _ProfileTab(),
+      _ProfileTab(onWallet: () => setState(() => _tabIndex = 2)),
     ];
+    final l = sgStrings(context);
 
     return PopScope(
       // Back from History, Wallet or Profile returns home.
@@ -393,6 +394,32 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
         drawer: _MenuDrawer(
           onTab: (index) => setState(() => _tabIndex = index),
         ),
+        // Ride, Trips, Account. Wallet opens from Account and shows under it.
+        bottomNavigationBar: SgTabBar(
+          items: [
+            SgTabItem(
+              key: const Key('home-nav-home'),
+              icon: SgIcons.home,
+              label: l.tabRide,
+            ),
+            SgTabItem(
+              key: const Key('home-nav-trips'),
+              icon: SgIcons.history,
+              label: l.tabTrips,
+            ),
+            SgTabItem(
+              key: const Key('home-nav-profile'),
+              icon: SgIcons.user,
+              label: l.tabAccount,
+            ),
+          ],
+          selected: switch (_tabIndex) {
+            0 => 0,
+            1 => 1,
+            _ => 2,
+          },
+          onSelect: (i) => setState(() => _tabIndex = const [0, 1, 3][i]),
+        ),
         body: _tabIndex == 0
             ? tabs[0]
             : SafeArea(
@@ -401,20 +428,21 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      IconButton(
-                        tooltip: 'Back',
-                        constraints: const BoxConstraints(
-                          minWidth: kSgTouch,
-                          minHeight: kSgTouch,
+                      if (_tabIndex == 2)
+                        IconButton(
+                          tooltip: 'Back',
+                          constraints: const BoxConstraints(
+                            minWidth: kSgTouch,
+                            minHeight: kSgTouch,
+                          ),
+                          padding: EdgeInsets.zero,
+                          onPressed: () => setState(() => _tabIndex = 3),
+                          icon: SgIcon(
+                            SgIcons.back,
+                            size: 24,
+                            color: SgColors.ink,
+                          ),
                         ),
-                        padding: EdgeInsets.zero,
-                        onPressed: () => setState(() => _tabIndex = 0),
-                        icon: SgIcon(
-                          SgIcons.back,
-                          size: 24,
-                          color: SgColors.ink,
-                        ),
-                      ),
                       Expanded(child: tabs[_tabIndex]),
                     ],
                   ),
@@ -597,77 +625,17 @@ class _HomeTab extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final mapProvider = context.watch<MapProvider>();
-    final favorites = mapProvider.favoriteLocations;
-    final recents = mapProvider.recentLocations;
-    final market = marketOf(context);
+    final auth = context.watch<AuthProvider>();
+    final l = sgStrings(context);
     final here = mapProvider.pickupLocation?.latLng ?? currentPosition;
+    final first = homeFirstName(auth.fullName);
+    // Saved places have labels only when the server sends them; otherwise
+    // their address text. Up to two, quoted while the home is on screen.
+    final places = pickHomePlaces(
+      mapProvider.favoriteLocations,
+      mapProvider.recentLocations,
+    );
 
-    final chips = <SavedChipData>[
-      for (final fav in favorites.take(3))
-        SavedChipData(
-          label: splitPlace(fav.addressText).name,
-          icon: _chipIcon(fav.addressText),
-          onTap: () => _goTo(
-            context,
-            fav.latitude != 0 ? '${fav.latitude},${fav.longitude}' : 'current',
-            dropName: fav.addressText,
-          ),
-          // Removing a saved place stays one long-press away.
-          onLongPress: () => context.read<MapProvider>().deleteLocation(fav.id),
-        ),
-    ];
-
-    final places = <RecentPlaceData>[
-      for (final trip in recents)
-        RecentPlaceData(
-          name: splitPlace(trip.destinationAddress).name,
-          address: splitPlace(trip.destinationAddress).address,
-          distance:
-              (here != null &&
-                  trip.destinationLat != null &&
-                  trip.destinationLng != null)
-              ? market.formatDistanceKm(
-                  const Distance()
-                      .as(
-                        LengthUnit.Kilometer,
-                        here,
-                        LatLng(trip.destinationLat!, trip.destinationLng!),
-                      )
-                      .toDouble(),
-                )
-              : null,
-          onTap: () async {
-            final provider = context.read<MapProvider>();
-            if (trip.destinationLat != null && trip.destinationLng != null) {
-              await _goTo(
-                context,
-                '${trip.destinationLat},${trip.destinationLng}',
-                dropName: trip.destinationAddress,
-              );
-            } else if (!provider.isTripInProgress) {
-              context.push('/route-map');
-              provider.fetchSuggestions(trip.destinationAddress);
-            } else {
-              onActiveRideTap();
-            }
-          },
-          // Saving a recent place stays one long-press away.
-          onLongPress: () {
-            if (trip.destinationLat != null && trip.destinationLng != null) {
-              context.read<MapProvider>().saveLocation(
-                trip.destinationAddress,
-                trip.destinationLat!,
-                trip.destinationLng!,
-              );
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text('Location saved to favorites')),
-              );
-            }
-          },
-        ),
-    ];
-
-    final media = MediaQuery.of(context);
     return ValueListenableBuilder<bool>(
       valueListenable: searchOpen,
       builder: (context, open, _) => PopScope(
@@ -677,107 +645,200 @@ class _HomeTab extends StatelessWidget {
           pickupFocusNode.unfocus();
           dropFocusNode.unfocus();
         },
-        child: LayoutBuilder(
-          builder: (context, box) {
-            final top = media.padding.top;
-            // Searching: the sheet grows to just under the status bar.
-            final sheetMax = open
-                ? box.maxHeight - top - SgSpace.s2
-                : box.maxHeight * 0.62;
-            return Stack(
-              children: [
-                Positioned.fill(
-                  child: SgMap(
-                    initialCenter: here ?? const LatLng(17.385044, 78.4867),
-                    interactive: false,
-                    fitPadding: EdgeInsets.fromLTRB(
-                      32,
-                      top + 72,
-                      32,
-                      box.maxHeight * 0.5,
-                    ),
-                    markers: [
-                      if (here != null)
-                        SgMarker(
-                          id: 'pickup',
-                          point: here,
-                          icon: const SgSvgMarker('assets/markers/pickup.svg'),
-                          label: 'Pickup',
-                        ),
-                    ],
-                  ),
+        child: SafeArea(
+          bottom: false,
+          child: ListView(
+            padding: const EdgeInsets.fromLTRB(
+              SgSpace.s4,
+              SgSpace.s2,
+              SgSpace.s4,
+              SgSpace.s5,
+            ),
+            children: [
+              if (!open) ...[
+                HomeHeader(
+                  languageShort: languageShort(SgAppearance.instance.language),
+                  onLanguage: () => showLanguagePicker(context),
+                  name: auth.fullName,
+                  avatarUrl: auth.avatarUrl,
+                  onAccount: onProfileTap,
                 ),
-                if (!open)
-                  Positioned(
-                    top: top + SgSpace.s2,
-                    left: SgSpace.s4,
-                    right: SgSpace.s4,
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        SgMapButton(
-                          icon: SgIcons.menu,
-                          label: 'Menu',
-                          onTap: onMenuTap,
-                        ),
-                        Container(
-                          height: kSgTouch,
-                          decoration: BoxDecoration(
-                            color: SgColors.bg000,
-                            borderRadius: BorderRadius.circular(SgRadius.pill),
-                            border: Border.all(color: SgColors.goldLine),
-                          ),
-                          padding: const EdgeInsets.symmetric(horizontal: 12),
-                          child: const SgBrandLockup(badgeSize: 32),
-                        ),
-                        SgMapButton(
-                          icon: SgIcons.user,
-                          label: 'Account',
-                          onTap: onProfileTap,
-                        ),
-                      ],
-                    ),
-                  ),
-                Align(
-                  alignment: Alignment.bottomCenter,
-                  child: ConstrainedBox(
-                    constraints: BoxConstraints(maxHeight: sheetMax),
-                    child: HomeSheet(
-                      greeting: greetingFor(DateTime.now()),
-                      loading: mapProvider.isLoadingHomeData,
-                      expanded: open,
-                      banner: mapProvider.isTripInProgress
-                          ? _ActiveRideTile(onTap: onActiveRideTap)
-                          : null,
-                      search: _LocationCard(
-                        pickupController: pickupController,
-                        dropController: dropController,
-                        pickupFocusNode: pickupFocusNode,
-                        dropFocusNode: dropFocusNode,
-                        onLocationTap: onLocationTap,
-                        isGettingLocation: isGettingLocation,
-                        currentPosition: currentPosition,
-                        onActiveRideTap: onActiveRideTap,
-                        searchOpen: searchOpen,
-                      ),
-                      chips: chips,
-                      recents: places,
-                    ),
-                  ),
+                const SizedBox(height: SgSpace.s5),
+                Text(
+                  first.isEmpty ? l.homeHeadline : l.homeHeadlineNamed(first),
+                  key: const Key('home_headline'),
+                  style: SgText.display,
                 ),
+                const SizedBox(height: SgSpace.s4),
               ],
-            );
-          },
+              // Keyed: opening the search removes the lines above it, and an
+              // unkeyed field would be rebuilt there, losing focus and the
+              // keyboard.
+              KeyedSubtree(
+                key: const ValueKey('home-search'),
+                child: _LocationCard(
+                  pickupController: pickupController,
+                  dropController: dropController,
+                  pickupFocusNode: pickupFocusNode,
+                  dropFocusNode: dropFocusNode,
+                  onLocationTap: onLocationTap,
+                  isGettingLocation: isGettingLocation,
+                  currentPosition: currentPosition,
+                  onActiveRideTap: onActiveRideTap,
+                  searchOpen: searchOpen,
+                ),
+              ),
+              if (!open) ...[
+                if (mapProvider.isTripInProgress) ...[
+                  const SizedBox(height: SgSpace.s3),
+                  _ActiveRideTile(onTap: onActiveRideTap),
+                ],
+                const SizedBox(height: SgSpace.s5),
+                if (places.isNotEmpty || mapProvider.isLoadingHomeData) ...[
+                  SgEyebrow(l.faresFromHere),
+                  const SizedBox(height: SgSpace.s3),
+                ],
+                if (places.isEmpty && mapProvider.isLoadingHomeData)
+                  const Padding(
+                    padding: EdgeInsets.all(SgSpace.s4),
+                    child: Center(
+                      child: SizedBox(
+                        width: 20,
+                        height: 20,
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2,
+                          color: SgColors.gold500,
+                        ),
+                      ),
+                    ),
+                  )
+                else
+                  _HomeFares(
+                    here: here,
+                    places: places,
+                    fallback: l.tapToSeeFares,
+                    onOpen: (place, type) {
+                      if (type != null) {
+                        context.read<MapProvider>().selectVehicleType(type);
+                      }
+                      _goTo(
+                        context,
+                        '${place.to.latitude},${place.to.longitude}',
+                        dropName: place.address ?? place.name,
+                      );
+                    },
+                  ),
+                const SizedBox(height: SgSpace.s4),
+                FareLockLine(l.fareLockLine),
+              ],
+            ],
+          ),
         ),
       ),
     );
   }
+}
 
-  static String? _chipIcon(String address) {
-    final first = splitPlace(address).name.toLowerCase();
-    if (first == 'home') return SgIcons.home;
-    if (first == 'work' || first == 'office') return SgIcons.work;
-    return null;
+/// The fare cards: one per place, each quoted on its own so a slow place does
+/// not hold up the other.
+class _HomeFares extends StatefulWidget {
+  const _HomeFares({
+    required this.here,
+    required this.places,
+    required this.fallback,
+    required this.onOpen,
+  });
+
+  final LatLng? here;
+  final List<HomePlace> places;
+  final String fallback;
+  final void Function(HomePlace place, String? type) onOpen;
+
+  @override
+  State<_HomeFares> createState() => _HomeFaresState();
+}
+
+class _HomeFaresState extends State<_HomeFares> {
+  final _service = HomeFares();
+  final Map<String, HomeQuote> _quotes = {};
+  final Set<String> _loading = {};
+  String _signature = '';
+
+  @override
+  void initState() {
+    super.initState();
+    _refresh();
+  }
+
+  @override
+  void didUpdateWidget(covariant _HomeFares old) {
+    super.didUpdateWidget(old);
+    _refresh();
+  }
+
+  String _sig() =>
+      '${widget.here?.latitude.toStringAsFixed(3)},'
+      '${widget.here?.longitude.toStringAsFixed(3)}|'
+      '${widget.places.map((p) => p.name).join('|')}';
+
+  void _refresh() {
+    final sig = _sig();
+    if (sig == _signature) return;
+    _signature = sig;
+    final from = widget.here;
+    if (from == null) return;
+    for (final p in widget.places) {
+      final hit = _service.cached(from, p);
+      if (hit != null) {
+        _quotes[p.name] = hit;
+        continue;
+      }
+      _loading.add(p.name);
+      _service.quote(from, p).then((q) {
+        if (!mounted) return;
+        setState(() {
+          _loading.remove(p.name);
+          _quotes[p.name] = q;
+        });
+      });
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final market = marketOf(context);
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        for (final p in widget.places) ...[
+          Builder(
+            builder: (context) {
+              final q = _quotes[p.name];
+              final meta = (q?.distanceKm == null || q?.durationMin == null)
+                  ? null
+                  : '${market.formatDistanceKm(q!.distanceKm!)} · ${durationLabel(q.durationMin!)}';
+              return HomeFareCard(
+                key: Key('home_fare_${p.name}'),
+                name: p.name,
+                meta: meta,
+                loading: widget.here != null && _loading.contains(p.name),
+                fallback: widget.fallback,
+                onTap: () => widget.onOpen(p, null),
+                chips: [
+                  for (final f in q?.fares ?? const <HomeClassFare>[])
+                    HomeClassChip(
+                      type: f.type,
+                      fareText: f.fareText,
+                      onTap: () => widget.onOpen(p, f.type),
+                    ),
+                ],
+              );
+            },
+          ),
+          const SizedBox(height: SgSpace.s3),
+        ],
+      ],
+    );
   }
 }
 
@@ -788,7 +849,9 @@ class _HomeTab extends StatelessWidget {
 // Profile tab implementation
 
 class _ProfileTab extends StatelessWidget {
-  const _ProfileTab();
+  const _ProfileTab({required this.onWallet});
+
+  final VoidCallback onWallet;
 
   @override
   Widget build(BuildContext context) {
@@ -813,10 +876,23 @@ class _ProfileTab extends StatelessWidget {
             onTap: () => context.push('/personal-info'),
           ),
           SgListRow(
+            key: const Key('profile_wallet'),
+            icon: SgIcons.wallet,
+            label: sgStrings(context).wallet,
+            chevron: true,
+            onTap: onWallet,
+          ),
+          SgListRow(
             icon: kCardIcon,
             label: 'Payment methods',
             chevron: true,
             onTap: () => context.push('/payment-methods'),
+          ),
+          SgListRow(
+            icon: SgIcons.bell,
+            label: 'Notifications',
+            chevron: true,
+            onTap: () => context.push('/notifications'),
           ),
           SgListRow(
             icon: SgIcons.lock,
@@ -1107,92 +1183,85 @@ class _LocationCardState extends State<_LocationCard> {
 
   @override
   Widget build(BuildContext context) {
+    final l = sgStrings(context);
+    final provider = context.watch<MapProvider>();
+    // "You are here" only when the pickup really is the device's location.
+    final atCurrent =
+        provider.pickupLocation?.placeId == 'current' &&
+        widget.currentPosition != null &&
+        !_isPickupFocused;
     return TapRegion(
       groupId: 'location_search',
       onTapOutside: (_) => _close(),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          SizedBox(
-            height: kSgTouch,
-            child: Row(
-              children: [
-                Container(
-                  width: 14,
-                  height: 14,
-                  margin: const EdgeInsets.symmetric(horizontal: SgSpace.s2),
-                  decoration: BoxDecoration(
-                    color: SgColors.pickup,
-                    shape: BoxShape.circle,
-                  ),
+      child: HomeFromToCard(
+        youAreHere: atCurrent ? l.youAreHere : null,
+        from: Row(
+          children: [
+            Expanded(
+              child: TextField(
+                controller: widget.pickupController,
+                focusNode: widget.pickupFocusNode,
+                style: SgText.body,
+                maxLines: 1,
+                decoration: InputDecoration(
+                  isDense: true,
+                  border: InputBorder.none,
+                  hintText: l.pickupHint,
+                  hintStyle: SgText.body.copyWith(color: SgColors.inkSubtle),
+                  contentPadding: EdgeInsets.zero,
                 ),
-                const SizedBox(width: SgSpace.s2),
-                Expanded(
-                  child: TextField(
-                    controller: widget.pickupController,
-                    focusNode: widget.pickupFocusNode,
-                    style: SgText.body,
-                    decoration: InputDecoration(
-                      isDense: true,
-                      border: InputBorder.none,
-                      hintText: 'Enter pickup point',
-                      hintStyle: SgText.body.copyWith(
-                        color: SgColors.inkSubtle,
-                      ),
-                      contentPadding: EdgeInsets.zero,
-                    ),
-                  ),
-                ),
-                widget.isGettingLocation
-                    ? const Padding(
-                        padding: EdgeInsets.all(SgSpace.s3),
-                        child: SizedBox(
-                          width: 18,
-                          height: 18,
-                          child: CircularProgressIndicator(
-                            strokeWidth: 2,
-                            color: SgColors.gold500,
-                          ),
-                        ),
-                      )
-                    : IconButton(
-                        tooltip: 'Use my location',
-                        constraints: const BoxConstraints(
-                          minWidth: kSgTouch,
-                          minHeight: kSgTouch,
-                        ),
-                        onPressed: () {
-                          if (context.read<MapProvider>().isTripInProgress) {
-                            widget.onActiveRideTap();
-                            return;
-                          }
-                          widget.onLocationTap();
-                        },
-                        icon: Icon(
-                          Icons.my_location,
-                          color: SgColors.goldText,
-                          size: 20,
-                        ),
-                      ),
-              ],
-            ),
-          ),
-          SgSearchBar(
-            field: TextField(
-              controller: widget.dropController,
-              focusNode: widget.dropFocusNode,
-              style: SgText.body,
-              decoration: InputDecoration(
-                isDense: true,
-                border: InputBorder.none,
-                hintText: 'Search destination',
-                hintStyle: SgText.body.copyWith(color: SgColors.inkSubtle),
-                contentPadding: EdgeInsets.zero,
               ),
             ),
+            if (widget.isGettingLocation)
+              const Padding(
+                padding: EdgeInsets.all(SgSpace.s3),
+                child: SizedBox(
+                  width: 18,
+                  height: 18,
+                  child: CircularProgressIndicator(
+                    strokeWidth: 2,
+                    color: SgColors.gold500,
+                  ),
+                ),
+              )
+            else if (!atCurrent)
+              IconButton(
+                tooltip: 'Use my location',
+                constraints: const BoxConstraints(
+                  minWidth: kSgTouch,
+                  minHeight: kSgTouch,
+                ),
+                onPressed: () {
+                  if (context.read<MapProvider>().isTripInProgress) {
+                    widget.onActiveRideTap();
+                    return;
+                  }
+                  widget.onLocationTap();
+                },
+                icon: Icon(
+                  Icons.my_location,
+                  color: SgColors.goldText,
+                  size: 20,
+                ),
+              ),
+          ],
+        ),
+        to: TextField(
+          controller: widget.dropController,
+          focusNode: widget.dropFocusNode,
+          style: SgText.title,
+          decoration: InputDecoration(
+            isDense: true,
+            border: InputBorder.none,
+            hintText: l.searchDestination,
+            hintStyle: SgText.title.copyWith(
+              color: SgColors.inkSubtle,
+              fontWeight: FontWeight.w600,
+            ),
+            contentPadding: EdgeInsets.zero,
           ),
-          if (_open) _results(),
-        ],
+        ),
+        results: _open ? _results() : null,
       ),
     );
   }

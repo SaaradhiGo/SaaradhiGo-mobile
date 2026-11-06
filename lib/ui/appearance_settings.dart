@@ -74,6 +74,32 @@ List<Widget> appearanceRows(BuildContext context, {SgAppearance? appearance}) {
   ];
 }
 
+/// The language sheet on its own (the home header's language chip).
+Future<void> showLanguagePicker(
+  BuildContext context, {
+  SgAppearance? appearance,
+}) {
+  final a = appearance ?? SgAppearance.instance;
+  final l = sgStrings(context);
+  return _showChoices<String>(
+    context,
+    title: l.language,
+    options: [
+      for (final code in SgAppearance.supportedLanguages)
+        (code, languageLabel(l, code), null),
+    ],
+    selected: a.language,
+    onSelected: a.setLanguage,
+  );
+}
+
+/// The short mark on the language chip: EN, తె, हि.
+String languageShort(String code) => switch (code) {
+  'te' => 'తె',
+  'hi' => 'हि',
+  _ => 'EN',
+};
+
 Future<void> _showChoices<T>(
   BuildContext context, {
   required String title,

@@ -25,6 +25,15 @@ class SgAppearance extends ChangeNotifier {
 
   SgThemeChoice _theme = SgThemeChoice.dark;
   String _language = 'en';
+  bool _languageSaved = false;
+
+  /// Called when the rider picks a language, so the account can keep it
+  /// (PATCH /auth/profile/ preferred_language). Fire and forget; set in main.
+  static void Function(String code)? onLanguagePicked;
+
+  /// True once a language has been chosen on this device. Sign-in shows the
+  /// language tiles only while this is false.
+  bool get hasSavedLanguage => _languageSaved;
 
   SgThemeChoice get theme => _theme;
   String get language => _language;
@@ -55,7 +64,8 @@ class SgAppearance extends ChangeNotifier {
       orElse: () => SgThemeChoice.dark,
     );
     final lang = p.getString(localeKey);
-    _language = supportedLanguages.contains(lang) ? lang! : 'en';
+    _languageSaved = supportedLanguages.contains(lang);
+    _language = _languageSaved ? lang! : 'en';
     apply();
   }
 
@@ -75,12 +85,31 @@ class SgAppearance extends ChangeNotifier {
   }
 
   Future<void> setLanguage(String code) async {
-    if (!supportedLanguages.contains(code) || code == _language) return;
+    if (!supportedLanguages.contains(code)) return;
+    final changed = code != _language;
+    if (!changed && _languageSaved) return;
     _language = code;
+    _languageSaved = true;
     apply();
-    notifyListeners();
+    if (changed) notifyListeners();
+    try {
+      onLanguagePicked?.call(code);
+    } catch (_) {}
     final p = await SharedPreferences.getInstance();
     await p.setString(localeKey, code);
+  }
+
+  /// The account's saved language, used only when this device has none.
+  Future<void> adoptServerLanguage(String? code) async {
+    if (_languageSaved || !supportedLanguages.contains(code)) return;
+    _language = code!;
+    _languageSaved = true;
+    apply();
+    notifyListeners();
+    try {
+      final p = await SharedPreferences.getInstance();
+      await p.setString(localeKey, code);
+    } catch (_) {}
   }
 
   /// The device switched light/dark. Only matters on Automatic.

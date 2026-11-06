@@ -204,3 +204,34 @@ class SgEyebrow extends StatelessWidget {
     style: SgText.label.copyWith(color: color ?? SgColors.goldText),
   );
 }
+
+/// A radio mark: a ring, filled with a gold-text dot when selected.
+class SgRadio extends StatelessWidget {
+  const SgRadio({super.key, required this.selected});
+  final bool selected;
+
+  @override
+  Widget build(BuildContext context) => Container(
+    width: 24,
+    height: 24,
+    decoration: BoxDecoration(
+      shape: BoxShape.circle,
+      border: Border.all(
+        color: selected ? SgColors.goldText : SgColors.lineStrong,
+        width: 2,
+      ),
+    ),
+    child: selected
+        ? Center(
+            child: Container(
+              width: 12,
+              height: 12,
+              decoration: BoxDecoration(
+                color: SgColors.goldText,
+                shape: BoxShape.circle,
+              ),
+            ),
+          )
+        : null,
+  );
+}

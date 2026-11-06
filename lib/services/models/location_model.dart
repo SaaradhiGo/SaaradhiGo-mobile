@@ -102,12 +102,22 @@ class FavoriteLocation {
   final double latitude;
   final double longitude;
 
+  /// `home`, `work` or `other` when the server labels the place (Night 2
+  /// field); null when it does not.
+  final String? label;
+
   FavoriteLocation({
     required this.id,
     required this.addressText,
     required this.latitude,
     required this.longitude,
+    this.label,
   });
+
+  static String? _label(Object? raw) {
+    final v = raw?.toString().trim().toLowerCase();
+    return const {'home', 'work', 'other'}.contains(v) ? v : null;
+  }
 
   factory FavoriteLocation.fromJson(Map<String, dynamic> json) {
     return FavoriteLocation(
@@ -115,6 +125,7 @@ class FavoriteLocation {
       addressText: json['address_text'] as String? ?? '',
       latitude: double.tryParse(json['latitude']?.toString() ?? '0.0') ?? 0.0,
       longitude: double.tryParse(json['longitude']?.toString() ?? '0.0') ?? 0.0,
+      label: _label(json['label']),
     );
   }
 }

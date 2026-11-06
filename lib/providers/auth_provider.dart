@@ -1,7 +1,9 @@
+import 'dart:async';
 import 'package:cached_network_image_ce/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../services/api_service.dart';
+import '../ui/sg_appearance.dart';
 import '../core/market/market_config_store.dart';
 
 class AuthProvider extends ChangeNotifier {
@@ -434,6 +436,12 @@ class AuthProvider extends ChangeNotifier {
     _fullName =
         _pickFirstString(userPayload, ['full_name', 'fullName', 'name']) ??
         _fullName;
+
+    // Night 2: the account's language, used only when this device has none.
+    final serverLanguage = userPayload['preferred_language'];
+    if (serverLanguage is String) {
+      unawaited(SgAppearance.instance.adoptServerLanguage(serverLanguage));
+    }
 
     _avatarUrl =
         _pickFirstString(userPayload, [

@@ -153,6 +153,156 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'हिन्दी'**
   String get languageHindi;
+
+  /// Sign-in: heading above the three language tiles.
+  ///
+  /// In en, this message translates to:
+  /// **'Choose your language'**
+  String get langChooseTitle;
+
+  /// Sign-in: heading above the phone field.
+  ///
+  /// In en, this message translates to:
+  /// **'Your mobile number'**
+  String get phoneTitle;
+
+  /// Sign-in: hint in the empty phone field.
+  ///
+  /// In en, this message translates to:
+  /// **'Mobile number'**
+  String get phoneHint;
+
+  /// Sign-in: primary button that asks for an SMS code.
+  ///
+  /// In en, this message translates to:
+  /// **'Send code'**
+  String get sendCode;
+
+  /// Sign-in: switch to email and password.
+  ///
+  /// In en, this message translates to:
+  /// **'Use email instead'**
+  String get useEmail;
+
+  /// Sign-in: switch back to the phone number.
+  ///
+  /// In en, this message translates to:
+  /// **'Use mobile number instead'**
+  String get useMobile;
+
+  /// Sign-in: small print under the button.
+  ///
+  /// In en, this message translates to:
+  /// **'By continuing you agree to the Terms of Service and Privacy Policy.'**
+  String get termsLine;
+
+  /// Verify code: heading.
+  ///
+  /// In en, this message translates to:
+  /// **'Enter the code'**
+  String get verifyTitle;
+
+  /// Verify code: where the SMS went.
+  ///
+  /// In en, this message translates to:
+  /// **'We sent a 6-digit code to {phone}'**
+  String verifySentTo(String phone);
+
+  /// Verify code: resend countdown, e.g. 0:42.
+  ///
+  /// In en, this message translates to:
+  /// **'Resend code in {time}'**
+  String verifyResendIn(String time);
+
+  /// Verify code: resend button.
+  ///
+  /// In en, this message translates to:
+  /// **'Resend code'**
+  String get verifyResend;
+
+  /// Verify code: primary button.
+  ///
+  /// In en, this message translates to:
+  /// **'Verify'**
+  String get verifyButton;
+
+  /// Verify code: go back and edit the phone number.
+  ///
+  /// In en, this message translates to:
+  /// **'Change number'**
+  String get changeNumber;
+
+  /// Home headline with the rider's first name.
+  ///
+  /// In en, this message translates to:
+  /// **'Where are you going, {name}?'**
+  String homeHeadlineNamed(String name);
+
+  /// Home headline when the name is unknown.
+  ///
+  /// In en, this message translates to:
+  /// **'Where are you going?'**
+  String get homeHeadline;
+
+  /// Home: tag on the pickup row when it is the current location.
+  ///
+  /// In en, this message translates to:
+  /// **'You are here'**
+  String get youAreHere;
+
+  /// Home: hint in the empty pickup field.
+  ///
+  /// In en, this message translates to:
+  /// **'Enter pickup point'**
+  String get pickupHint;
+
+  /// Home: hint in the destination field.
+  ///
+  /// In en, this message translates to:
+  /// **'Search destination'**
+  String get searchDestination;
+
+  /// Home: section eyebrow above the fare cards.
+  ///
+  /// In en, this message translates to:
+  /// **'Fares from here, right now'**
+  String get faresFromHere;
+
+  /// Home: the lock-icon promise line.
+  ///
+  /// In en, this message translates to:
+  /// **'The fare you book is the fare you pay.'**
+  String get fareLockLine;
+
+  /// Home: fare card when quoting failed.
+  ///
+  /// In en, this message translates to:
+  /// **'Tap to see fares'**
+  String get tapToSeeFares;
+
+  /// Bottom tab: home / book a ride.
+  ///
+  /// In en, this message translates to:
+  /// **'Ride'**
+  String get tabRide;
+
+  /// Bottom tab: ride history.
+  ///
+  /// In en, this message translates to:
+  /// **'Trips'**
+  String get tabTrips;
+
+  /// Bottom tab: profile and settings.
+  ///
+  /// In en, this message translates to:
+  /// **'Account'**
+  String get tabAccount;
+
+  /// Account row: open the wallet.
+  ///
+  /// In en, this message translates to:
+  /// **'Wallet'**
+  String get wallet;
 }
 
 class _AppLocalizationsDelegate

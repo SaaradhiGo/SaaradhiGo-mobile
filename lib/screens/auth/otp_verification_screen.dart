@@ -1,5 +1,4 @@
 import 'dart:async';
-import '../components/market_overlays.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/scheduler.dart';
 import 'package:go_router/go_router.dart';
@@ -7,7 +6,11 @@ import 'package:provider/provider.dart';
 import '../../services/push_notification_service.dart';
 import '../../providers/auth_provider.dart';
 
+import 'package:flutter/services.dart';
+import '../../ui/appearance_settings.dart';
+import '../../ui/sg_text.dart';
 import '../../ui/sg_tokens.dart';
+import '../../ui/sg_widgets.dart';
 
 class OtpVerificationScreen extends StatefulWidget {
   final String phoneNumber;
@@ -18,11 +21,10 @@ class OtpVerificationScreen extends StatefulWidget {
 }
 
 class _OtpVerificationScreenState extends State<OtpVerificationScreen> {
-  final List<TextEditingController> _controllers = List.generate(
-    6,
-    (_) => TextEditingController(),
-  );
-  final List<FocusNode> _focusNodes = List.generate(6, (_) => FocusNode());
+  // One field behind the six boxes, so an SMS code the keyboard offers
+  // (AutofillHints.oneTimeCode) or a pasted code fills all six at once.
+  final TextEditingController _code = TextEditingController();
+  final FocusNode _codeFocus = FocusNode();
   int _resendTimeout = 59;
   Timer? _timer;
   bool _canResend = false;
@@ -101,7 +103,7 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen> {
   }
 
   void _verifyOtp() async {
-    final otp = _controllers.map((c) => c.text).join();
+    final otp = _code.text;
     if (otp.length < 6) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
@@ -171,202 +173,234 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen> {
   @override
   void dispose() {
     _timer?.cancel();
-    for (var controller in _controllers) {
-      controller.dispose();
-    }
-    for (var focusNode in _focusNodes) {
-      focusNode.dispose();
-    }
+    _code.dispose();
+    _codeFocus.dispose();
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
-    final colorScheme = Theme.of(context).colorScheme;
+    final l = sgStrings(context);
+    final timer = '0:${_resendTimeout.toString().padLeft(2, '0')}';
 
     return Scaffold(
+      backgroundColor: SgColors.bg000,
       resizeToAvoidBottomInset: true,
-      appBar: AppBar(
-        backgroundColor: Colors.transparent,
-        elevation: 0,
-        leading: IconButton(
-          icon: Icon(Icons.arrow_back_ios_new, color: colorScheme.onSurface),
-          onPressed: _safePop,
-        ),
-      ),
       body: SafeArea(
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 20.0),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Container(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 12,
-                  vertical: 4,
-                ),
-                decoration: BoxDecoration(
-                  color: colorScheme.primary.withValues(alpha: 0.1),
-                  borderRadius: BorderRadius.circular(20),
-                ),
-                child: Text(
-                  'SAARADHIGO SECURITY',
-                  style: TextStyle(
-                    color: colorScheme.primary,
-                    fontSize: 10,
-                    fontWeight: FontWeight.bold,
-                    letterSpacing: 2,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Padding(
+              padding: const EdgeInsets.fromLTRB(
+                SgSpace.s2,
+                SgSpace.s2,
+                SgSpace.s4,
+                0,
+              ),
+              child: Align(
+                alignment: Alignment.centerLeft,
+                child: IconButton(
+                  tooltip: 'Back',
+                  constraints: const BoxConstraints(
+                    minWidth: kSgTouch,
+                    minHeight: kSgTouch,
                   ),
+                  onPressed: _safePop,
+                  icon: SgIcon(SgIcons.back, size: 24, color: SgColors.ink),
                 ),
               ),
-              const SizedBox(height: 16),
-              Text(
-                'Verify Phone',
-                style: TextStyle(
-                  fontSize: 36,
-                  fontWeight: FontWeight.bold,
-                  color: colorScheme.primary,
+            ),
+            Expanded(
+              child: SingleChildScrollView(
+                padding: const EdgeInsets.fromLTRB(
+                  SgSpace.s5,
+                  SgSpace.s3,
+                  SgSpace.s5,
+                  SgSpace.s4,
                 ),
-              ),
-              const SizedBox(height: 12),
-              RichText(
-                text: TextSpan(
-                  style: TextStyle(
-                    color: colorScheme.onSurface.withValues(alpha: 0.7),
-                    fontSize: 16,
-                  ),
-                  children: [
-                    const TextSpan(
-                      text: "We've sent a 6-digit verification code to\n",
-                    ),
-                    TextSpan(
-                      text: widget.phoneNumber.isNotEmpty
-                          ? widget.phoneNumber
-                          : "${marketOf(context).dialPrefix} 98765 43210",
-                      style: TextStyle(
-                        color: colorScheme.onSurface,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                    const TextSpan(text: ". Please enter it below."),
-                  ],
-                ),
-              ),
-              const SizedBox(height: 40),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: List.generate(6, (index) {
-                  return SizedBox(
-                    width: 48,
-                    child: TextField(
-                      controller: _controllers[index],
-                      focusNode: _focusNodes[index],
-                      keyboardType: TextInputType.number,
-                      textAlign: TextAlign.center,
-                      maxLength: 1,
-                      style: const TextStyle(
-                        fontSize: 24,
-                        fontWeight: FontWeight.bold,
-                      ),
-                      decoration: InputDecoration(
-                        counterText: "",
-                        hintText: "·",
-                        enabledBorder: UnderlineInputBorder(
-                          borderSide: BorderSide(
-                            color: colorScheme.primary.withValues(alpha: 0.3),
-                            width: 2,
-                          ),
-                        ),
-                        focusedBorder: UnderlineInputBorder(
-                          borderSide: BorderSide(
-                            color: colorScheme.primary,
-                            width: 2,
-                          ),
-                        ),
-                      ),
-                      onChanged: (value) {
-                        if (value.isNotEmpty && index < 5) {
-                          _focusNodes[index + 1].requestFocus();
-                        } else if (value.isEmpty && index > 0) {
-                          _focusNodes[index - 1].requestFocus();
-                        }
-                      },
-                    ),
-                  );
-                }),
-              ),
-              const SizedBox(height: 32),
-              Center(
                 child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
-                    Text(
-                      "Didn't receive the code?",
-                      style: TextStyle(
-                        color: colorScheme.onSurface.withValues(alpha: 0.5),
-                        fontSize: 14,
+                    Text(l.verifyTitle, style: SgText.display),
+                    const SizedBox(height: SgSpace.s2),
+                    // The number the code went to; never a sample number.
+                    if (widget.phoneNumber.isNotEmpty)
+                      Text(
+                        l.verifySentTo(widget.phoneNumber),
+                        style: SgText.body.copyWith(color: SgColors.inkMuted),
+                      ),
+                    Align(
+                      alignment: Alignment.centerLeft,
+                      child: TextButton(
+                        key: const Key('otp_change_number'),
+                        onPressed: _safePop,
+                        style: TextButton.styleFrom(
+                          minimumSize: const Size(0, kSgTouch),
+                          padding: EdgeInsets.zero,
+                        ),
+                        child: Text(
+                          l.changeNumber,
+                          style: SgText.body.copyWith(
+                            color: SgColors.goldText,
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
                       ),
                     ),
-                    const SizedBox(height: 8),
-                    TextButton.icon(
-                      onPressed: _canResend ? _resendOtp : null,
-                      icon: const Icon(Icons.refresh, size: 18),
-                      label: Text(
-                        _canResend
-                            ? 'Resend Code'
-                            : 'Resend Code in 0:${_resendTimeout.toString().padLeft(2, '0')}',
-                      ),
-                      style: TextButton.styleFrom(
-                        foregroundColor: colorScheme.primary,
-                        disabledForegroundColor: colorScheme.onSurface
-                            .withValues(alpha: 0.3),
-                        textStyle: const TextStyle(fontWeight: FontWeight.bold),
-                      ),
+                    const SizedBox(height: SgSpace.s4),
+                    OtpBoxes(
+                      controller: _code,
+                      focusNode: _codeFocus,
+                      onChanged: (_) => setState(() {}),
                     ),
-                  ],
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
-      bottomNavigationBar: SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.all(16.0),
-          child: SizedBox(
-            width: double.infinity,
-            height: 56,
-            child: Consumer<AuthProvider>(
-              builder: (context, auth, child) {
-                return ElevatedButton(
-                  onPressed: auth.isLoading ? null : _verifyOtp,
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: colorScheme.primary,
-                    foregroundColor: colorScheme.onPrimary,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                  ),
-                  child: auth.isLoading
-                      ? CircularProgressIndicator(color: SgColors.onGold)
-                      : Row(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            const Text(
-                              'Verify & Proceed',
-                              style: TextStyle(
-                                fontSize: 18,
-                                fontWeight: FontWeight.bold,
+                    const SizedBox(height: SgSpace.s5),
+                    Center(
+                      child: _canResend
+                          ? TextButton(
+                              key: const Key('otp_resend'),
+                              onPressed: _resendOtp,
+                              style: TextButton.styleFrom(
+                                minimumSize: const Size(0, kSgTouch),
+                              ),
+                              child: Text(
+                                l.verifyResend,
+                                style: SgText.body.copyWith(
+                                  color: SgColors.goldText,
+                                  fontWeight: FontWeight.w700,
+                                ),
+                              ),
+                            )
+                          : Padding(
+                              padding: const EdgeInsets.symmetric(
+                                vertical: SgSpace.s3,
+                              ),
+                              child: Text(
+                                l.verifyResendIn(timer),
+                                style: SgText.caption.copyWith(
+                                  fontFeatures: const [
+                                    FontFeature.tabularFigures(),
+                                  ],
+                                ),
                               ),
                             ),
-                            const SizedBox(width: 8),
-                            const Icon(Icons.arrow_forward),
-                          ],
+                    ),
+                  ],
+                ),
+              ),
+            ),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(
+                SgSpace.s5,
+                SgSpace.s2,
+                SgSpace.s5,
+                SgSpace.s4,
+              ),
+              child: Consumer<AuthProvider>(
+                builder: (context, auth, child) => auth.isLoading
+                    ? const SizedBox(
+                        height: 56,
+                        child: Center(
+                          child: CircularProgressIndicator(
+                            color: SgColors.gold500,
+                          ),
                         ),
-                );
-              },
+                      )
+                    : SgPrimaryButton(
+                        key: const Key('otp_verify'),
+                        label: l.verifyButton,
+                        onPressed: _verifyOtp,
+                      ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+/// Six boxes over one hidden field. Typing, pasting or an SMS code offered by
+/// the keyboard all land in the one field; the boxes only draw it.
+class OtpBoxes extends StatelessWidget {
+  const OtpBoxes({
+    super.key,
+    required this.controller,
+    required this.focusNode,
+    this.onChanged,
+  });
+
+  final TextEditingController controller;
+  final FocusNode focusNode;
+  final ValueChanged<String>? onChanged;
+
+  static const length = 6;
+
+  @override
+  Widget build(BuildContext context) {
+    final code = controller.text;
+    return GestureDetector(
+      behavior: HitTestBehavior.opaque,
+      onTap: focusNode.requestFocus,
+      child: Stack(
+        children: [
+          // Kept in the tree and focusable, but drawn invisibly.
+          Positioned.fill(
+            child: Opacity(
+              opacity: 0,
+              child: TextField(
+                key: const Key('otp_field'),
+                controller: controller,
+                focusNode: focusNode,
+                autofocus: true,
+                keyboardType: TextInputType.number,
+                autofillHints: const [AutofillHints.oneTimeCode],
+                maxLength: length,
+                showCursor: false,
+                enableInteractiveSelection: false,
+                inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+                decoration: const InputDecoration(counterText: ''),
+                onChanged: onChanged,
+              ),
             ),
           ),
-        ),
+          ListenableBuilder(
+            listenable: focusNode,
+            builder: (context, _) => Row(
+              children: [
+                for (var i = 0; i < length; i++) ...[
+                  if (i > 0) const SizedBox(width: SgSpace.s2),
+                  Expanded(
+                    child: Container(
+                      key: Key('otp_box_$i'),
+                      height: 60,
+                      alignment: Alignment.center,
+                      decoration: BoxDecoration(
+                        color: SgColors.bg200,
+                        borderRadius: BorderRadius.circular(SgRadius.md),
+                        border: Border.all(
+                          color:
+                              focusNode.hasFocus &&
+                                  i == code.length.clamp(0, length - 1)
+                              ? SgColors.gold500
+                              : SgColors.lineStrong,
+                          width:
+                              focusNode.hasFocus &&
+                                  i == code.length.clamp(0, length - 1)
+                              ? 2.5
+                              : 1,
+                        ),
+                      ),
+                      child: Text(
+                        i < code.length ? code[i] : '',
+                        style: SgText.fare.copyWith(fontSize: 26, height: 1),
+                      ),
+                    ),
+                  ),
+                ],
+              ],
+            ),
+          ),
+        ],
       ),
     );
   }

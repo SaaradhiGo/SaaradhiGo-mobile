@@ -463,6 +463,20 @@ class ApiService implements AuthApiClient {
     return ok;
   }
 
+  /// Keep the rider's chosen language on the account (Night 2 field
+  /// `preferred_language`), via PATCH /auth/update/. Fire and forget.
+  Future<void> patchPreferredLanguage(String code) async {
+    try {
+      await authedRequest(
+        (headers) => _client.patch(
+          Uri.parse('$baseUrl${AppConfig.authUpdate}'),
+          headers: headers,
+          body: jsonEncode({'preferred_language': code}),
+        ),
+      );
+    } catch (_) {}
+  }
+
   @override
   Future<Map<String, dynamic>?> getProfile() async {
     final response = await authedRequest(
