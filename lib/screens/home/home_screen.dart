@@ -816,7 +816,7 @@ class _HomeFaresState extends State<_HomeFares> {
               final q = _quotes[p.name];
               final meta = (q?.distanceKm == null || q?.durationMin == null)
                   ? null
-                  : '${market.formatDistanceKm(q!.distanceKm!)} · ${q.durationMin} min';
+                  : '${market.formatDistanceKm(q!.distanceKm!)} · ${durationLabel(q.durationMin!)}';
               return HomeFareCard(
                 key: Key('home_fare_${p.name}'),
                 name: p.name,

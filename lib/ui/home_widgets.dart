@@ -21,6 +21,13 @@ String homeFirstName(String? fullName) {
   return i < 0 ? t : t.substring(0, i);
 }
 
+/// "24 min", "1 h 05 min".
+String durationLabel(int minutes) {
+  if (minutes < 60) return '$minutes min';
+  final m = (minutes % 60).toString().padLeft(2, '0');
+  return '${minutes ~/ 60} h $m min';
+}
+
 /// Badge and name, the language chip, the account avatar.
 class HomeHeader extends StatelessWidget {
   const HomeHeader({
@@ -160,9 +167,12 @@ class HomeFromToCard extends StatelessWidget {
             ],
           ),
         ),
-        Padding(
-          padding: const EdgeInsets.only(left: 5),
-          child: Container(width: 2, height: 10, color: SgColors.line),
+        Align(
+          alignment: Alignment.centerLeft,
+          child: Padding(
+            padding: const EdgeInsets.only(left: 5),
+            child: Container(width: 2, height: 10, color: SgColors.line),
+          ),
         ),
         const SizedBox(height: SgSpace.s1),
         Container(

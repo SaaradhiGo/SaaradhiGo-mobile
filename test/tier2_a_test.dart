@@ -20,6 +20,11 @@ void main() {
     });
   });
 
+  test('durationLabel', () {
+    expect(durationLabel(6), '6 min');
+    expect(durationLabel(65), '1 h 05 min');
+  });
+
   group('pickHomePlaces', () {
     FavoriteLocation fav(int id, String text, {String? label}) =>
         FavoriteLocation(
