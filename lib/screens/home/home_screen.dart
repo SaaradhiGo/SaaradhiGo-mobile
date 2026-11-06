@@ -626,9 +626,12 @@ class _HomeTab extends StatelessWidget {
     final first = homeFirstName(auth.fullName);
     // Saved places have labels only when the server sends them; otherwise
     // their address text. Up to two, quoted while the home is on screen.
+    // Only places near the rider, in the rider's own service area.
     final places = pickHomePlaces(
       mapProvider.favoriteLocations,
       mapProvider.recentLocations,
+      near: homePlaceFilter(marketOf(context), here),
+      requireNear: true,
     );
 
     return ValueListenableBuilder<bool>(

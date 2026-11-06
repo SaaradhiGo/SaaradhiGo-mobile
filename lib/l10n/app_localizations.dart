@@ -706,6 +706,24 @@ abstract class AppLocalizations {
   /// **'{n, plural, =1{1 seat} other{{n} seats}}'**
   String seatsCount(int n);
 
+  /// Fare ticket: the server's quote expired before booking; this is the fresh fare. Confirm again books it.
+  ///
+  /// In en, this message translates to:
+  /// **'Fare updated to {fare} because time passed'**
+  String fareUpdatedTimePassed(String fare);
+
+  /// Fare ticket: the pickup, drop or class changed after the quote; this is the fresh fare.
+  ///
+  /// In en, this message translates to:
+  /// **'Fare updated to {fare} because the pickup changed'**
+  String fareUpdatedPickupChanged(String fare);
+
+  /// Fare ticket: re-quoting after the rider moved the pickup pin.
+  ///
+  /// In en, this message translates to:
+  /// **'Updating your fare'**
+  String get fareUpdating;
+
   /// Rider screen text, moved from code: Your rides
   ///
   /// In en, this message translates to:

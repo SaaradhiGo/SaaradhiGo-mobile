@@ -371,6 +371,19 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
+  String fareUpdatedTimePassed(String fare) {
+    return 'Fare updated to $fare because time passed';
+  }
+
+  @override
+  String fareUpdatedPickupChanged(String fare) {
+    return 'Fare updated to $fare because the pickup changed';
+  }
+
+  @override
+  String get fareUpdating => 'Updating your fare';
+
+  @override
   String get yourRides => 'Your rides';
 
   @override
