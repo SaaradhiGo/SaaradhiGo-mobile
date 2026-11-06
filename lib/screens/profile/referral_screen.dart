@@ -1,3 +1,4 @@
+import '../../ui/appearance_settings.dart' show sgStrings;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:share_plus/share_plus.dart';
@@ -84,7 +85,7 @@ class _ReferralScreenState extends State<ReferralScreen> {
       await Clipboard.setData(ClipboardData(text: text));
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Copied. Paste it into any chat.')),
+        SnackBar(content: Text(sgStrings(context).copiedPasteChat)),
       );
     }
   }
@@ -94,7 +95,7 @@ class _ReferralScreenState extends State<ReferralScreen> {
     if (!mounted) return;
     ScaffoldMessenger.of(
       context,
-    ).showSnackBar(const SnackBar(content: Text('Referral code copied')));
+    ).showSnackBar(SnackBar(content: Text(sgStrings(context).referralCopied)));
   }
 
   @override
@@ -127,7 +128,7 @@ class _ReferralScreenState extends State<ReferralScreen> {
                     OutlinedButton(
                       key: const Key('referral_retry'),
                       onPressed: _load,
-                      child: const Text('Try again'),
+                      child: Text(sgStrings(context).tryAgain),
                     ),
                   ],
                 ),
@@ -190,7 +191,7 @@ class _ReferralScreenState extends State<ReferralScreen> {
                       key: const Key('referral_copy'),
                       onPressed: () => _copy(mine),
                       icon: const Icon(Icons.copy, size: 18),
-                      label: const Text('Copy'),
+                      label: Text(sgStrings(context).copy),
                     ),
                   ),
                   const SizedBox(width: 12),
@@ -203,7 +204,7 @@ class _ReferralScreenState extends State<ReferralScreen> {
                         foregroundColor: scheme.onPrimary,
                       ),
                       icon: const Icon(Icons.share, size: 18),
-                      label: const Text('Share'),
+                      label: Text(sgStrings(context).share),
                     ),
                   ),
                 ],

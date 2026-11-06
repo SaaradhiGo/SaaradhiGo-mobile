@@ -1,3 +1,4 @@
+import '../../ui/appearance_settings.dart' show sgStrings;
 import 'package:flutter/material.dart';
 
 import 'dart:ui';
@@ -64,28 +65,28 @@ class _PrivacySecurityScreenState extends State<PrivacySecurityScreen> {
                   _PrivacyNavItem(
                     key: const Key('privacy-nav-home'),
                     icon: Icons.home,
-                    label: 'Home',
+                    label: sgStrings(context).navHome,
                     selected: false,
                     onTap: () => _openHomeTab(0),
                   ),
                   _PrivacyNavItem(
                     key: const Key('privacy-nav-history'),
                     icon: Icons.history,
-                    label: 'History',
+                    label: sgStrings(context).navHistory,
                     selected: false,
                     onTap: () => _openHomeTab(1),
                   ),
                   _PrivacyNavItem(
                     key: const Key('privacy-nav-wallet'),
                     icon: Icons.account_balance_wallet,
-                    label: 'Wallet',
+                    label: sgStrings(context).wallet,
                     selected: false,
                     onTap: () => _openHomeTab(2),
                   ),
                   _PrivacyNavItem(
                     key: const Key('privacy-nav-profile'),
                     icon: Icons.person,
-                    label: 'Profile',
+                    label: sgStrings(context).profile,
                     selected: true,
                     onTap: () => _openHomeTab(3),
                   ),
@@ -148,7 +149,7 @@ class _PrivacySecurityScreenState extends State<PrivacySecurityScreen> {
                       children: [
                         _PrivacyToggleRow(
                           key: const Key('privacy-toggle-two-factor'),
-                          title: 'Two-Factor Authentication',
+                          title: sgStrings(context).twoFactor,
                           subtitle:
                               'Add an extra layer of security to your account.',
                           value: auth.twoFactorEnabled,
@@ -167,10 +168,10 @@ class _PrivacySecurityScreenState extends State<PrivacySecurityScreen> {
                         const _PrivacyDivider(),
                         _PrivacyActionRow(
                           key: const Key('privacy-row-change-password'),
-                          title: 'Change Password',
+                          title: sgStrings(context).changePassword,
                           subtitle:
                               'Update your password regularly to keep your account safe.',
-                          onTap: () => _showComingSoon('Change Password'),
+                          onTap: () => _showComingSoon(sgStrings(context).changePassword),
                         ),
                       ],
                     ),
@@ -183,17 +184,17 @@ class _PrivacySecurityScreenState extends State<PrivacySecurityScreen> {
                       children: [
                         _PrivacyActionRow(
                           key: const Key('privacy-row-location-permissions'),
-                          title: 'Location Permissions',
+                          title: sgStrings(context).locationPermissions,
                           subtitle:
                               'Control when SaaradhiGo can access your location.',
-                          onTap: () => _showComingSoon('Location Permissions'),
+                          onTap: () => _showComingSoon(sgStrings(context).locationPermissions),
                         ),
                         const _PrivacyDivider(),
                         _PrivacyActionRow(
                           key: const Key(
                             'privacy-row-notification-preferences',
                           ),
-                          title: 'Notification Preferences',
+                          title: sgStrings(context).notificationPreferences,
                           subtitle:
                               'Choose how you want to receive offers and updates.',
                           onTap: () =>
@@ -202,10 +203,10 @@ class _PrivacySecurityScreenState extends State<PrivacySecurityScreen> {
                         const _PrivacyDivider(),
                         _PrivacyActionRow(
                           key: const Key('privacy-row-manage-data'),
-                          title: 'Manage My Data',
+                          title: sgStrings(context).manageMyData,
                           subtitle:
                               'Download or delete your account data securely.',
-                          onTap: () => _showComingSoon('Manage My Data'),
+                          onTap: () => _showComingSoon(sgStrings(context).manageMyData),
                         ),
                       ],
                     ),

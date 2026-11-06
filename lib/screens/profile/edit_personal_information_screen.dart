@@ -1,3 +1,4 @@
+import '../../ui/appearance_settings.dart' show sgStrings;
 import '../../core/market/market_config_store.dart';
 import 'package:cached_network_image_ce/cached_network_image.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
@@ -166,7 +167,7 @@ class _EditPersonalInformationScreenState
               children: [
                 _modalOption(
                   icon: Icons.camera_alt_rounded,
-                  label: 'Camera',
+                  label: sgStrings(context).camera,
                   onTap: () {
                     Navigator.pop(context);
                     _pickAvatar(ImageSource.camera);
@@ -174,7 +175,7 @@ class _EditPersonalInformationScreenState
                 ),
                 _modalOption(
                   icon: Icons.photo_library_rounded,
-                  label: 'Gallery',
+                  label: sgStrings(context).gallery,
                   onTap: () {
                     Navigator.pop(context);
                     _pickAvatar(ImageSource.gallery);
@@ -647,7 +648,7 @@ class _EditPersonalInformationScreenState
                             horizontal: 16,
                             vertical: 16,
                           ),
-                          hintText: 'Emergency phone number',
+                          hintText: sgStrings(context).emergencyPhoneHint,
                           hintStyle: TextStyle(
                             color: SgColors.inkSubtle,
                             fontSize: 19,

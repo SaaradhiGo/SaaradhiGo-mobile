@@ -1,3 +1,4 @@
+import '../../ui/appearance_settings.dart' show sgStrings;
 import 'package:flutter/material.dart';
 
 import 'package:go_router/go_router.dart';
@@ -50,25 +51,25 @@ class HelpSupportScreen extends StatelessWidget {
             children: [
               _HelpNavItem(
                 icon: Icons.home,
-                label: 'Home',
+                label: sgStrings(context).navHome,
                 selected: false,
                 onTap: () => _openHomeTab(context, 0),
               ),
               _HelpNavItem(
                 icon: Icons.history,
-                label: 'History',
+                label: sgStrings(context).navHistory,
                 selected: false,
                 onTap: () => _openHomeTab(context, 1),
               ),
               _HelpNavItem(
                 icon: Icons.account_balance_wallet,
-                label: 'Wallet',
+                label: sgStrings(context).wallet,
                 selected: false,
                 onTap: () => _openHomeTab(context, 2),
               ),
               _HelpNavItem(
                 icon: Icons.person,
-                label: 'Profile',
+                label: sgStrings(context).profile,
                 selected: true,
                 onTap: () => _openHomeTab(context, 3),
               ),
@@ -135,23 +136,23 @@ class HelpSupportScreen extends StatelessWidget {
                     children: [
                       _MiniTile(
                         icon: Icons.directions_car,
-                        label: 'Ride Issues',
+                        label: sgStrings(context).helpRideIssues,
                         onTap: () =>
                             _report(context, SupportIssueType.fareDispute),
                       ),
                       _MiniTile(
                         icon: Icons.account_balance_wallet,
-                        label: 'Payment & Wallet',
+                        label: sgStrings(context).helpPaymentWallet,
                         onTap: () => _report(context, SupportIssueType.payment),
                       ),
                       _MiniTile(
                         icon: Icons.person,
-                        label: 'Account & App',
+                        label: sgStrings(context).helpAccountApp,
                         onTap: () => _report(context, SupportIssueType.account),
                       ),
                       _MiniTile(
                         icon: Icons.shield,
-                        label: 'Safety',
+                        label: sgStrings(context).safety,
                         iconBackground: SgColors.goldSoft,
                         onTap: () => _report(context, SupportIssueType.safety),
                       ),
@@ -166,14 +167,14 @@ class HelpSupportScreen extends StatelessWidget {
                   // support replies in the app rather than instantly.
                   _ContactTile(
                     icon: Icons.edit_note,
-                    title: 'Report a problem',
-                    subtitle: 'Support replies in the app',
+                    title: sgStrings(context).reportProblem,
+                    subtitle: sgStrings(context).supportRepliesInApp,
                     onTap: () => _report(context, SupportIssueType.other),
                   ),
                   const SizedBox(height: 12),
                   _ContactTile(
                     icon: Icons.mail,
-                    title: 'Email Support',
+                    title: sgStrings(context).emailSupport,
                     // Was support@saaradhigo.com. The platform runs on
                     // saaradhigo.com -- api.saaradhigo.com, and
                     // PLATFORM_CONTACT_DOMAIN -- so the .com address was a
@@ -250,7 +251,7 @@ class _HelpSearchField extends StatelessWidget {
         style: TextStyle(color: SgColors.ink),
         decoration: InputDecoration(
           border: InputBorder.none,
-          hintText: 'Search for issues...',
+          hintText: sgStrings(context).searchIssues,
           hintStyle: TextStyle(color: SgColors.inkSubtle),
           prefixIcon: Icon(Icons.search, color: SgColors.inkSubtle),
           contentPadding: const EdgeInsets.symmetric(vertical: 16),

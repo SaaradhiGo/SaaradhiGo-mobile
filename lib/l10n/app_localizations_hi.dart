@@ -648,4 +648,94 @@ class AppLocalizationsHi extends AppLocalizations {
 
   @override
   String get update => 'अपडेट करें';
+
+  @override
+  String get navHome => 'होम';
+
+  @override
+  String get navHistory => 'इतिहास';
+
+  @override
+  String get helpRideIssues => 'राइड की समस्याएँ';
+
+  @override
+  String get helpPaymentWallet => 'भुगतान और वॉलेट';
+
+  @override
+  String get helpAccountApp => 'खाता और ऐप';
+
+  @override
+  String get reportProblem => 'समस्या बताएँ';
+
+  @override
+  String get supportRepliesInApp => 'सपोर्ट ऐप में जवाब देगा';
+
+  @override
+  String get emailSupport => 'ईमेल सपोर्ट';
+
+  @override
+  String get searchIssues => 'समस्याएँ खोजें...';
+
+  @override
+  String get twoFactor => 'दो-चरण सत्यापन';
+
+  @override
+  String get changePassword => 'पासवर्ड बदलें';
+
+  @override
+  String get locationPermissions => 'लोकेशन अनुमतियाँ';
+
+  @override
+  String get notificationPreferences => 'सूचना सेटिंग';
+
+  @override
+  String get manageMyData => 'मेरा डेटा';
+
+  @override
+  String get alwaysOnRides => 'हमेशा चालू। राइड और सुरक्षा के लिए ज़रूरी।';
+
+  @override
+  String get offUnlessOn => 'आप चालू करें तभी।';
+
+  @override
+  String get rideUpdatesWhatsapp => 'WhatsApp पर राइड अपडेट';
+
+  @override
+  String get offersWhatsapp => 'WhatsApp पर ऑफ़र';
+
+  @override
+  String get copiedPasteChat => 'कॉपी हुआ। किसी भी चैट में पेस्ट करें।';
+
+  @override
+  String get referralCopied => 'रेफ़रल कोड कॉपी हुआ';
+
+  @override
+  String get copy => 'कॉपी';
+
+  @override
+  String get share => 'शेयर करें';
+
+  @override
+  String get camera => 'कैमरा';
+
+  @override
+  String get gallery => 'गैलरी';
+
+  @override
+  String get emergencyPhoneHint => 'आपातकालीन फ़ोन नंबर';
+
+  @override
+  String get problemType => 'समस्या का प्रकार';
+
+  @override
+  String get describeProblem => 'समस्या बताएँ';
+
+  @override
+  String get submit => 'भेजें';
+
+  @override
+  String get saaradhiWallet => 'SaaradhiGo वॉलेट';
+
+  @override
+  String get addPaymentMethod => 'नया भुगतान तरीका जोड़ें';
 }

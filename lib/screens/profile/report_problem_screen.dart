@@ -11,6 +11,7 @@
 /// failure has to name the reason and leave what they typed intact.
 library;
 
+import '../../ui/appearance_settings.dart' show sgStrings;
 import 'package:flutter/material.dart';
 
 import '../../services/models/support_ticket.dart';
@@ -93,7 +94,7 @@ class _ReportProblemScreenState extends State<ReportProblemScreen> {
       appBar: AppBar(
         backgroundColor: SgColors.bg000,
         foregroundColor: SgColors.ink,
-        title: const Text('Report a problem'),
+        title: Text(sgStrings(context).reportProblem),
       ),
       body: SafeArea(
         child: _created != null || _createdWithoutDetail
@@ -143,7 +144,7 @@ class _ReportProblemScreenState extends State<ReportProblemScreen> {
                 backgroundColor: SgColors.gold500,
                 foregroundColor: SgColors.onGold,
               ),
-              child: const Text('Done'),
+              child: Text(sgStrings(context).done),
             ),
           ],
         ),
@@ -173,7 +174,7 @@ class _ReportProblemScreenState extends State<ReportProblemScreen> {
               dropdownColor: SgColors.bg200,
               style: TextStyle(color: SgColors.ink),
               decoration: InputDecoration(
-                labelText: 'Type of problem',
+                labelText: sgStrings(context).problemType,
                 labelStyle: TextStyle(color: SgColors.inkMuted),
                 border: OutlineInputBorder(),
               ),
@@ -194,7 +195,7 @@ class _ReportProblemScreenState extends State<ReportProblemScreen> {
               maxLength: 2000,
               style: TextStyle(color: SgColors.ink),
               decoration: InputDecoration(
-                labelText: 'Describe the problem',
+                labelText: sgStrings(context).describeProblem,
                 labelStyle: TextStyle(color: SgColors.inkMuted),
                 alignLabelWithHint: true,
                 border: OutlineInputBorder(),
@@ -260,7 +261,7 @@ class _ReportProblemScreenState extends State<ReportProblemScreen> {
                         color: SgColors.bg000,
                       ),
                     )
-                  : const Text('Submit'),
+                  : Text(sgStrings(context).submit),
             ),
           ],
         ),

@@ -657,4 +657,95 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get update => 'Update';
+
+  @override
+  String get navHome => 'Home';
+
+  @override
+  String get navHistory => 'History';
+
+  @override
+  String get helpRideIssues => 'Ride Issues';
+
+  @override
+  String get helpPaymentWallet => 'Payment & Wallet';
+
+  @override
+  String get helpAccountApp => 'Account & App';
+
+  @override
+  String get reportProblem => 'Report a problem';
+
+  @override
+  String get supportRepliesInApp => 'Support replies in the app';
+
+  @override
+  String get emailSupport => 'Email Support';
+
+  @override
+  String get searchIssues => 'Search for issues...';
+
+  @override
+  String get twoFactor => 'Two-Factor Authentication';
+
+  @override
+  String get changePassword => 'Change Password';
+
+  @override
+  String get locationPermissions => 'Location Permissions';
+
+  @override
+  String get notificationPreferences => 'Notification Preferences';
+
+  @override
+  String get manageMyData => 'Manage My Data';
+
+  @override
+  String get alwaysOnRides =>
+      'Always on. Needed for your rides and your safety.';
+
+  @override
+  String get offUnlessOn => 'Off unless you turn it on.';
+
+  @override
+  String get rideUpdatesWhatsapp => 'Ride updates on WhatsApp';
+
+  @override
+  String get offersWhatsapp => 'Offers on WhatsApp';
+
+  @override
+  String get copiedPasteChat => 'Copied. Paste it into any chat.';
+
+  @override
+  String get referralCopied => 'Referral code copied';
+
+  @override
+  String get copy => 'Copy';
+
+  @override
+  String get share => 'Share';
+
+  @override
+  String get camera => 'Camera';
+
+  @override
+  String get gallery => 'Gallery';
+
+  @override
+  String get emergencyPhoneHint => 'Emergency phone number';
+
+  @override
+  String get problemType => 'Type of problem';
+
+  @override
+  String get describeProblem => 'Describe the problem';
+
+  @override
+  String get submit => 'Submit';
+
+  @override
+  String get saaradhiWallet => 'SaaradhiGo Wallet';
+
+  @override
+  String get addPaymentMethod => 'Add New Payment Method';
 }
