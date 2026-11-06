@@ -4,7 +4,11 @@ import '../../core/maps/sg_map.dart';
 import 'package:provider/provider.dart';
 import 'package:go_router/go_router.dart';
 import '../../providers/map_provider.dart';
+import '../../core/vehicle_classes.dart';
+import '../../ui/appearance_settings.dart' show sgStrings;
+import '../../ui/booking_widgets.dart';
 import '../../ui/choose_ride_sheet.dart';
+import '../../widgets/fare_breakdown.dart';
 import '../../ui/sg_tokens.dart';
 import '../../ui/sg_widgets.dart';
 import '../../ui/trip_widgets.dart';
@@ -101,12 +105,16 @@ class _PrecisePickupScreenState extends State<PrecisePickupScreen> {
           for (final o in options) {
             if (o.type == mapProvider.selectedVehicleType) chosen = o;
           }
+          final l = sgStrings(context);
           final address =
               _address ??
               mapProvider.pickupAddress ??
               mapProvider.pickupLocation?.name ??
-              'Your pickup point';
-          final eta = chosen?.etaMin;
+              l.pickupLabel;
+          final type = mapProvider.selectedVehicleType;
+          final estimate = type == null
+              ? null
+              : mapProvider.fareEstimates[type];
           return Column(
             children: [
               Expanded(
@@ -140,14 +148,17 @@ class _PrecisePickupScreenState extends State<PrecisePickupScreen> {
                         child: const FixedPickupPin(),
                       ),
                     ),
-                    if (eta != null)
-                      Align(
-                        alignment: Alignment.center,
-                        child: Transform.translate(
-                          offset: const Offset(0, -112),
-                          child: MapChip('Pickup in $eta min'),
+                    // The pickup point's name, over the pin.
+                    Align(
+                      alignment: Alignment.center,
+                      child: Transform.translate(
+                        offset: const Offset(0, -112),
+                        child: ConstrainedBox(
+                          constraints: const BoxConstraints(maxWidth: 260),
+                          child: MapChip(address.split(',').first.trim()),
                         ),
                       ),
+                    ),
                     Positioned(
                       top: MediaQuery.of(context).padding.top + SgSpace.s2,
                       left: SgSpace.s4,
@@ -160,14 +171,30 @@ class _PrecisePickupScreenState extends State<PrecisePickupScreen> {
                   ],
                 ),
               ),
-              ConfirmPickupSheet(
-                address: address,
-                lockText: chosen == null
-                    ? 'Drivers see your fare before they accept.'
-                    : 'Fare locked at ${chosen.fareText}. Drivers see it before they accept.',
-                buttonLabel: chosen == null
-                    ? 'Request ride'
-                    : 'Request ${chosen.shortName}',
+              FareTicketSheet(
+                buttonLabel: l.confirmAndBook,
+                ticket: FareTicket(
+                  eyebrow: l.fareTicket,
+                  vehicleType: mapProvider.selectedVehicleType,
+                  className: vehicleClassName(mapProvider.selectedVehicleType),
+                  fareText: chosen?.fareText ?? '',
+                  lockText: l.fareLocked,
+                  pickupLabel: l.pickupLabel,
+                  pickup: address,
+                  dropLabel: l.dropLabel,
+                  drop: mapProvider.destinationAddress,
+                  editLabel: l.edit,
+                  // The pin is already draggable: Edit says so.
+                  onEditPickup: () => ScaffoldMessenger.of(context)
+                    ..hideCurrentSnackBar()
+                    ..showSnackBar(SnackBar(content: Text(l.dragToMove))),
+                  breakdownLabel: (chosen == null || estimate == null)
+                      ? null
+                      : l.seeHowWorkedOut(chosen.fareText),
+                  onBreakdown: estimate == null
+                      ? null
+                      : () => showFareBreakdownSheet(context, estimate),
+                ),
                 onConfirm: _snappedLocation == null
                     ? null
                     : () {

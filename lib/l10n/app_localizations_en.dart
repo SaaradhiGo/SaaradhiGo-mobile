@@ -116,4 +116,89 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get wallet => 'Wallet';
+
+  @override
+  String waysToGo(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count ways to get there',
+      one: '1 way to get there',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get tagCheapest => 'Cheapest';
+
+  @override
+  String get tagFastest => 'Fastest';
+
+  @override
+  String bookClass(String name, String fare) {
+    return 'Book $name · $fare';
+  }
+
+  @override
+  String get selectRide => 'Select a ride';
+
+  @override
+  String get change => 'Change';
+
+  @override
+  String get payCash => 'Cash';
+
+  @override
+  String get payWallet => 'Wallet';
+
+  @override
+  String get payOnline => 'UPI / card';
+
+  @override
+  String get fareTicket => 'Your fare ticket';
+
+  @override
+  String get fareLocked => 'Locked when you book. It will not go up.';
+
+  @override
+  String get pickupLabel => 'Pickup';
+
+  @override
+  String get dropLabel => 'Drop';
+
+  @override
+  String get edit => 'Edit';
+
+  @override
+  String get dragToMove => 'Drag the map to move your pickup';
+
+  @override
+  String seeHowWorkedOut(String fare) {
+    return 'See how $fare is worked out';
+  }
+
+  @override
+  String get confirmAndBook => 'Confirm pickup and book';
+
+  @override
+  String findingClass(String name) {
+    return 'Finding a $name driver';
+  }
+
+  @override
+  String fareLockedAt(String fare) {
+    return 'Fare locked at $fare';
+  }
+
+  @override
+  String get waitingAccept => 'Waiting for one to accept';
+
+  @override
+  String get closeAppNote => 'You can close the app; we will notify you.';
+
+  @override
+  String get freeToCancel => 'Free to cancel';
+
+  @override
+  String get cancelRequest => 'Cancel request';
 }

@@ -116,4 +116,89 @@ class AppLocalizationsTe extends AppLocalizations {
 
   @override
   String get wallet => 'వాలెట్';
+
+  @override
+  String waysToGo(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'అక్కడికి $count మార్గాలు',
+      one: 'అక్కడికి 1 మార్గం',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get tagCheapest => 'చౌకైనది';
+
+  @override
+  String get tagFastest => 'వేగమైనది';
+
+  @override
+  String bookClass(String name, String fare) {
+    return '$name బుక్ చేయండి · $fare';
+  }
+
+  @override
+  String get selectRide => 'రైడ్ ఎంచుకోండి';
+
+  @override
+  String get change => 'మార్చండి';
+
+  @override
+  String get payCash => 'నగదు';
+
+  @override
+  String get payWallet => 'వాలెట్';
+
+  @override
+  String get payOnline => 'UPI / కార్డ్';
+
+  @override
+  String get fareTicket => 'మీ ఛార్జీ టికెట్';
+
+  @override
+  String get fareLocked => 'బుక్ చేసినప్పుడు లాక్ అవుతుంది. పెరగదు.';
+
+  @override
+  String get pickupLabel => 'పికప్';
+
+  @override
+  String get dropLabel => 'డ్రాప్';
+
+  @override
+  String get edit => 'మార్చండి';
+
+  @override
+  String get dragToMove => 'పికప్ మార్చడానికి మ్యాప్‌ను జరపండి';
+
+  @override
+  String seeHowWorkedOut(String fare) {
+    return '$fare ఎలా లెక్కించారో చూడండి';
+  }
+
+  @override
+  String get confirmAndBook => 'పికప్ నిర్ధారించి బుక్ చేయండి';
+
+  @override
+  String findingClass(String name) {
+    return '$name డ్రైవర్ కోసం వెతుకుతున్నాం';
+  }
+
+  @override
+  String fareLockedAt(String fare) {
+    return 'ఛార్జీ $fare వద్ద లాక్';
+  }
+
+  @override
+  String get waitingAccept => 'ఒకరు అంగీకరించే వరకు వేచి ఉన్నాం';
+
+  @override
+  String get closeAppNote => 'యాప్ మూసివేయవచ్చు; మేము మీకు తెలియజేస్తాం.';
+
+  @override
+  String get freeToCancel => 'రద్దు చేయడం ఉచితం';
+
+  @override
+  String get cancelRequest => 'అభ్యర్థన రద్దు చేయండి';
 }

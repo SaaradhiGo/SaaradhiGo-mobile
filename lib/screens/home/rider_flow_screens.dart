@@ -44,6 +44,8 @@ import '../../widgets/safety_sheet.dart';
 import '../../state/ride_notifier.dart';
 import '../../state/ride_state.dart';
 import '../../core/vehicle_classes.dart';
+import '../../ui/appearance_settings.dart' show sgStrings;
+import '../../ui/booking_widgets.dart';
 import '../../ui/choose_ride_sheet.dart';
 import '../../ui/ride_rating_panel.dart';
 import '../../ui/sg_text.dart';
@@ -438,12 +440,33 @@ class _SearchingDriverScreenState extends State<SearchingDriverScreen> {
   }
 
   Widget _searching(BuildContext context, MapProvider mp) {
-    final type = mp.selectedVehicleType;
-    final nearby =
-        type != null && mp.fareEstimates[type]?['drivers_nearby'] == true;
-    return FindingSheet(
-      subline: findingSubline(driversNearby: nearby),
-      fare: _lockedFare(mp),
+    final l = sgStrings(context);
+    final fare = _lockedFare(mp);
+    final market = MarketConfigStore.instance.current;
+    return FindingChecklistSheet(
+      heading: l.findingClass(vehicleClassName(mp.selectedVehicleType)),
+      items: [
+        if (fare.fareText.isNotEmpty)
+          ChecklistItem(
+            l.fareLockedAt(fare.fareText),
+            ChecklistState.done,
+            key: const Key('finding_fare_locked'),
+          ),
+        // TODO(data): "Asked N drivers nearby" needs a count; the socket's
+        // drivers_notified event carries none the app keeps, so the line is
+        // left out.
+        ChecklistItem(
+          l.waitingAccept,
+          ChecklistState.current,
+          key: const Key('finding_waiting'),
+        ),
+      ],
+      note: l.closeAppNote,
+      cancelLabel: l.cancelRequest,
+      // Said only when app-config says cancelling costs nothing
+      // (cancel_policy.charges_fee == false). TODO(data): no free-cancel
+      // window (free_cancel_seconds) is configured.
+      cancelNote: market.freeToCancel ? l.freeToCancel : null,
       onCancel: () => Navigator.of(context).maybePop(),
     );
   }

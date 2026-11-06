@@ -20,7 +20,9 @@ void main() {
     testWidgets('greets by time of day and asks Where to?', (tester) async {
       setPhoneSurface(tester);
       addTearDown(tester.view.reset);
-      await tester.pumpWidget(sgApp(homeFrame(chips: const [], recents: const [])));
+      await tester.pumpWidget(
+        sgApp(homeFrame(chips: const [], recents: const [])),
+      );
       await tester.pump();
       expect(find.text('Good evening'), findsOneWidget);
       expect(find.text('Where to?'), findsOneWidget);
@@ -31,42 +33,55 @@ void main() {
       expect(greetingFor(DateTime(2026, 1, 1, 19)), 'Good evening');
     });
 
-    testWidgets('no saved place means no chip; no recents means a calm line', (tester) async {
+    testWidgets('no saved place means no chip; no recents means a calm line', (
+      tester,
+    ) async {
       setPhoneSurface(tester);
       addTearDown(tester.view.reset);
-      await tester.pumpWidget(sgApp(homeFrame(chips: const [], recents: const [])));
+      await tester.pumpWidget(
+        sgApp(homeFrame(chips: const [], recents: const [])),
+      );
       await tester.pump();
       expect(find.text('Home'), findsNothing);
       expect(find.text('Work'), findsNothing);
       expect(find.text('Places you ride to will appear here.'), findsOneWidget);
     });
 
-    testWidgets('saved chips and recents show what the app has, and are tappable', (tester) async {
-      setPhoneSurface(tester);
-      addTearDown(tester.view.reset);
-      var tapped = '';
-      await tester.pumpWidget(sgApp(homeFrame(
-        chips: [SavedChipData(label: 'Home', onTap: () => tapped = 'home')],
-        recents: [
-          RecentPlaceData(
-            name: 'Inorbit Mall',
-            address: 'Madhapur, Hyderabad',
-            distance: '4.2 km',
-            onTap: () => tapped = 'inorbit',
+    testWidgets(
+      'saved chips and recents show what the app has, and are tappable',
+      (tester) async {
+        setPhoneSurface(tester);
+        addTearDown(tester.view.reset);
+        var tapped = '';
+        await tester.pumpWidget(
+          sgApp(
+            homeFrame(
+              chips: [
+                SavedChipData(label: 'Home', onTap: () => tapped = 'home'),
+              ],
+              recents: [
+                RecentPlaceData(
+                  name: 'Inorbit Mall',
+                  address: 'Madhapur, Hyderabad',
+                  distance: '4.2 km',
+                  onTap: () => tapped = 'inorbit',
+                ),
+              ],
+            ),
           ),
-        ],
-      )));
-      await tester.pump();
-      expect(find.text('Home'), findsOneWidget);
-      expect(find.text('Work'), findsNothing);
-      expect(find.text('Inorbit Mall'), findsOneWidget);
-      expect(find.text('4.2 km'), findsOneWidget);
-      expect(find.text('Places you ride to will appear here.'), findsNothing);
-      await tester.tap(find.text('Inorbit Mall'));
-      expect(tapped, 'inorbit');
-      await tester.tap(find.text('Home'));
-      expect(tapped, 'home');
-    });
+        );
+        await tester.pump();
+        expect(find.text('Home'), findsOneWidget);
+        expect(find.text('Work'), findsNothing);
+        expect(find.text('Inorbit Mall'), findsOneWidget);
+        expect(find.text('4.2 km'), findsOneWidget);
+        expect(find.text('Places you ride to will appear here.'), findsNothing);
+        await tester.tap(find.text('Inorbit Mall'));
+        expect(tapped, 'inorbit');
+        await tester.tap(find.text('Home'));
+        expect(tapped, 'home');
+      },
+    );
 
     test('a full address splits into name and area', () {
       final p = splitPlace('Inorbit Mall, Madhapur, Hyderabad');
@@ -94,43 +109,49 @@ void main() {
       expect(o[1].fareText, '₹196');
     });
 
-    testWidgets('the button names the selection and follows it', (tester) async {
+    testWidgets('the button names the selection and follows it', (
+      tester,
+    ) async {
       setPhoneSurface(tester);
       addTearDown(tester.view.reset);
       final options = RideOption.fromEstimates(fourClasses());
       await tester.pumpWidget(sgApp(_Host(options: options)));
       await tester.pump();
-      expect(find.text('Confirm Sedan · ₹248'), findsOneWidget);
-      await tester.tap(find.text('Saaradhi Auto'));
+      expect(find.text('Book Sedan · ₹248'), findsOneWidget);
+      await tester.tap(find.byKey(const Key('ride_row_auto')));
       await tester.pump();
-      expect(find.text('Confirm Auto · ₹142'), findsOneWidget);
-      expect(find.text('Confirm Sedan · ₹248'), findsNothing);
+      expect(find.text('Book Auto · ₹142'), findsOneWidget);
+      expect(find.text('Book Sedan · ₹248'), findsNothing);
       expect(find.text('12.4 km · 24 min'), findsOneWidget);
       expect(find.text('Cash'), findsOneWidget);
       expect(find.text('Change'), findsOneWidget);
     });
 
-    testWidgets('a higher price is explained calmly and never says surge', (tester) async {
+    testWidgets('a higher price is explained calmly and never says surge', (
+      tester,
+    ) async {
       setPhoneSurface(tester);
       addTearDown(tester.view.reset);
       final options = RideOption.fromEstimates(fourClasses(higher: true));
       await tester.pumpWidget(sgApp(_Host(options: options)));
       await tester.pump();
       expect(find.text('Higher demand right now'), findsOneWidget);
-      final texts = tester.widgetList<Text>(find.byType(Text)).map((t) => (t.data ?? '').toLowerCase());
+      final texts = tester
+          .widgetList<Text>(find.byType(Text))
+          .map((t) => (t.data ?? '').toLowerCase());
       expect(texts.where((t) => t.contains('surge')), isEmpty);
     });
   });
 
   group('group A fixes', () {
     Trip trip(int id, String dest, [double? lat, double? lng]) => Trip(
-          id: id,
-          pickupAddress: 'A',
-          destinationAddress: dest,
-          status: 'completed',
-          destinationLat: lat,
-          destinationLng: lng,
-        );
+      id: id,
+      pickupAddress: 'A',
+      destinationAddress: dest,
+      status: 'completed',
+      destinationLat: lat,
+      destinationLng: lng,
+    );
 
     test('the same place is listed once', () {
       final out = distinctRecentTrips([
@@ -143,10 +164,25 @@ void main() {
       expect(out.map((t) => t.id), [1, 3]);
     });
 
-    test('same name far apart is two places; no coordinates counts as the same', () {
-      expect(distinctRecentTrips([trip(1, 'Home', 17.4, 78.4), trip(2, 'Home', 17.6, 78.6)]).length, 2);
-      expect(distinctRecentTrips([trip(1, 'Inorbit Mall'), trip(2, 'inorbit mall, x')]).length, 1);
-    });
+    test(
+      'same name far apart is two places; no coordinates counts as the same',
+      () {
+        expect(
+          distinctRecentTrips([
+            trip(1, 'Home', 17.4, 78.4),
+            trip(2, 'Home', 17.6, 78.6),
+          ]).length,
+          2,
+        );
+        expect(
+          distinctRecentTrips([
+            trip(1, 'Inorbit Mall'),
+            trip(2, 'inorbit mall, x'),
+          ]).length,
+          1,
+        );
+      },
+    );
 
     test('rows show class seats and only an API ETA; min, never mins', () {
       final o = RideOption.fromEstimates({
@@ -185,18 +221,31 @@ void main() {
       await MapsAvailability.ensureResolved();
     }
 
-    testWidgets('the placeholder is chosen when hasKey is false', (tester) async {
+    testWidgets('the placeholder is chosen when hasKey is false', (
+      tester,
+    ) async {
       await answer(tester, false);
-      expect(mapsProviderFor(hasKey: MapsAvailability.hasKey.value), isA<PlaceholderMapsProvider>());
+      expect(
+        mapsProviderFor(hasKey: MapsAvailability.hasKey.value),
+        isA<PlaceholderMapsProvider>(),
+      );
       expect(find.text('API KEY REQUIRED'), findsNothing);
     });
 
-    testWidgets('the placeholder is also the default before the platform answers', (tester) async {
-      MapsAvailability.resetForTest();
-      expect(mapsProviderFor(hasKey: MapsAvailability.hasKey.value), isA<PlaceholderMapsProvider>());
-    });
+    testWidgets(
+      'the placeholder is also the default before the platform answers',
+      (tester) async {
+        MapsAvailability.resetForTest();
+        expect(
+          mapsProviderFor(hasKey: MapsAvailability.hasKey.value),
+          isA<PlaceholderMapsProvider>(),
+        );
+      },
+    );
 
-    testWidgets('Google is chosen only once hasKey answers true', (tester) async {
+    testWidgets('Google is chosen only once hasKey answers true', (
+      tester,
+    ) async {
       await answer(tester, true);
       expect(MapsAvailability.hasKey.value, isTrue);
       expect(mapsProviderFor(hasKey: true), same(kMapsProvider));
@@ -213,12 +262,14 @@ class _Host extends StatefulWidget {
 }
 
 class _HostState extends State<_Host> {
-  late String? _selected = preselectVehicle([for (final o in widget.options) o.type], null);
+  late String? _selected = preselectVehicle([
+    for (final o in widget.options) o.type,
+  ], null);
 
   @override
   Widget build(BuildContext context) => chooseFrame(
-        options: widget.options,
-        selected: _selected,
-        onSelect: (t) => setState(() => _selected = t),
-      );
+    options: widget.options,
+    selected: _selected,
+    onSelect: (t) => setState(() => _selected = t),
+  );
 }

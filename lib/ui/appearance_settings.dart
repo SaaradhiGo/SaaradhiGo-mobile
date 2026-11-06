@@ -93,6 +93,16 @@ Future<void> showLanguagePicker(
   );
 }
 
+/// The payment method the booking flow uses, in the rider's language.
+String paymentMethodLabel(AppLocalizations l, String method) =>
+    switch (method.trim().toLowerCase()) {
+      'cash' => l.payCash,
+      'wallet' => l.payWallet,
+      'online' || 'upi' || 'card' || 'upi_card' => l.payOnline,
+      '' => l.payCash,
+      _ => method[0].toUpperCase() + method.substring(1),
+    };
+
 /// The short mark on the language chip: EN, తె, हि.
 String languageShort(String code) => switch (code) {
   'te' => 'తె',

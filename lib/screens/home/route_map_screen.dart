@@ -8,7 +8,9 @@ import '../components/coming_soon_overlay.dart';
 import '../components/market_overlays.dart';
 import '../../widgets/fare_breakdown.dart';
 import '../../widgets/promo_entry_section.dart';
+import '../../ui/appearance_settings.dart' show paymentMethodLabel, sgStrings;
 import '../../ui/choose_ride_sheet.dart';
+import '../../ui/trip_widgets.dart' show routeLine;
 import '../../ui/sg_text.dart';
 import '../../ui/sg_tokens.dart';
 import '../../ui/sg_widgets.dart';
@@ -324,7 +326,8 @@ class _RouteMapScreenState extends State<RouteMapScreen> {
             child: Column(
               children: [
                 SizedBox(
-                  height: MediaQuery.of(context).size.height * 0.40,
+                  // A short route strip; the fares are the screen.
+                  height: MediaQuery.of(context).size.height * 0.26,
                   child: Stack(
                     children: [
                       // Ensure FlutterMap has explicit constraints to prevent "render box with no size" errors
@@ -508,9 +511,11 @@ class _RouteMapScreenState extends State<RouteMapScreen> {
       summary: (distance == null && provider.duration == null)
           ? null
           : '${distance ?? '--'} · ${minLabel(provider.duration ?? '--')}',
-      paymentLabel: payment.toLowerCase() == 'cash'
-          ? 'Cash'
-          : payment[0].toUpperCase() + payment.substring(1),
+      route: routeLine(
+        provider.pickupAddress ?? provider.pickupLocation?.name,
+        provider.destinationAddress,
+      ),
+      paymentLabel: paymentMethodLabel(sgStrings(context), payment),
       onChangePayment: () => context.push('/payment-methods'),
       onConfirm: () => context.push('/precise-pickup'),
       footer: Column(
