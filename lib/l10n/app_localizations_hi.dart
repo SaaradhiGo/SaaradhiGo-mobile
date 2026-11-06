@@ -384,6 +384,17 @@ class AppLocalizationsHi extends AppLocalizations {
   String get fareUpdating => 'किराया अपडेट हो रहा है';
 
   @override
+  String askedDriversNearby(int n) {
+    String _temp0 = intl.Intl.pluralLogic(
+      n,
+      locale: localeName,
+      other: 'पास के $n ड्राइवरों से पूछा',
+      one: 'पास के 1 ड्राइवर से पूछा',
+    );
+    return '$_temp0';
+  }
+
+  @override
   String get yourRides => 'आपकी राइड';
 
   @override

@@ -385,6 +385,17 @@ class AppLocalizationsTe extends AppLocalizations {
   String get fareUpdating => 'ఛార్జీ నవీకరిస్తున్నాం';
 
   @override
+  String askedDriversNearby(int n) {
+    String _temp0 = intl.Intl.pluralLogic(
+      n,
+      locale: localeName,
+      other: 'దగ్గరలోని $n డ్రైవర్లను అడిగాం',
+      one: 'దగ్గరలోని 1 డ్రైవర్‌ను అడిగాం',
+    );
+    return '$_temp0';
+  }
+
+  @override
   String get yourRides => 'మీ రైడ్‌లు';
 
   @override

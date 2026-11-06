@@ -208,6 +208,8 @@
   "@fareUpdatedPickupChanged": {"description": "needs native review", "placeholders": {"fare": {"type": "String"}}},
   "fareUpdating": "किराया अपडेट हो रहा है",
   "@fareUpdating": {"description": "needs native review"},
+  "askedDriversNearby": "{n, plural, =1{पास के 1 ड्राइवर से पूछा} other{पास के {n} ड्राइवरों से पूछा}}",
+  "@askedDriversNearby": {"description": "needs native review", "placeholders": {"n": {"type": "int"}}},
   "yourRides": "आपकी राइड",
   "@yourRides": {"description": "needs native review"},
   "paymentMethods": "भुगतान के तरीके",

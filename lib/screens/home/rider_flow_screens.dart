@@ -169,6 +169,13 @@ int? _minutesOf(String? text) {
   return plain;
 }
 
+/// Drivers the search has asked so far; 0 until the first dispatch wave.
+int _askedDrivers(MapProvider mp) {
+  final raw = mp.rideRequestResponse;
+  final n = raw is Map ? raw['drivers_asked'] : null;
+  return n is num ? n.toInt() : 0;
+}
+
 /// The quote the rider accepted, shown while we look for a driver.
 SgLockedFareCard _lockedFare(MapProvider mp) {
   final type = mp.selectedVehicleType;
@@ -472,9 +479,14 @@ class _SearchingDriverScreenState extends State<SearchingDriverScreen> {
             ChecklistState.done,
             key: const Key('finding_fare_locked'),
           ),
-        // TODO(data): "Asked N drivers nearby" needs a count; the socket's
-        // drivers_notified event carries none the app keeps, so the line is
-        // left out.
+        // From the socket's dispatch_progress frames (drivers_notified,
+        // summed over waves). Said only once someone has been asked.
+        if (_askedDrivers(mp) > 0)
+          ChecklistItem(
+            l.askedDriversNearby(_askedDrivers(mp)),
+            ChecklistState.done,
+            key: const Key('finding_asked_drivers'),
+          ),
         ChecklistItem(
           l.waitingAccept,
           ChecklistState.current,

@@ -208,6 +208,8 @@
   "@fareUpdatedPickupChanged": {"description": "needs native review", "placeholders": {"fare": {"type": "String"}}},
   "fareUpdating": "ఛార్జీ నవీకరిస్తున్నాం",
   "@fareUpdating": {"description": "needs native review"},
+  "askedDriversNearby": "{n, plural, =1{దగ్గరలోని 1 డ్రైవర్‌ను అడిగాం} other{దగ్గరలోని {n} డ్రైవర్లను అడిగాం}}",
+  "@askedDriversNearby": {"description": "needs native review", "placeholders": {"n": {"type": "int"}}},
   "yourRides": "మీ రైడ్‌లు",
   "@yourRides": {"description": "needs native review"},
   "paymentMethods": "చెల్లింపు పద్ధతులు",

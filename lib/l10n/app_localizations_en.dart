@@ -384,6 +384,17 @@ class AppLocalizationsEn extends AppLocalizations {
   String get fareUpdating => 'Updating your fare';
 
   @override
+  String askedDriversNearby(int n) {
+    String _temp0 = intl.Intl.pluralLogic(
+      n,
+      locale: localeName,
+      other: 'Asked $n drivers nearby',
+      one: 'Asked 1 driver nearby',
+    );
+    return '$_temp0';
+  }
+
+  @override
   String get yourRides => 'Your rides';
 
   @override
