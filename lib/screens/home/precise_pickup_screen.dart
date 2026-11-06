@@ -248,7 +248,7 @@ class _PrecisePickupScreenState extends State<PrecisePickupScreen> {
         children: [
           Expanded(child: mapStack),
           ConstrainedBox(
-            constraints: BoxConstraints(maxHeight: box.maxHeight * 0.72),
+            constraints: BoxConstraints(maxHeight: box.maxHeight * 0.8),
             child: SingleChildScrollView(child: sheet),
           ),
         ],

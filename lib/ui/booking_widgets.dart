@@ -173,16 +173,29 @@ class FareTicket extends StatelessWidget {
   final String? breakdownLabel;
   final VoidCallback? onBreakdown;
 
-  /// Height of the part above the tear line.
-  static const _top = 196.0;
+  /// Height of the part above the tear line: the class row, the fare and
+  /// two lines for the lock note, at the type scale and the phone's text size.
+  /// It was a fixed 196, which left an empty band once the type adapted.
+  static double _topFor(BuildContext context) {
+    final ts = MediaQuery.textScalerOf(context).scale(1.0);
+    return SgSpace.s4 +
+        SgSpace.s3 +
+        kSgTouch * (ts < 1 ? 1 : ts) + // the class chip row
+        SgSpace.s3 +
+        SgText.fareXl.fontSize! * 1.1 * ts +
+        SgSpace.s2 +
+        2 * SgText.caption.fontSize! * 1.45 * ts;
+  }
 
   @override
-  Widget build(BuildContext context) => Container(
+  Widget build(BuildContext context) => _build(context, _topFor(context));
+
+  Widget _build(BuildContext context, double top) => Container(
     key: const Key('fare_ticket'),
     decoration: ShapeDecoration(
       color: SgColors.bg200,
       shape: TicketShape(
-        tearAt: _top,
+        tearAt: top,
         side: BorderSide(color: SgColors.goldLine, width: 1),
       ),
     ),
@@ -190,7 +203,7 @@ class FareTicket extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         SizedBox(
-          height: _top,
+          height: top,
           child: Padding(
             padding: const EdgeInsets.fromLTRB(
               SgSpace.s5,

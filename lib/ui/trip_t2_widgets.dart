@@ -443,7 +443,8 @@ class ArrivalEstimate {
 /// "9:41 pm".
 String clockText(DateTime t) {
   final h = t.hour % 12 == 0 ? 12 : t.hour % 12;
-  return '$h:${t.minute.toString().padLeft(2, '0')} ${t.hour < 12 ? 'am' : 'pm'}';
+  // A no-break space: "2:24" and "pm" never split across lines.
+  return '$h:${t.minute.toString().padLeft(2, '0')} ${t.hour < 12 ? 'am' : 'pm'}';
 }
 
 /// On trip (screen 8).
@@ -633,7 +634,10 @@ class ReceiptTiles extends StatelessWidget {
               alignment: Alignment.centerLeft,
               child: Text(
                 value,
-                style: SgText.fare.copyWith(fontSize: SgText.px(32), height: 36 / 32),
+                style: SgText.fare.copyWith(
+                  fontSize: SgText.px(32),
+                  height: 36 / 32,
+                ),
               ),
             ),
           ],

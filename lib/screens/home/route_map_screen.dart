@@ -467,7 +467,10 @@ class _RouteMapScreenState extends State<RouteMapScreen> {
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           Expanded(child: strip(true)),
-          SizedBox(width: kSgTabletPanel, child: sheet),
+          SizedBox(
+            width: kSgTabletPanel,
+            child: SafeArea(left: false, child: sheet),
+          ),
         ],
       );
     }

@@ -14,7 +14,7 @@ void main() {
         estimatedMinutes: 20,
         now: start.add(const Duration(minutes: 5)),
       )!;
-      expect(clockText(e.at), '9:20 pm');
+      expect(clockText(e.at), '9:20 pm');
       expect(e.minutesLeft, 15);
       expect(e.progress, closeTo(0.25, 1e-9));
       expect(e.overdue, isFalse);

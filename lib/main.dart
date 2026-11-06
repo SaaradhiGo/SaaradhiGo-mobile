@@ -397,12 +397,26 @@ class _SaaradhiGoAppState extends State<SaaradhiGoApp> {
                           if (rideState.showCancelledOverlay)
                             const CancelledOverlay(),
                           if (rideState.status == RideStatus.paymentPending)
+                            // Not over the receipt itself: there it covered
+                            // the Back button and said what the screen says.
                             Positioned(
                               top: 0,
                               left: 0,
                               right: 0,
-                              child: PaymentPendingBanner(
-                                onOpen: () => router.go('/ride-summary'),
+                              child: ListenableBuilder(
+                                listenable: router.routerDelegate,
+                                builder: (context, _) =>
+                                    router
+                                            .routerDelegate
+                                            .currentConfiguration
+                                            .uri
+                                            .path ==
+                                        '/ride-summary'
+                                    ? const SizedBox.shrink()
+                                    : PaymentPendingBanner(
+                                        onOpen: () =>
+                                            router.go('/ride-summary'),
+                                      ),
                               ),
                             ),
                         ],
