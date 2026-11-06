@@ -356,4 +356,18 @@ class AppLocalizationsTe extends AppLocalizations {
 
   @override
   String get goHome => 'హోమ్‌కు వెళ్లండి';
+
+  @override
+  String get noDriversNearby => 'దగ్గరలో డ్రైవర్లు లేరు';
+
+  @override
+  String seatsCount(int n) {
+    String _temp0 = intl.Intl.pluralLogic(
+      n,
+      locale: localeName,
+      other: '$n సీట్లు',
+      one: '1 సీటు',
+    );
+    return '$_temp0';
+  }
 }

@@ -197,5 +197,9 @@
   "talkSupportPayment": "ఈ చెల్లింపు గురించి సపోర్ట్‌తో మాట్లాడండి",
   "@talkSupportPayment": {"description": "needs native review"},
   "goHome": "హోమ్‌కు వెళ్లండి",
-  "@goHome": {"description": "needs native review"}
+  "@goHome": {"description": "needs native review"},
+  "noDriversNearby": "దగ్గరలో డ్రైవర్లు లేరు",
+  "@noDriversNearby": {"description": "needs native review"},
+  "seatsCount": "{n, plural, =1{1 సీటు} other{{n} సీట్లు}}",
+  "@seatsCount": {"description": "needs native review"}
 }

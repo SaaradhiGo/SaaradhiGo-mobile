@@ -7,6 +7,7 @@ import 'package:intl/intl.dart';
 
 import '../core/vehicle_classes.dart';
 import '../utils/money.dart' show currencySymbol;
+import '../l10n/app_localizations.dart';
 import 'appearance_settings.dart' show sgStrings;
 import 'sg_text.dart';
 import 'sg_tokens.dart';
@@ -27,7 +28,20 @@ class RideOption {
     this.reason,
     this.etaMin,
     this.driversNearby = true,
+    this.seats,
   });
+
+  /// Seats in the class: the quote's `seats` when sent, else the table.
+  final int? seats;
+
+  /// [meta] in the rider's language.
+  String metaIn(AppLocalizations l) => [
+    if (!driversNearby)
+      l.noDriversNearby
+    else if (etaMin != null)
+      l.minutesShort(etaMin!),
+    if (seats != null) l.seatsCount(seats!),
+  ].join(' · ');
 
   /// Backend identifier (`sedan`); never shown.
   final String type;
@@ -127,6 +141,7 @@ class RideOption {
       reason: _reason(e),
       etaMin: nearby ? eta?.ceil() : null,
       driversNearby: nearby,
+      seats: seats?.toInt(),
     );
   }
 
@@ -426,7 +441,7 @@ class _RideRow extends StatelessWidget {
                     ),
                     if (option.meta.isNotEmpty)
                       Text(
-                        option.meta,
+                        option.metaIn(sgStrings(context)),
                         style: option.driversNearby
                             ? SgText.caption
                             : SgText.caption.copyWith(
