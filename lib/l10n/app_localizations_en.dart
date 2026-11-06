@@ -201,4 +201,99 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get cancelRequest => 'Cancel request';
+
+  @override
+  String minutesShort(int n) {
+    return '$n min';
+  }
+
+  @override
+  String driverOnWay(String name) {
+    return '$name is on the way';
+  }
+
+  @override
+  String driverArrived(String name) {
+    return '$name has arrived';
+  }
+
+  @override
+  String get yourDriver => 'Your driver';
+
+  @override
+  String get ridePin => 'Ride PIN';
+
+  @override
+  String get ridePinHint => 'Tell it to your driver in the car';
+
+  @override
+  String get call => 'Call';
+
+  @override
+  String get message => 'Message';
+
+  @override
+  String get safety => 'Safety';
+
+  @override
+  String get cancelRide => 'Cancel ride';
+
+  @override
+  String arrivingAbout(String time) {
+    return 'Arriving about $time';
+  }
+
+  @override
+  String get arrivingSoon => 'Arriving soon';
+
+  @override
+  String minutesLeft(int n) {
+    return '$n min left';
+  }
+
+  @override
+  String onTheWayTo(String place) {
+    return 'On the way to $place';
+  }
+
+  @override
+  String get locked => 'Locked';
+
+  @override
+  String get viewSummary => 'View summary';
+
+  @override
+  String get ticketSaid => 'Your ticket said';
+
+  @override
+  String get tripCost => 'Trip cost';
+
+  @override
+  String get exactlyQuoted => 'Exactly what you were quoted';
+
+  @override
+  String get promotion => 'Promotion';
+
+  @override
+  String differenceUnexplained(String amount) {
+    return 'Difference $amount: the reason is not available yet';
+  }
+
+  @override
+  String get howItAddsUp => 'How it adds up';
+
+  @override
+  String payBy(String amount, String method) {
+    return 'Pay $amount by $method';
+  }
+
+  @override
+  String payingCash(String amount, String name) {
+    return 'Paying cash? Give $amount to $name';
+  }
+
+  @override
+  String rateDriver(String name) {
+    return 'Rate $name';
+  }
 }

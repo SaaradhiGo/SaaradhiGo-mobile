@@ -201,4 +201,99 @@ class AppLocalizationsHi extends AppLocalizations {
 
   @override
   String get cancelRequest => 'अनुरोध रद्द करें';
+
+  @override
+  String minutesShort(int n) {
+    return '$n मिनट';
+  }
+
+  @override
+  String driverOnWay(String name) {
+    return '$name आ रहे हैं';
+  }
+
+  @override
+  String driverArrived(String name) {
+    return '$name पहुँच गए हैं';
+  }
+
+  @override
+  String get yourDriver => 'आपके ड्राइवर';
+
+  @override
+  String get ridePin => 'राइड PIN';
+
+  @override
+  String get ridePinHint => 'कार में ड्राइवर को बताएँ';
+
+  @override
+  String get call => 'कॉल';
+
+  @override
+  String get message => 'संदेश';
+
+  @override
+  String get safety => 'सुरक्षा';
+
+  @override
+  String get cancelRide => 'राइड रद्द करें';
+
+  @override
+  String arrivingAbout(String time) {
+    return 'लगभग $time पहुँचेंगे';
+  }
+
+  @override
+  String get arrivingSoon => 'जल्द पहुँचेंगे';
+
+  @override
+  String minutesLeft(int n) {
+    return '$n मिनट बाकी';
+  }
+
+  @override
+  String onTheWayTo(String place) {
+    return '$place की ओर';
+  }
+
+  @override
+  String get locked => 'तय';
+
+  @override
+  String get viewSummary => 'सारांश देखें';
+
+  @override
+  String get ticketSaid => 'आपके टिकट में';
+
+  @override
+  String get tripCost => 'ट्रिप का खर्च';
+
+  @override
+  String get exactlyQuoted => 'ठीक उतना ही जितना बताया था';
+
+  @override
+  String get promotion => 'प्रमोशन';
+
+  @override
+  String differenceUnexplained(String amount) {
+    return 'अंतर $amount: कारण अभी उपलब्ध नहीं';
+  }
+
+  @override
+  String get howItAddsUp => 'कैसे जुड़ा';
+
+  @override
+  String payBy(String amount, String method) {
+    return '$method से $amount चुकाएँ';
+  }
+
+  @override
+  String payingCash(String amount, String name) {
+    return 'नकद? $name को $amount दें';
+  }
+
+  @override
+  String rateDriver(String name) {
+    return '$name को रेट करें';
+  }
 }
