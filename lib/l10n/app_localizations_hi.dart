@@ -296,4 +296,63 @@ class AppLocalizationsHi extends AppLocalizations {
   String rateDriver(String name) {
     return '$name को रेट करें';
   }
+
+  @override
+  String get inDanger => 'ख़तरे में हैं?';
+
+  @override
+  String get holdForSos =>
+      'SOS के लिए 2 सेकंड दबाए रखें। हमारी टीम को तुरंत पता चलेगा।';
+
+  @override
+  String callEmergency(String number) {
+    return '$number पर कॉल करें';
+  }
+
+  @override
+  String get reportSomething => 'कुछ रिपोर्ट करें';
+
+  @override
+  String get callSupport => 'SaaradhiGo सपोर्ट को कॉल करें';
+
+  @override
+  String noClassFree(String name) {
+    return 'आपके पास कोई $name खाली नहीं';
+  }
+
+  @override
+  String get notCharged => 'आपसे कोई पैसा नहीं लिया गया';
+
+  @override
+  String get keepLooking => 'ढूँढते रहें';
+
+  @override
+  String get tryAnotherRide => 'या कोई और राइड आज़माएँ';
+
+  @override
+  String get changeRide => 'राइड बदलें';
+
+  @override
+  String get paymentFailed => 'भुगतान नहीं हुआ';
+
+  @override
+  String get moneyComesBack =>
+      'अगर आपके खाते से पैसे कटे हैं, तो वे वापस आएँगे।';
+
+  @override
+  String refundWithin(int days) {
+    return 'यह $days कामकाजी दिनों में वापस आएगा।';
+  }
+
+  @override
+  String get stillToPay => 'अभी चुकाना है';
+
+  @override
+  String get tryAnotherWay => 'फिर कोशिश करें या दूसरे तरीके से चुकाएँ';
+
+  @override
+  String get talkSupportPayment => 'इस भुगतान के बारे में सपोर्ट से बात करें';
+
+  @override
+  String get goHome => 'होम पर जाएँ';
 }

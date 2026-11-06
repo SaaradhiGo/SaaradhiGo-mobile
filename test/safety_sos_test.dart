@@ -35,45 +35,50 @@ void main() {
   });
 
   group('SosService', () {
-    test('posts the category, trip and coordinates the server expects',
-        () async {
-      http.Request? seen;
-      final service = SosService(
-        client: MockClient((request) async {
-          seen = request;
-          return http.Response(
-            jsonEncode({'status': 'success', 'data': {'sos_id': 77}}),
-            201,
-          );
-        }),
-      );
+    test(
+      'posts the category, trip and coordinates the server expects',
+      () async {
+        http.Request? seen;
+        final service = SosService(
+          client: MockClient((request) async {
+            seen = request;
+            return http.Response(
+              jsonEncode({
+                'status': 'success',
+                'data': {'sos_id': 77},
+              }),
+              201,
+            );
+          }),
+        );
 
-      final result = await service.raise(
-        category: SosCategory.harassment,
-        tripId: '45',
-        lat: 17.4450,
-        lng: 78.3800,
-      );
+        final result = await service.raise(
+          category: SosCategory.harassment,
+          tripId: '45',
+          lat: 17.4450,
+          lng: 78.3800,
+        );
 
-      expect(result.ok, isTrue);
-      expect(result.sosId, 77);
+        expect(result.ok, isTrue);
+        expect(result.sosId, 77);
 
-      expect(seen, isNotNull);
-      expect(seen!.method, 'POST');
-      expect(seen!.url.path, endsWith('/sos/'));
-      expect(seen!.headers['Authorization'], 'Bearer test-token');
+        expect(seen, isNotNull);
+        expect(seen!.method, 'POST');
+        expect(seen!.url.path, endsWith('/sos/'));
+        expect(seen!.headers['Authorization'], 'Bearer test-token');
 
-      final body = jsonDecode(seen!.body) as Map<String, dynamic>;
-      // `harassment`, not `SosCategory.harassment` and not `Harassment`.
-      expect(body['event_type'], 'harassment');
-      // An int, because the server looks the trip up by id.
-      expect(body['trip_id'], 45);
-      expect(body['lat'], 17.4450);
-      expect(body['lng'], 78.3800);
-      // Deliberately absent: the server derives it from the authenticated role
-      // and ignores a client-sent value.
-      expect(body.containsKey('initiated_by'), isFalse);
-    });
+        final body = jsonDecode(seen!.body) as Map<String, dynamic>;
+        // `harassment`, not `SosCategory.harassment` and not `Harassment`.
+        expect(body['event_type'], 'harassment');
+        // An int, because the server looks the trip up by id.
+        expect(body['trip_id'], 45);
+        expect(body['lat'], 17.4450);
+        expect(body['lng'], 78.3800);
+        // Deliberately absent: the server derives it from the authenticated role
+        // and ignores a client-sent value.
+        expect(body.containsKey('initiated_by'), isFalse);
+      },
+    );
 
     test('sends the underscored wire value for every category', () {
       // A mis-spelled category is a mis-categorised emergency in the ops queue.
@@ -122,20 +127,22 @@ void main() {
       expect(result.message, contains('112'));
     });
 
-    test('a signed-out rider is told to sign in, and still told to call 112',
-        () async {
-      SharedPreferences.setMockInitialValues({});
-      final service = SosService(
-        client: MockClient((_) async {
-          fail('no request should be made without a token');
-        }),
-      );
+    test(
+      'a signed-out rider is told to sign in, and still told to call 112',
+      () async {
+        SharedPreferences.setMockInitialValues({});
+        final service = SosService(
+          client: MockClient((_) async {
+            fail('no request should be made without a token');
+          }),
+        );
 
-      final result = await service.raise(category: SosCategory.panic);
+        final result = await service.raise(category: SosCategory.panic);
 
-      expect(result.ok, isFalse);
-      expect(result.message, contains('112'));
-    });
+        expect(result.ok, isFalse);
+        expect(result.message, contains('112'));
+      },
+    );
 
     test('a 2xx with an unreadable body is still a success', () async {
       // The row exists server-side. Failing the UI over a parse error would
@@ -211,17 +218,24 @@ void main() {
       );
 
       expect(find.byKey(const Key('safety_call_112')), findsOneWidget);
-      expect(find.byKey(const Key('safety_share_trip')), findsOneWidget);
+      expect(find.byKey(const Key('safety_emergency_block')), findsOneWidget);
+      expect(find.text('In danger?'), findsOneWidget);
+      expect(find.byKey(const Key('safety_report')), findsOneWidget);
+      // TODO(data): no trip-share service, so no Share row.
+      expect(find.byKey(const Key('safety_share_trip')), findsNothing);
     });
 
-    testWidgets('a successful SOS shows a reference, not a bare reassurance',
-        (tester) async {
+    testWidgets('a successful SOS shows a reference, not a bare reassurance', (
+      tester,
+    ) async {
       await pump(
         tester,
         SosService(
           client: MockClient(
             (_) async => http.Response(
-              jsonEncode({'data': {'sos_id': 12}}),
+              jsonEncode({
+                'data': {'sos_id': 12},
+              }),
               201,
             ),
           ),
@@ -234,15 +248,24 @@ void main() {
       expect(find.textContaining('#12'), findsOneWidget);
     });
 
-    testWidgets('tapping a category or the send button sends nothing', (tester) async {
+    testWidgets('tapping a category or the send button sends nothing', (
+      tester,
+    ) async {
       // The audit sent a real alert with one accidental tap (PRODUCT_AUDIT §2).
       var posts = 0;
       await pump(
         tester,
-        SosService(client: MockClient((_) async {
-          posts++;
-          return http.Response(jsonEncode({'data': {'sos_id': 3}}), 201);
-        })),
+        SosService(
+          client: MockClient((_) async {
+            posts++;
+            return http.Response(
+              jsonEncode({
+                'data': {'sos_id': 3},
+              }),
+              201,
+            );
+          }),
+        ),
       );
 
       await tester.tap(find.byKey(const Key('sos_panic')));
@@ -251,30 +274,41 @@ void main() {
       expect(posts, 0);
     });
 
-    testWidgets('after sending, "Tap if this was a mistake" closes it as a false alarm',
-        (tester) async {
-      final paths = <String>[];
-      await pump(
-        tester,
-        SosService(client: MockClient((req) async {
-          paths.add(req.url.path);
-          return http.Response(jsonEncode({'data': {'sos_id': 12}}), 201);
-        })),
-      );
-      await _raiseAndSettle(tester, const Key('sos_panic'));
-      expect(find.textContaining('Alert sent'), findsOneWidget);
+    testWidgets(
+      'after sending, "Tap if this was a mistake" closes it as a false alarm',
+      (tester) async {
+        final paths = <String>[];
+        await pump(
+          tester,
+          SosService(
+            client: MockClient((req) async {
+              paths.add(req.url.path);
+              return http.Response(
+                jsonEncode({
+                  'data': {'sos_id': 12},
+                }),
+                201,
+              );
+            }),
+          ),
+        );
+        await _raiseAndSettle(tester, const Key('sos_panic'));
+        expect(find.textContaining('Alert sent'), findsOneWidget);
 
-      await tester.runAsync(() async {
-        await tester.tap(find.byKey(const Key('sos_mistake')));
-        await Future<void>.delayed(const Duration(milliseconds: 100));
-      });
-      await tester.pump();
+        await tester.runAsync(() async {
+          await tester.tap(find.byKey(const Key('sos_mistake')));
+          await Future<void>.delayed(const Duration(milliseconds: 100));
+        });
+        await tester.pump();
 
-      expect(paths.last, endsWith('/sos/12/mistake/'));
-      expect(find.textContaining('Marked as a mistake'), findsOneWidget);
-    });
+        expect(paths.last, endsWith('/sos/12/mistake/'));
+        expect(find.textContaining('Marked as a mistake'), findsOneWidget);
+      },
+    );
 
-    testWidgets('no support number configured: no support call row', (tester) async {
+    testWidgets('no support number configured: no support call row', (
+      tester,
+    ) async {
       // Never the old placeholder 1800-000-0000.
       await pump(
         tester,
@@ -284,8 +318,9 @@ void main() {
       expect(find.textContaining('1800'), findsNothing);
     });
 
-    testWidgets('a failed SOS shows the failure AND a 112 button',
-        (tester) async {
+    testWidgets('a failed SOS shows the failure AND a 112 button', (
+      tester,
+    ) async {
       // The whole point. The old screen showed "Emergency Alert Sent!" here.
       await pump(
         tester,
@@ -301,7 +336,6 @@ void main() {
     });
   });
 }
-
 
 /// Chooses a category, holds the send button for the full 2 seconds, and
 /// waits for the request to produce its banner (owner decision D4).

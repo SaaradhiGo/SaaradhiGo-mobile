@@ -296,4 +296,64 @@ class AppLocalizationsTe extends AppLocalizations {
   String rateDriver(String name) {
     return '$name కు రేటింగ్ ఇవ్వండి';
   }
+
+  @override
+  String get inDanger => 'ప్రమాదంలో ఉన్నారా?';
+
+  @override
+  String get holdForSos =>
+      'SOS కోసం 2 సెకన్లు నొక్కి ఉంచండి. మా బృందానికి వెంటనే తెలుస్తుంది.';
+
+  @override
+  String callEmergency(String number) {
+    return '$number కు కాల్ చేయండి';
+  }
+
+  @override
+  String get reportSomething => 'ఏదైనా తెలియజేయండి';
+
+  @override
+  String get callSupport => 'SaaradhiGo సపోర్ట్‌కు కాల్';
+
+  @override
+  String noClassFree(String name) {
+    return 'మీ దగ్గర $name ఖాళీగా లేదు';
+  }
+
+  @override
+  String get notCharged => 'మీకు ఎలాంటి ఛార్జీ పడలేదు';
+
+  @override
+  String get keepLooking => 'వెతుకుతూనే ఉండండి';
+
+  @override
+  String get tryAnotherRide => 'లేదా మరో రైడ్ ప్రయత్నించండి';
+
+  @override
+  String get changeRide => 'రైడ్ మార్చండి';
+
+  @override
+  String get paymentFailed => 'చెల్లింపు జరగలేదు';
+
+  @override
+  String get moneyComesBack =>
+      'మీ ఖాతా నుండి డబ్బు వెళ్లి ఉంటే, అది మీకు తిరిగి వస్తుంది.';
+
+  @override
+  String refundWithin(int days) {
+    return '$days పని దినాల్లో తిరిగి వస్తుంది.';
+  }
+
+  @override
+  String get stillToPay => 'ఇంకా చెల్లించాల్సింది';
+
+  @override
+  String get tryAnotherWay =>
+      'మళ్లీ ప్రయత్నించండి లేదా వేరే విధంగా చెల్లించండి';
+
+  @override
+  String get talkSupportPayment => 'ఈ చెల్లింపు గురించి సపోర్ట్‌తో మాట్లాడండి';
+
+  @override
+  String get goHome => 'హోమ్‌కు వెళ్లండి';
 }

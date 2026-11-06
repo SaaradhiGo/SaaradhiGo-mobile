@@ -296,4 +296,63 @@ class AppLocalizationsEn extends AppLocalizations {
   String rateDriver(String name) {
     return 'Rate $name';
   }
+
+  @override
+  String get inDanger => 'In danger?';
+
+  @override
+  String get holdForSos =>
+      'Hold 2 seconds for SOS. Our team is alerted at once.';
+
+  @override
+  String callEmergency(String number) {
+    return 'Call $number';
+  }
+
+  @override
+  String get reportSomething => 'Report something';
+
+  @override
+  String get callSupport => 'Call SaaradhiGo support';
+
+  @override
+  String noClassFree(String name) {
+    return 'No $name free near you';
+  }
+
+  @override
+  String get notCharged => 'You have not been charged';
+
+  @override
+  String get keepLooking => 'Keep looking';
+
+  @override
+  String get tryAnotherRide => 'Or try another ride';
+
+  @override
+  String get changeRide => 'Change ride';
+
+  @override
+  String get paymentFailed => 'Payment did not go through';
+
+  @override
+  String get moneyComesBack =>
+      'If money left your account, it will come back to you.';
+
+  @override
+  String refundWithin(int days) {
+    return 'It comes back within $days working days.';
+  }
+
+  @override
+  String get stillToPay => 'Still to pay';
+
+  @override
+  String get tryAnotherWay => 'Try again or pay another way';
+
+  @override
+  String get talkSupportPayment => 'Talk to support about this payment';
+
+  @override
+  String get goHome => 'Go home';
 }

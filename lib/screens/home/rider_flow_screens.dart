@@ -473,13 +473,83 @@ class _SearchingDriverScreenState extends State<SearchingDriverScreen> {
   }
 
   Widget _failed(BuildContext context, MapProvider mp, String message) {
-    return NoDriverSheet(
-      subline: message == kNoDriverMessage
-          ? 'Drivers nearby are busy right now. Try again, or choose another ride.'
-          : message,
-      fare: _lockedFare(mp),
-      onTryAgain: _startSearch,
-      onChangeRide: () => _leaveFailedSearch(toChooseRide: true),
+    final l = sgStrings(context);
+    final type = mp.selectedVehicleType;
+    // Alternatives: the other classes from the same estimate calls this
+    // booking already made, minus any the quote said has no driver near.
+    final others = [
+      for (final o in RideOption.fromEstimates(mp.fareEstimates))
+        if (o.type != type && o.driversNearby) o,
+    ];
+    return SgSheetSurface(
+      child: SingleChildScrollView(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Semantics(
+              liveRegion: true,
+              child: Text(
+                l.noClassFree(vehicleClassName(type)),
+                key: const Key('no_driver_heading'),
+                style: SgText.heading,
+              ),
+            ),
+            const SizedBox(height: SgSpace.s2),
+            // A search that ended without a driver was never paid for: the
+            // fare is charged after the trip.
+            Row(
+              children: [
+                SgIcon(SgIcons.check, size: 18, color: SgColors.success),
+                const SizedBox(width: SgSpace.s2),
+                Expanded(
+                  child: Text(
+                    l.notCharged,
+                    key: const Key('no_driver_not_charged'),
+                    style: SgText.body.copyWith(
+                      color: SgColors.success,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            if (message != kNoDriverMessage) ...[
+              const SizedBox(height: SgSpace.s2),
+              Text(message, style: SgText.caption),
+            ],
+            if (others.isNotEmpty) ...[
+              const SizedBox(height: SgSpace.s4),
+              SgEyebrow(l.tryAnotherRide),
+              const SizedBox(height: SgSpace.s2),
+              for (final o in others)
+                Padding(
+                  padding: const EdgeInsets.only(bottom: SgSpace.s2),
+                  child: _AlternativeRow(
+                    option: o,
+                    onTap: () {
+                      // Through the normal booking flow for that class:
+                      // back to every fare with it chosen.
+                      mp.selectVehicleType(o.type);
+                      _leaveFailedSearch(toChooseRide: true);
+                    },
+                  ),
+                ),
+            ],
+            const SizedBox(height: SgSpace.s4),
+            SgPrimaryButton(
+              key: const Key('no_driver_keep_looking'),
+              label: l.keepLooking,
+              onPressed: _startSearch,
+            ),
+            const SizedBox(height: SgSpace.s2),
+            SgGhostButton(
+              label: l.changeRide,
+              onPressed: () => _leaveFailedSearch(toChooseRide: true),
+            ),
+          ],
+        ),
+      ),
     );
   }
 
@@ -516,6 +586,36 @@ class _SearchingDriverScreenState extends State<SearchingDriverScreen> {
         ) ??
         false;
   }
+}
+
+/// Another class on the no-driver sheet: tile, name, ETA, fare.
+class _AlternativeRow extends StatelessWidget {
+  const _AlternativeRow({required this.option, required this.onTap});
+  final RideOption option;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) => Material(
+    color: SgColors.bg200,
+    borderRadius: BorderRadius.circular(SgRadius.md),
+    child: InkWell(
+      key: Key('alt_${option.type}'),
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(SgRadius.md),
+      child: Padding(
+        padding: const EdgeInsets.all(SgSpace.s2),
+        child: Row(
+          children: [
+            SgClassChip(type: option.type, label: option.shortName),
+            const SizedBox(width: SgSpace.s3),
+            Expanded(child: Text(option.meta, style: SgText.caption)),
+            Text(option.fareText, style: SgText.fare.copyWith(fontSize: 18)),
+            const SizedBox(width: SgSpace.s2),
+          ],
+        ),
+      ),
+    ),
+  );
 }
 
 class DriverFoundScreen extends StatefulWidget {
@@ -1322,6 +1422,8 @@ class _RidePaymentSummaryScreenState extends State<RidePaymentSummaryScreen> {
               '/payment-status',
               extra: {
                 'status': 'failed',
+                // Still to pay: the fare this screen showed.
+                'amount': fare,
                 'error_message': WalletPayOutcome.neutralFailureMessage,
               },
             );
@@ -1333,6 +1435,8 @@ class _RidePaymentSummaryScreenState extends State<RidePaymentSummaryScreen> {
               '/payment-status',
               extra: {
                 'status': 'failed',
+                // Still to pay: the fare this screen showed.
+                'amount': fare,
                 'error_message': WalletPayOutcome.neutralFailureMessage,
               },
             );

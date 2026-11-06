@@ -591,6 +591,108 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Rate {name}'**
   String rateDriver(String name);
+
+  /// Safety: emergency block heading.
+  ///
+  /// In en, this message translates to:
+  /// **'In danger?'**
+  String get inDanger;
+
+  /// Safety: emergency block line.
+  ///
+  /// In en, this message translates to:
+  /// **'Hold 2 seconds for SOS. Our team is alerted at once.'**
+  String get holdForSos;
+
+  /// Safety: call the emergency number from config.
+  ///
+  /// In en, this message translates to:
+  /// **'Call {number}'**
+  String callEmergency(String number);
+
+  /// Safety: opens support.
+  ///
+  /// In en, this message translates to:
+  /// **'Report something'**
+  String get reportSomething;
+
+  /// Safety: support phone row.
+  ///
+  /// In en, this message translates to:
+  /// **'Call SaaradhiGo support'**
+  String get callSupport;
+
+  /// No driver found: heading.
+  ///
+  /// In en, this message translates to:
+  /// **'No {name} free near you'**
+  String noClassFree(String name);
+
+  /// No driver found: reassurance.
+  ///
+  /// In en, this message translates to:
+  /// **'You have not been charged'**
+  String get notCharged;
+
+  /// No driver found: retry the search.
+  ///
+  /// In en, this message translates to:
+  /// **'Keep looking'**
+  String get keepLooking;
+
+  /// No driver found: alternatives heading.
+  ///
+  /// In en, this message translates to:
+  /// **'Or try another ride'**
+  String get tryAnotherRide;
+
+  /// No driver found: back to every fare.
+  ///
+  /// In en, this message translates to:
+  /// **'Change ride'**
+  String get changeRide;
+
+  /// Payment failed: banner heading.
+  ///
+  /// In en, this message translates to:
+  /// **'Payment did not go through'**
+  String get paymentFailed;
+
+  /// Payment failed: refund reassurance.
+  ///
+  /// In en, this message translates to:
+  /// **'If money left your account, it will come back to you.'**
+  String get moneyComesBack;
+
+  /// Payment failed: refund time from config.
+  ///
+  /// In en, this message translates to:
+  /// **'It comes back within {days} working days.'**
+  String refundWithin(int days);
+
+  /// Payment failed: amount label.
+  ///
+  /// In en, this message translates to:
+  /// **'Still to pay'**
+  String get stillToPay;
+
+  /// Payment failed: primary, back to the payment choices.
+  ///
+  /// In en, this message translates to:
+  /// **'Try again or pay another way'**
+  String get tryAnotherWay;
+
+  /// Payment failed: support row.
+  ///
+  /// In en, this message translates to:
+  /// **'Talk to support about this payment'**
+  String get talkSupportPayment;
+
+  /// Go to the home screen.
+  ///
+  /// In en, this message translates to:
+  /// **'Go home'**
+  String get goHome;
 }
 
 class _AppLocalizationsDelegate

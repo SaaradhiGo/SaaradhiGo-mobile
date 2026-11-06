@@ -25,7 +25,12 @@ import '../core/market/market_config_store.dart';
 import '../services/sos_service.dart';
 import 'hold_to_send_button.dart';
 
+import 'package:go_router/go_router.dart';
+import '../ui/account_widgets.dart';
+import '../ui/appearance_settings.dart' show sgStrings;
+import '../ui/sg_text.dart';
 import '../ui/sg_tokens.dart';
+import '../ui/sg_widgets.dart';
 
 /// India's single emergency number. One constant, named, because a literal
 /// '112' three screens deep is how a market launch ships the wrong number.
@@ -198,139 +203,159 @@ class _SafetySheetState extends State<SafetySheet> {
     await launchUrl(uri, mode: LaunchMode.externalApplication);
   }
 
-  Future<void> _shareTrip() => shareTripDetails(context, widget.trip);
+  void _reportSomething() {
+    final router = GoRouter.maybeOf(context);
+    Navigator.of(context).maybePop();
+    router?.push('/help-support');
+  }
 
   @override
   Widget build(BuildContext context) {
     final result = _result;
+    final l = sgStrings(context);
 
     return SafeArea(
-      // Scrolls: with the categories, the hold button and the support row it
-      // is taller than a small phone's half-height sheet.
+      // Scrolls: with the categories, the hold button and the rows it is
+      // taller than a small phone's half-height sheet.
       child: SingleChildScrollView(
-        padding: const EdgeInsets.fromLTRB(20, 16, 20, 24),
+        padding: const EdgeInsets.fromLTRB(
+          SgSpace.s4,
+          SgSpace.s3,
+          SgSpace.s4,
+          SgSpace.s5,
+        ),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             Center(
               child: Container(
-                width: 44,
+                width: 40,
                 height: 4,
                 decoration: BoxDecoration(
-                  color: SgColors.bg300,
-                  borderRadius: BorderRadius.circular(2),
+                  color: SgColors.lineStrong,
+                  borderRadius: BorderRadius.circular(SgRadius.pill),
                 ),
               ),
             ),
-            const SizedBox(height: 18),
-            Text(
-              'Safety',
-              style: TextStyle(
-                color: SgColors.ink,
-                fontSize: 20,
-                fontWeight: FontWeight.w800,
-              ),
-            ),
-            const SizedBox(height: 4),
-            Text(
-              'Our team is alerted immediately. For police, fire or '
-              'ambulance, call $_emergencyNumber.',
-              style: TextStyle(color: SgColors.inkMuted, fontSize: 13),
-            ),
-            const SizedBox(height: 18),
+            const SizedBox(height: SgSpace.s4),
+            Text(l.safety, style: SgText.heading),
+            const SizedBox(height: SgSpace.s4),
 
-            // 112 first, deliberately.
-            ElevatedButton.icon(
-              key: const Key('safety_call_112'),
-              onPressed: _call112,
-              icon: const Icon(Icons.call),
-              label: Text('Call $_emergencyNumber'),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: SgColors.danger,
-                foregroundColor: SgColors.ink,
-                padding: const EdgeInsets.symmetric(vertical: 14),
+            // The emergency block: the existing hold-to-send SOS, and the
+            // emergency number from app-config.
+            Container(
+              key: const Key('safety_emergency_block'),
+              padding: const EdgeInsets.all(SgSpace.s4),
+              decoration: BoxDecoration(
+                color: Color.alphaBlend(
+                  SgColors.danger.withValues(alpha: 0.14),
+                  SgColors.bg100,
+                ),
+                borderRadius: BorderRadius.circular(SgRadius.lg),
+                border: Border.all(color: SgColors.danger),
               ),
-            ),
-            const SizedBox(height: 10),
-            OutlinedButton.icon(
-              key: const Key('safety_share_trip'),
-              onPressed: _shareTrip,
-              icon: const Icon(Icons.ios_share),
-              label: const Text('Share my trip'),
-              style: OutlinedButton.styleFrom(
-                foregroundColor: SgColors.ink,
-                side: BorderSide(color: SgColors.lineStrong),
-                padding: const EdgeInsets.symmetric(vertical: 14),
-              ),
-            ),
-
-            const SizedBox(height: 18),
-            Divider(color: SgColors.line),
-            const SizedBox(height: 6),
-            Text(
-              'Tell SaaradhiGo what is wrong',
-              style: TextStyle(
-                color: SgColors.ink,
-                fontSize: 14,
-                fontWeight: FontWeight.w700,
-              ),
-            ),
-            const SizedBox(height: 10),
-
-            if (result != null)
-              _ResultBanner(
-                result: result,
-                onCall: _call112,
-                mistake: _mistake,
-                reportingMistake: _reportingMistake,
-                onMistake: result.ok && result.sosId != null
-                    ? _reportMistake
-                    : null,
-              ),
-
-            if (_sending)
-              const Padding(
-                padding: EdgeInsets.symmetric(vertical: 18),
-                child: Center(child: CircularProgressIndicator()),
-              )
-            else if (result?.ok != true) ...[
-              Wrap(
-                spacing: 8,
-                runSpacing: 8,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  for (final category in SosCategory.values)
-                    ChoiceChip(
-                      key: Key('sos_${category.wireValue}'),
-                      label: Text(category.label),
-                      selected: _category == category,
-                      selectedColor: SgColors.danger.withValues(alpha: 0.14),
-                      backgroundColor: SgColors.bg300,
-                      labelStyle: TextStyle(color: SgColors.ink),
-                      onSelected: (_) => setState(() => _category = category),
+                  Text(
+                    l.inDanger,
+                    style: SgText.heading.copyWith(color: SgColors.danger),
+                  ),
+                  const SizedBox(height: SgSpace.s1),
+                  Text(l.holdForSos, style: SgText.body),
+                  const SizedBox(height: SgSpace.s3),
+                  if (result != null)
+                    _ResultBanner(
+                      result: result,
+                      onCall: _call112,
+                      mistake: _mistake,
+                      reportingMistake: _reportingMistake,
+                      onMistake: result.ok && result.sosId != null
+                          ? _reportMistake
+                          : null,
                     ),
+                  if (_sending)
+                    const Padding(
+                      padding: EdgeInsets.symmetric(vertical: 18),
+                      child: Center(
+                        child: CircularProgressIndicator(
+                          color: SgColors.gold500,
+                        ),
+                      ),
+                    )
+                  else if (result?.ok != true) ...[
+                    Wrap(
+                      spacing: SgSpace.s2,
+                      runSpacing: SgSpace.s2,
+                      children: [
+                        for (final category in SosCategory.values)
+                          ChoiceChip(
+                            key: Key('sos_${category.wireValue}'),
+                            label: Text(category.label),
+                            selected: _category == category,
+                            selectedColor: SgColors.danger.withValues(
+                              alpha: 0.24,
+                            ),
+                            backgroundColor: SgColors.bg100,
+                            labelStyle: TextStyle(color: SgColors.ink),
+                            onSelected: (_) =>
+                                setState(() => _category = category),
+                          ),
+                      ],
+                    ),
+                    const SizedBox(height: SgSpace.s3),
+                    HoldToSendButton(
+                      key: const Key('sos_hold'),
+                      label: 'Hold to send alert',
+                      onConfirmed: () => _raise(_category),
+                    ),
+                  ],
+                  const SizedBox(height: SgSpace.s3),
+                  OutlinedButton.icon(
+                    key: const Key('safety_call_112'),
+                    onPressed: _call112,
+                    icon: Icon(Icons.call, color: SgColors.danger),
+                    label: Text(
+                      l.callEmergency(_emergencyNumber),
+                      style: SgText.body.copyWith(
+                        color: SgColors.danger,
+                        fontWeight: FontWeight.w800,
+                      ),
+                    ),
+                    style: OutlinedButton.styleFrom(
+                      minimumSize: const Size.fromHeight(52),
+                      side: BorderSide(color: SgColors.danger, width: 1.5),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(SgRadius.md),
+                      ),
+                    ),
+                  ),
                 ],
               ),
-              const SizedBox(height: 14),
-              HoldToSendButton(
-                key: const Key('sos_hold'),
-                label: 'Hold to send alert',
-                onConfirmed: () => _raise(_category),
+            ),
+            const SizedBox(height: SgSpace.s4),
+            // TODO(data): share trip, trip-share contacts, route-deviation
+            // alerts and night check-ins are not available; their rows are
+            // left out.
+            SgListGroup([
+              SgListRow(
+                key: const Key('safety_report'),
+                icon: SgIcons.help,
+                label: l.reportSomething,
+                chevron: true,
+                onTap: _reportSomething,
               ),
-            ],
-            if (MarketConfigStore.instance.current.supportPhone
-                case final support?) ...[
-              const SizedBox(height: 10),
-              TextButton.icon(
-                key: const Key('safety_call_support'),
-                onPressed: () => _callSupport(support),
-                icon: Icon(Icons.support_agent, color: SgColors.inkMuted),
-                label: Text(
-                  'Call SaaradhiGo support',
-                  style: TextStyle(color: SgColors.inkMuted),
+              if (MarketConfigStore.instance.current.supportPhone
+                  case final support?)
+                SgListRow(
+                  key: const Key('safety_call_support'),
+                  icon: SgIcons.call,
+                  label: l.callSupport,
+                  chevron: true,
+                  onTap: () => _callSupport(support),
                 ),
-              ),
-            ],
+            ]),
           ],
         ),
       ),
