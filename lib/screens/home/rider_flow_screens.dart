@@ -895,6 +895,11 @@ class _FullMapTrackingScreenState extends State<FullMapTrackingScreen> {
   bool _isNavigated = false;
   MapProvider? _mapProvider;
 
+  /// The trip's planned route (`planned_route_polyline` on the trip detail,
+  /// backend #170), drawn as the route on trip. Null until it arrives, and
+  /// when the server has none: no line is invented.
+  List<LatLng>? _plannedRoute;
+
   @override
   void initState() {
     super.initState();
@@ -903,7 +908,24 @@ class _FullMapTrackingScreenState extends State<FullMapTrackingScreen> {
       _mapProvider = context.read<MapProvider>();
       _mapProvider?.addListener(_handleStateChange);
       _handleStateChange(); // Initial check
+      _loadPlannedRoute();
     });
+  }
+
+  Future<void> _loadPlannedRoute() async {
+    final tripId = _mapProvider?.tripId;
+    if (tripId == null) return;
+    final token = (await SharedPreferences.getInstance()).getString(
+      'access_token',
+    );
+    if (token == null || token.isEmpty) return;
+    try {
+      final body = await RideService().getTripStatus(token, tripId);
+      final data = body?['data'];
+      final line = data is Map ? data['planned_route_polyline'] : null;
+      final points = decodePlannedRoute(line);
+      if (mounted && points != null) setState(() => _plannedRoute = points);
+    } catch (_) {}
   }
 
   @override
@@ -1041,6 +1063,7 @@ class _FullMapTrackingScreenState extends State<FullMapTrackingScreen> {
               }
             },
             forceInProgress: true,
+            plannedRoute: _plannedRoute,
             // Always visible on a live trip.
             topRight: SgSosPill(
               key: const ValueKey('tracking_sos_pill'),
@@ -1086,6 +1109,50 @@ class _FullMapTrackingScreenState extends State<FullMapTrackingScreen> {
       },
     );
   }
+}
+
+/// The fare a receipt shows, by the server's own settlement rule
+/// (`trip.final_fare or trip.estimated_fare`): the final fare when there is
+/// one, then the completion frame's total, then the estimate. Null when none
+/// is there -- never a made-up ₹0.
+String? receiptFareRaw(Map<dynamic, dynamic>? ride) {
+  if (ride == null) return null;
+  for (final k in const ['final_fare', 'total_fare', 'estimated_fare']) {
+    final v = ride[k];
+    if (v != null && double.tryParse(v.toString()) != null) {
+      return v.toString();
+    }
+  }
+  return null;
+}
+
+/// Decodes an encoded polyline (Google's format, as the server stores
+/// `planned_route_polyline`). Null for nothing usable.
+List<LatLng>? decodePlannedRoute(Object? encoded) {
+  if (encoded is! String || encoded.isEmpty) return null;
+  final out = <LatLng>[];
+  var i = 0, lat = 0, lng = 0;
+  int next() {
+    var shift = 0, result = 0, b = 0;
+    do {
+      if (i >= encoded.length) throw const FormatException('cut short');
+      b = encoded.codeUnitAt(i++) - 63;
+      result |= (b & 0x1f) << shift;
+      shift += 5;
+    } while (b >= 0x20);
+    return (result & 1) != 0 ? ~(result >> 1) : (result >> 1);
+  }
+
+  try {
+    while (i < encoded.length) {
+      lat += next();
+      lng += next();
+      out.add(LatLng(lat / 1e5, lng / 1e5));
+    }
+  } on FormatException {
+    return null;
+  }
+  return out.length >= 2 ? out : null;
 }
 
 class RidePaymentSummaryScreen extends StatefulWidget {
@@ -1631,11 +1698,13 @@ class _RidePaymentSummaryScreenState extends State<RidePaymentSummaryScreen> {
         final endedBySupport = isOpsEnded(rideMap);
         // A trip support ended is charged for the distance driven, capped at the
         // quote: its own final fare, from the trip detail, not the quote.
-        final totalFareStr = (endedBySupport && _receipt?['final_fare'] != null)
+        final Object? totalFareStr =
+            (endedBySupport && _receipt?['final_fare'] != null)
             ? _receipt!['final_fare']
-            : (rideData?['total_fare'] ??
-                  rideData?['estimated_fare'] ??
-                  '0.00');
+            : receiptFareRaw(rideMap);
+        // No fare in anything the app holds: the receipt shows no amount
+        // rather than ₹0, and only cash is offered.
+        final fareKnown = totalFareStr != null;
         final totalFare = double.tryParse(totalFareStr.toString()) ?? 0.0;
         // The server sends an ISO 4217 CODE, not a symbol. Interpolating it
         // directly rendered a rider's fare as "INR169.02" -- verified against
@@ -1667,7 +1736,7 @@ class _RidePaymentSummaryScreenState extends State<RidePaymentSummaryScreen> {
             ? (double.tryParse(charge.payable ?? '') ?? totalFare)
             : totalFare;
 
-        _fareText = exactMoney(payTotal, currencyCode);
+        _fareText = fareKnown ? exactMoney(payTotal, currencyCode) : null;
         final walletShort = walletProvider.balance < payTotal;
         return Scaffold(
           backgroundColor: SgColors.bg000,
@@ -1698,23 +1767,24 @@ class _RidePaymentSummaryScreenState extends State<RidePaymentSummaryScreen> {
                     ),
                   ),
                   const SizedBox(height: SgSpace.s5),
-                  ..._receiptTop(
-                    context,
-                    quotedRaw: rideData?['estimated_fare'],
-                    cost: payTotal,
-                    currencyCode: currencyCode,
-                    promo: charge.notCharged
-                        ? null
-                        : double.tryParse(charge.discount ?? ''),
-                    breakdown: TripChargeCard(
-                      fare: totalFareStr.toString(),
+                  if (fareKnown)
+                    ..._receiptTop(
+                      context,
+                      quotedRaw: rideData?['estimated_fare'],
+                      cost: payTotal,
                       currencyCode: currencyCode,
-                      charge: charge,
-                      endedBySupport: endedBySupport,
-                      distanceDriven: distanceDriven,
+                      promo: charge.notCharged
+                          ? null
+                          : double.tryParse(charge.discount ?? ''),
+                      breakdown: TripChargeCard(
+                        fare: totalFareStr.toString(),
+                        currencyCode: currencyCode,
+                        charge: charge,
+                        endedBySupport: endedBySupport,
+                        distanceDriven: distanceDriven,
+                      ),
+                      plain: charge.notCharged || endedBySupport,
                     ),
-                    plain: charge.notCharged || endedBySupport,
-                  ),
                   if (_confirming != null) ...[
                     const SizedBox(height: SgSpace.s3),
                     Text(
@@ -1744,28 +1814,30 @@ class _RidePaymentSummaryScreenState extends State<RidePaymentSummaryScreen> {
                           setState(() => _selectedPaymentMethod = 'cash'),
                     ),
                     const SizedBox(height: SgSpace.s3),
-                    _buildPaymentOption(
-                      id: 'wallet',
-                      title: sgStrings(context).payFromWallet,
-                      subtitle: walletShort
-                          ? sgStrings(context).notEnoughBalance
-                          : 'Current Balance: ${MarketConfigStore.instance.current.currencySymbol}${walletProvider.balance.toStringAsFixed(2)}',
-                      icon: SgIcons.wallet,
-                      isSelected: _selectedPaymentMethod == 'wallet',
-                      onTap: () =>
-                          setState(() => _selectedPaymentMethod = 'wallet'),
-                    ),
-                    const SizedBox(height: SgSpace.s3),
-                    _buildPaymentOption(
-                      id: 'upi_card',
-                      title: sgStrings(context).payViaUpiCard,
-                      icon: SgIcons.cash,
-                      isSelected: _selectedPaymentMethod == 'upi_card',
-                      onTap: () =>
-                          setState(() => _selectedPaymentMethod = 'upi_card'),
-                    ),
+                    if (fareKnown) ...[
+                      _buildPaymentOption(
+                        id: 'wallet',
+                        title: sgStrings(context).payFromWallet,
+                        subtitle: walletShort
+                            ? sgStrings(context).notEnoughBalance
+                            : 'Current Balance: ${MarketConfigStore.instance.current.currencySymbol}${walletProvider.balance.toStringAsFixed(2)}',
+                        icon: SgIcons.wallet,
+                        isSelected: _selectedPaymentMethod == 'wallet',
+                        onTap: () =>
+                            setState(() => _selectedPaymentMethod = 'wallet'),
+                      ),
+                      const SizedBox(height: SgSpace.s3),
+                      _buildPaymentOption(
+                        id: 'upi_card',
+                        title: sgStrings(context).payViaUpiCard,
+                        icon: SgIcons.cash,
+                        isSelected: _selectedPaymentMethod == 'upi_card',
+                        onTap: () =>
+                            setState(() => _selectedPaymentMethod = 'upi_card'),
+                      ),
+                    ],
                     const SizedBox(height: SgSpace.s5),
-                    if (_selectedPaymentMethod == 'cash')
+                    if (fareKnown && _selectedPaymentMethod == 'cash')
                       Padding(
                         padding: const EdgeInsets.only(bottom: SgSpace.s3),
                         child: Text(
@@ -1781,6 +1853,8 @@ class _RidePaymentSummaryScreenState extends State<RidePaymentSummaryScreen> {
                       key: const Key('pay_button'),
                       label: _isProcessing
                           ? 'Processing'
+                          : !fareKnown
+                          ? sgStrings(context).payWithCashTitle
                           : sgStrings(context).payBy(
                               exactMoney(payTotal, currencyCode),
                               paymentMethodLabel(
@@ -1790,7 +1864,8 @@ class _RidePaymentSummaryScreenState extends State<RidePaymentSummaryScreen> {
                             ),
                       onPressed: _isProcessing
                           ? null
-                          : () => _selectedPaymentMethod == 'cash'
+                          : () =>
+                                (!fareKnown || _selectedPaymentMethod == 'cash')
                                 ? _payWithCash(payTotal, currencyCode, rideData)
                                 : _processPayment(
                                     payTotal,
@@ -2069,7 +2144,11 @@ class _DarkMapScaffold extends StatefulWidget {
     this.pulse = false,
     this.mapBottom = 300,
     this.topRight,
+    this.plannedRoute,
   });
+
+  /// The server's planned route for the trip, drawn on trip when present.
+  final List<LatLng>? plannedRoute;
 
   /// Top right over the map: the SOS pill on the trip screens.
   final Widget? topRight;
@@ -2279,8 +2358,16 @@ class _DarkMapScaffoldState extends State<_DarkMapScaffold>
           }
 
           // Gold is the trip; the way to the pickup is a quiet dotted line.
+          final planned = widget.plannedRoute;
           final polylines = <SgPolyline>[
-            if (!widget.searching &&
+            if (isInProgress && planned != null && planned.length >= 2)
+              SgPolyline(
+                id: 'route',
+                points: planned,
+                color: SgColors.route,
+                width: SgColors.routeWidth,
+              )
+            else if (!widget.searching &&
                 mapProvider.polylineCoordinates.isNotEmpty &&
                 (isInProgress || mapProvider.driverLocation != null))
               SgPolyline(

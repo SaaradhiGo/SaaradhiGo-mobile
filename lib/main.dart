@@ -405,13 +405,7 @@ class _SaaradhiGoAppState extends State<SaaradhiGoApp> {
                               right: 0,
                               child: ListenableBuilder(
                                 listenable: router.routerDelegate,
-                                builder: (context, _) =>
-                                    router
-                                            .routerDelegate
-                                            .currentConfiguration
-                                            .uri
-                                            .path ==
-                                        '/ride-summary'
+                                builder: (context, _) => _onReceipt(router)
                                     ? const SizedBox.shrink()
                                     : PaymentPendingBanner(
                                         onOpen: () =>
@@ -451,4 +445,10 @@ class _SaaradhiGoAppState extends State<SaaradhiGoApp> {
       ),
     );
   }
+}
+
+/// True while the receipt is the screen on top (pushed or gone to).
+bool _onReceipt(GoRouter router) {
+  final c = router.routerDelegate.currentConfiguration;
+  return c.isNotEmpty && c.last.matchedLocation == '/ride-summary';
 }
