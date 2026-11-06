@@ -2,7 +2,12 @@ import '../../core/market/market_config_store.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../ui/account_widgets.dart';
+import '../../ui/appearance_settings.dart' show sgStrings;
+import '../../ui/sg_text.dart';
 import '../../ui/sg_tokens.dart';
+import '../../ui/sg_widgets.dart';
+import '../../ui/trip_widgets.dart' show exactMoney;
 
 class PaymentStatusScreen extends StatelessWidget {
   final String status;
@@ -23,6 +28,7 @@ class PaymentStatusScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final isSuccess = status == 'success';
+    if (!isSuccess) return _failed(context);
 
     return Scaffold(
       backgroundColor: SgColors.bg000,
@@ -54,6 +60,130 @@ class PaymentStatusScreen extends StatelessWidget {
               const SizedBox(height: 24),
             ],
           ),
+        ),
+      ),
+    );
+  }
+
+  /// Payment failed (Tier 2 spec, screen 12).
+  Widget _failed(BuildContext context) {
+    final l = sgStrings(context);
+    final market = MarketConfigStore.instance.current;
+    return Scaffold(
+      backgroundColor: SgColors.bg000,
+      body: SafeArea(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Expanded(
+              child: ListView(
+                padding: const EdgeInsets.fromLTRB(
+                  SgSpace.s4,
+                  SgSpace.s5,
+                  SgSpace.s4,
+                  SgSpace.s4,
+                ),
+                children: [
+                  Container(
+                    key: const Key('payment_failed_banner'),
+                    padding: const EdgeInsets.all(SgSpace.s4),
+                    decoration: BoxDecoration(
+                      color: Color.alphaBlend(
+                        SgColors.danger.withValues(alpha: 0.14),
+                        SgColors.bg100,
+                      ),
+                      borderRadius: BorderRadius.circular(SgRadius.lg),
+                      border: Border.all(color: SgColors.danger),
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          children: [
+                            Icon(Icons.error_outline, color: SgColors.danger),
+                            const SizedBox(width: SgSpace.s2),
+                            Expanded(
+                              child: Text(
+                                l.paymentFailed,
+                                style: SgText.title.copyWith(
+                                  color: SgColors.danger,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                        if (errorMessage != null) ...[
+                          const SizedBox(height: SgSpace.s2),
+                          Text(errorMessage!, style: SgText.body),
+                        ],
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: SgSpace.s4),
+                  // The gateway does not confirm whether money moved, so this
+                  // never says "No money left your account".
+                  Text(l.moneyComesBack, style: SgText.body),
+                  // TODO(data): without cancel_policy.refund_days the time
+                  // it takes is not said.
+                  if (market.refundDays != null)
+                    Text(
+                      l.refundWithin(market.refundDays!),
+                      key: const Key('payment_refund_days'),
+                      style: SgText.caption,
+                    ),
+                  if (amount != null) ...[
+                    const SizedBox(height: SgSpace.s5),
+                    SgEyebrow(l.stillToPay, color: SgColors.inkSubtle),
+                    const SizedBox(height: SgSpace.s1),
+                    Text(
+                      exactMoney(amount!, market.currency.code),
+                      key: const Key('payment_still_to_pay'),
+                      style: SgText.fareXl.copyWith(fontSize: 44, height: 1),
+                    ),
+                  ],
+                  const SizedBox(height: SgSpace.s5),
+                  SgListGroup([
+                    SgListRow(
+                      key: const Key('payment_support'),
+                      icon: SgIcons.help,
+                      label: l.talkSupportPayment,
+                      chevron: true,
+                      onTap: () => context.push('/help-support'),
+                    ),
+                  ]),
+                ],
+              ),
+            ),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(
+                SgSpace.s4,
+                SgSpace.s2,
+                SgSpace.s4,
+                SgSpace.s4,
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  // Back to the payment choices: retry, or switch method.
+                  SgPrimaryButton(
+                    key: const Key('payment_try_again'),
+                    label: l.tryAnotherWay,
+                    onPressed: () => context.pop(),
+                  ),
+                  TextButton(
+                    onPressed: () => context.go('/home'),
+                    style: TextButton.styleFrom(
+                      minimumSize: const Size.fromHeight(kSgTouch),
+                    ),
+                    child: Text(
+                      l.goHome,
+                      style: SgText.body.copyWith(color: SgColors.inkMuted),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
         ),
       ),
     );
