@@ -198,6 +198,7 @@ SgLockedFareCard _lockedFare(MapProvider mp) {
 }
 
 Future<void> _callDriver(BuildContext context, _DriverView d) async {
+  final l = sgStrings(context);
   void say(String m) {
     if (context.mounted) {
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(m)));
@@ -207,14 +208,14 @@ Future<void> _callDriver(BuildContext context, _DriverView d) async {
   // Only a tel: link; the number is never shown (privacy posture, Phase-0).
   final raw = (d.info['phone'] ?? d.ride['driver_phone'] ?? '').toString();
   if (raw.isEmpty) {
-    return say('Driver phone unavailable. Use in-app chat instead.');
+    return say(l.driverPhoneUnavailable);
   }
   try {
     if (!await launchUrl(Uri(scheme: 'tel', path: raw))) {
-      say('Could not open dialer on this device.');
+      say(l.dialerUnavailable);
     }
   } catch (_) {
-    say('Could not start a call.');
+    say(l.callFailed);
   }
 }
 
@@ -425,8 +426,8 @@ class _SearchingDriverScreenState extends State<SearchingDriverScreen> {
           },
           child: _DarkMapScaffold(
             title: failure == null
-                ? 'Finding your Saaradhi'
-                : 'No Saaradhi nearby right now',
+                ? sgStrings(context).findingSaaradhi
+                : sgStrings(context).noSaaradhiNearby,
             close: true,
             searching: true,
             pulse: failure == null,
@@ -559,25 +560,28 @@ class _SearchingDriverScreenState extends State<SearchingDriverScreen> {
           builder: (context) => AlertDialog(
             backgroundColor: SgColors.bg200,
             title: Text(
-              'Cancel Search?',
+              sgStrings(context).cancelSearchTitle,
               style: TextStyle(
                 color: SgColors.ink,
                 fontWeight: FontWeight.bold,
               ),
             ),
             content: Text(
-              'Are you sure you want to cancel your ride request?',
+              sgStrings(context).cancelSearchBody,
               style: TextStyle(color: SgColors.inkMuted),
             ),
             actions: [
               TextButton(
                 onPressed: () => Navigator.pop(context, false),
-                child: Text('Wait', style: TextStyle(color: SgColors.goldText)),
+                child: Text(
+                  sgStrings(context).wait,
+                  style: TextStyle(color: SgColors.goldText),
+                ),
               ),
               TextButton(
                 onPressed: () => Navigator.pop(context, true),
                 child: Text(
-                  'Cancel Anyway',
+                  sgStrings(context).cancelAnyway,
                   style: TextStyle(color: SgColors.danger),
                 ),
               ),
@@ -787,22 +791,25 @@ class _DriverFoundScreenState extends State<DriverFoundScreen> {
       builder: (context) => AlertDialog(
         backgroundColor: SgColors.bg200,
         title: Text(
-          'Ongoing Ride',
+          sgStrings(context).ongoingRideTitle,
           style: TextStyle(color: SgColors.ink, fontWeight: FontWeight.bold),
         ),
         content: Text(
-          'You have an active ride request. Are you sure you want to cancel?',
+          sgStrings(context).cancelActiveRequestBody,
           style: TextStyle(color: SgColors.inkMuted),
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context, false),
-            child: Text('Wait', style: TextStyle(color: SgColors.goldText)),
+            child: Text(
+              sgStrings(context).wait,
+              style: TextStyle(color: SgColors.goldText),
+            ),
           ),
           TextButton(
             onPressed: () => Navigator.pop(context, true),
             child: Text(
-              'Cancel Anyway',
+              sgStrings(context).cancelAnyway,
               style: TextStyle(color: SgColors.danger),
             ),
           ),
@@ -921,14 +928,14 @@ class _FullMapTrackingScreenState extends State<FullMapTrackingScreen> {
               ),
             ),
             content: Text(
-              'Are you sure you want to cancel your ongoing ride?',
+              sgStrings(context).cancelOngoingRideBody,
               style: TextStyle(color: SgColors.inkMuted),
             ),
             actions: [
               TextButton(
                 onPressed: () => Navigator.pop(context, false),
                 child: Text(
-                  'Continue Ride',
+                  sgStrings(context).continueRide,
                   style: TextStyle(color: SgColors.goldText),
                 ),
               ),
@@ -1179,7 +1186,7 @@ class _RidePaymentSummaryScreenState extends State<RidePaymentSummaryScreen> {
     if (_cashHandled || !mounted) return;
     _cashHandled = true;
     _settledPoll?.cancel();
-    await _finishCashSelection('Cash payment received. Thank you.');
+    await _finishCashSelection(sgStrings(context).cashReceived);
   }
 
   Future<void> _loadReceiptIfEndedBySupport() async {
@@ -1223,7 +1230,7 @@ class _RidePaymentSummaryScreenState extends State<RidePaymentSummaryScreen> {
       final token = prefs.getString('access_token');
       if (!mounted) return;
       if (token == null) {
-        _showCashError('Please sign in again to pay for this trip.');
+        _showCashError(sgStrings(context).signInToPay);
         return;
       }
 
@@ -1232,7 +1239,7 @@ class _RidePaymentSummaryScreenState extends State<RidePaymentSummaryScreen> {
           rideData?['trip_id']?.toString() ??
           rideData?['id']?.toString();
       if (tripIdStr == null) {
-        _showCashError('No active trip found. Please refresh and try again.');
+        _showCashError(sgStrings(context).noActiveTrip);
         return;
       }
 
@@ -1322,7 +1329,7 @@ class _RidePaymentSummaryScreenState extends State<RidePaymentSummaryScreen> {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Insufficient Balance'),
+        title: Text(sgStrings(context).insufficientBalance),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -1331,7 +1338,7 @@ class _RidePaymentSummaryScreenState extends State<RidePaymentSummaryScreen> {
               'Your wallet balance (${MarketConfigStore.instance.current.currencySymbol}${walletProvider.balance.toStringAsFixed(2)}) is less than the fare (${MarketConfigStore.instance.current.currencySymbol}${fare.toStringAsFixed(2)}).',
             ),
             const SizedBox(height: 16),
-            const Text('Would you like to:'),
+            Text(sgStrings(context).wouldYouLike),
           ],
         ),
         actions: [
@@ -1343,14 +1350,14 @@ class _RidePaymentSummaryScreenState extends State<RidePaymentSummaryScreen> {
                 extra: {'returnRoute': '/ride-summary'},
               );
             },
-            child: const Text('Add Money'),
+            child: Text(sgStrings(context).addMoney),
           ),
           TextButton(
             onPressed: () {
               Navigator.pop(context);
               setState(() => _selectedPaymentMethod = 'online');
             },
-            child: const Text('Pay with UPI/Card'),
+            child: Text(sgStrings(context).payUpiCard),
           ),
         ],
       ),
@@ -1643,7 +1650,7 @@ class _RidePaymentSummaryScreenState extends State<RidePaymentSummaryScreen> {
                   alignment: Alignment.centerLeft,
                   child: SgMapButton(
                     icon: SgIcons.back,
-                    label: 'Back',
+                    label: sgStrings(context).back,
                     onTap: () => context.pop(),
                   ),
                 ),
@@ -1694,8 +1701,8 @@ class _RidePaymentSummaryScreenState extends State<RidePaymentSummaryScreen> {
                 else ...[
                   _buildPaymentOption(
                     id: 'cash',
-                    title: 'Pay with Cash',
-                    subtitle: 'Hand it to your driver',
+                    title: sgStrings(context).payWithCashTitle,
+                    subtitle: sgStrings(context).handToDriver,
                     icon: SgIcons.cash,
                     isSelected: _selectedPaymentMethod == 'cash',
                     onTap: () =>
@@ -1704,9 +1711,9 @@ class _RidePaymentSummaryScreenState extends State<RidePaymentSummaryScreen> {
                   const SizedBox(height: SgSpace.s3),
                   _buildPaymentOption(
                     id: 'wallet',
-                    title: 'Pay from Wallet',
+                    title: sgStrings(context).payFromWallet,
                     subtitle: walletShort
-                        ? 'Not enough balance'
+                        ? sgStrings(context).notEnoughBalance
                         : 'Current Balance: ${MarketConfigStore.instance.current.currencySymbol}${walletProvider.balance.toStringAsFixed(2)}',
                     icon: SgIcons.wallet,
                     isSelected: _selectedPaymentMethod == 'wallet',
@@ -1716,7 +1723,7 @@ class _RidePaymentSummaryScreenState extends State<RidePaymentSummaryScreen> {
                   const SizedBox(height: SgSpace.s3),
                   _buildPaymentOption(
                     id: 'upi_card',
-                    title: 'Pay via UPI/Card',
+                    title: sgStrings(context).payViaUpiCard,
                     icon: SgIcons.cash,
                     isSelected: _selectedPaymentMethod == 'upi_card',
                     onTap: () =>
@@ -1768,7 +1775,7 @@ class _RidePaymentSummaryScreenState extends State<RidePaymentSummaryScreen> {
                                 rideData,
                               ),
                         child: Text(
-                          'Pay with Cash instead?',
+                          sgStrings(context).payCashInstead,
                           style: SgText.body.copyWith(
                             color: SgColors.inkMuted,
                             decoration: TextDecoration.underline,
@@ -1998,8 +2005,8 @@ class RateReviewDriverScreen extends StatelessWidget {
                 onDone: (rated) {
                   if (rated) {
                     ScaffoldMessenger.maybeOf(context)?.showSnackBar(
-                      const SnackBar(
-                        content: Text('Thanks for rating your trip.'),
+                      SnackBar(
+                        content: Text(sgStrings(context).thanksForRating),
                       ),
                     );
                   }
@@ -2283,7 +2290,7 @@ class _DarkMapScaffoldState extends State<_DarkMapScaffold>
                 left: SgSpace.s4,
                 child: SgMapButton(
                   icon: widget.close ? SgIcons.close : SgIcons.back,
-                  label: widget.close ? 'Close' : 'Back',
+                  label: widget.close ? 'Close' : sgStrings(context).back,
                   onTap: widget.onBack ?? () => context.pop(),
                 ),
               ),
@@ -2518,7 +2525,7 @@ class _HelpSearchField extends StatelessWidget {
             minHeight: 54,
           ),
           prefixIcon: Icon(Icons.search, color: SgColors.inkMuted, size: 24),
-          hintText: 'Search for help',
+          hintText: sgStrings(context).searchForHelp,
           hintStyle: TextStyle(
             color: SgColors.inkMuted,
             fontSize: 16,

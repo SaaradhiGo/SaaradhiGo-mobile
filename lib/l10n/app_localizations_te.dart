@@ -370,4 +370,221 @@ class AppLocalizationsTe extends AppLocalizations {
     );
     return '$_temp0';
   }
+
+  @override
+  String get yourRides => 'మీ రైడ్‌లు';
+
+  @override
+  String get paymentMethods => 'చెల్లింపు పద్ధతులు';
+
+  @override
+  String get notifications => 'నోటిఫికేషన్లు';
+
+  @override
+  String get referFriend => 'స్నేహితుడిని ఆహ్వానించండి';
+
+  @override
+  String get profile => 'ప్రొఫైల్';
+
+  @override
+  String get helpSupport => 'సహాయం';
+
+  @override
+  String get personalInfo => 'వ్యక్తిగత వివరాలు';
+
+  @override
+  String get privacySecurity => 'గోప్యత, భద్రత';
+
+  @override
+  String get logOut => 'లాగ్ అవుట్';
+
+  @override
+  String get currentLocation => 'ప్రస్తుత స్థానం';
+
+  @override
+  String get useMyLocation => 'నా స్థానం వాడండి';
+
+  @override
+  String get selectPickupFirst => 'ముందు పికప్ ఎంచుకోండి';
+
+  @override
+  String get locationServicesOff =>
+      'లొకేషన్ ఆఫ్‌లో ఉంది. సెట్టింగ్స్‌లో ఆన్ చేయండి.';
+
+  @override
+  String get locationDenied => 'లొకేషన్ అనుమతి లేదు.';
+
+  @override
+  String get locationDeniedForever =>
+      'లొకేషన్ అనుమతి శాశ్వతంగా నిరాకరించబడింది. సెట్టింగ్స్‌లో ఇవ్వండి.';
+
+  @override
+  String get locationNotFound => 'మీ స్థానం దొరకలేదు. పికప్ నమోదు చేయండి.';
+
+  @override
+  String get resumingRide => 'మీ రైడ్ తిరిగి తెరుస్తున్నాం...';
+
+  @override
+  String get activeRideTitle => 'యాక్టివ్ రైడ్';
+
+  @override
+  String get activeRideBody => 'మీకు ఇప్పటికే ఒక రైడ్ ఉంది. చూడాలా?';
+
+  @override
+  String get dismiss => 'మూసివేయండి';
+
+  @override
+  String get whereTo => 'ఎక్కడికి?';
+
+  @override
+  String get placesAppearHere => 'మీరు వెళ్లే స్థలాలు ఇక్కడ కనిపిస్తాయి.';
+
+  @override
+  String get back => 'వెనుకకు';
+
+  @override
+  String get findingSaaradhi => 'మీ సారథిని వెతుకుతున్నాం';
+
+  @override
+  String get noSaaradhiNearby => 'ఇప్పుడు దగ్గరలో సారథి లేరు';
+
+  @override
+  String get cancelSearchTitle => 'వెతకడం ఆపాలా?';
+
+  @override
+  String get cancelSearchBody => 'రైడ్ అభ్యర్థన రద్దు చేయాలా?';
+
+  @override
+  String get wait => 'ఆగండి';
+
+  @override
+  String get cancelAnyway => 'అయినా రద్దు';
+
+  @override
+  String get ongoingRideTitle => 'కొనసాగుతున్న రైడ్';
+
+  @override
+  String get cancelActiveRequestBody =>
+      'మీ రైడ్ అభ్యర్థన యాక్టివ్‌లో ఉంది. రద్దు చేయాలా?';
+
+  @override
+  String get cancelOngoingRideBody => 'కొనసాగుతున్న రైడ్ రద్దు చేయాలా?';
+
+  @override
+  String get continueRide => 'రైడ్ కొనసాగించండి';
+
+  @override
+  String get driverPhoneUnavailable => 'డ్రైవర్ ఫోన్ లేదు. చాట్ వాడండి.';
+
+  @override
+  String get dialerUnavailable => 'ఈ ఫోన్‌లో డయలర్ తెరవలేదు.';
+
+  @override
+  String get callFailed => 'కాల్ కాలేదు.';
+
+  @override
+  String get payWithCashTitle => 'నగదుతో చెల్లించండి';
+
+  @override
+  String get handToDriver => 'డ్రైవర్‌కు ఇవ్వండి';
+
+  @override
+  String get payFromWallet => 'వాలెట్ నుండి చెల్లించండి';
+
+  @override
+  String get notEnoughBalance => 'బ్యాలెన్స్ సరిపోదు';
+
+  @override
+  String get payViaUpiCard => 'UPI/కార్డ్‌తో చెల్లించండి';
+
+  @override
+  String get payCashInstead => 'బదులుగా నగదు ఇవ్వాలా?';
+
+  @override
+  String get thanksForRating => 'రేటింగ్‌కు ధన్యవాదాలు.';
+
+  @override
+  String get insufficientBalance => 'బ్యాలెన్స్ సరిపోదు';
+
+  @override
+  String get wouldYouLike => 'మీరు ఏం చేయాలనుకుంటున్నారు:';
+
+  @override
+  String get addMoney => 'డబ్బు జోడించండి';
+
+  @override
+  String get payUpiCard => 'UPI/కార్డ్‌తో చెల్లించండి';
+
+  @override
+  String get cashReceived => 'నగదు అందింది. ధన్యవాదాలు.';
+
+  @override
+  String get signInToPay => 'చెల్లించడానికి మళ్లీ సైన్ ఇన్ చేయండి.';
+
+  @override
+  String get noActiveTrip =>
+      'యాక్టివ్ ట్రిప్ లేదు. రిఫ్రెష్ చేసి ప్రయత్నించండి.';
+
+  @override
+  String get searchForHelp => 'సహాయం వెతకండి';
+
+  @override
+  String get howWasRide => 'మీ రైడ్ ఎలా ఉంది?';
+
+  @override
+  String get done => 'పూర్తి';
+
+  @override
+  String get couldNotSaveRating => 'రేటింగ్ సేవ్ కాలేదు.';
+
+  @override
+  String get messageDriverHint => 'డ్రైవర్‌కు మెసేజ్ చేయండి';
+
+  @override
+  String get noRidesYet => 'ఇంకా రైడ్‌లు లేవు';
+
+  @override
+  String get ridesShowHere => 'మీ రైడ్‌లు ఇక్కడ కనిపిస్తాయి.';
+
+  @override
+  String get setPickupFirst => 'ముందు హోమ్‌లో పికప్ పెట్టండి.';
+
+  @override
+  String get rideHereAgain => 'మళ్లీ ఇక్కడికి';
+
+  @override
+  String get mapUnavailable => 'మ్యాప్ లేదు';
+
+  @override
+  String get checkConnection => 'కనెక్షన్ చూడండి';
+
+  @override
+  String get retry => 'మళ్లీ ప్రయత్నించండి';
+
+  @override
+  String get faresUnavailable => 'ఛార్జీలు లోడ్ కాలేదు';
+
+  @override
+  String get checkConnectionRetry => 'కనెక్షన్ చూసి మళ్లీ ప్రయత్నించండి';
+
+  @override
+  String get cancelGoBack => 'రద్దు చేసి వెనక్కి వెళ్లాలా?';
+
+  @override
+  String get passwordHint => 'పాస్‌వర్డ్';
+
+  @override
+  String get forgotPassword => 'పాస్‌వర్డ్ మర్చిపోయారా?';
+
+  @override
+  String get enterEmail => 'మీ ఈమెయిల్ ఇవ్వండి';
+
+  @override
+  String get enterPassword => 'పాస్‌వర్డ్ ఇవ్వండి';
+
+  @override
+  String get validPhone => 'సరైన ఫోన్ నంబర్ ఇవ్వండి';
+
+  @override
+  String get otpSent => 'కోడ్ పంపాం. మెసేజ్‌లు చూడండి.';
 }

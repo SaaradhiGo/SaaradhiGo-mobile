@@ -154,7 +154,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
       if (!isAutomatic) {
         try {
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
+            SnackBar(
               content: Row(
                 children: [
                   SizedBox(
@@ -166,7 +166,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                     ),
                   ),
                   SizedBox(width: 16),
-                  Text('Resuming your active ride...'),
+                  Text(sgStrings(context).resumingRide),
                 ],
               ),
               duration: Duration(seconds: 1),
@@ -228,17 +228,20 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
       builder: (context) => AlertDialog(
         backgroundColor: SgColors.bg200,
         title: Text(
-          'Active Ride',
+          sgStrings(context).activeRideTitle,
           style: TextStyle(color: SgColors.ink, fontWeight: FontWeight.bold),
         ),
         content: Text(
-          'You already have an active ride request or trip. Would you like to view it?',
+          sgStrings(context).activeRideBody,
           style: TextStyle(color: SgColors.inkMuted),
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: Text('Dismiss', style: TextStyle(color: SgColors.inkMuted)),
+            child: Text(
+              sgStrings(context).dismiss,
+              style: TextStyle(color: SgColors.inkMuted),
+            ),
           ),
           TextButton(
             onPressed: () {
@@ -268,11 +271,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
       if (!serviceEnabled) {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text(
-                'Location services are disabled. Please enable them in settings.',
-              ),
-            ),
+            SnackBar(content: Text(sgStrings(context).locationServicesOff)),
           );
         }
         return;
@@ -284,7 +283,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
         if (permission == LocationPermission.denied) {
           if (mounted) {
             ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(content: Text('Location permissions are denied.')),
+              SnackBar(content: Text(sgStrings(context).locationDenied)),
             );
           }
           return;
@@ -294,11 +293,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
       if (permission == LocationPermission.deniedForever) {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text(
-                'Location permissions are permanently denied, we cannot request permissions.',
-              ),
-            ),
+            SnackBar(content: Text(sgStrings(context).locationDeniedForever)),
           );
         }
         return;
@@ -308,11 +303,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
       if (position == null) {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text(
-                "We couldn't find your location. Enter your pickup point.",
-              ),
-            ),
+            SnackBar(content: Text(sgStrings(context).locationNotFound)),
           );
         }
         return;
@@ -325,7 +316,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
       }
 
       if (mounted) {
-        String addressText = "Current Location";
+        String addressText = sgStrings(context).currentLocation;
         final mapService = MapService();
         final fetchedAddress = await mapService.getAddressFromCoordinates(
           position.latitude,
@@ -506,7 +497,7 @@ class _MenuDrawer extends StatelessWidget {
             const SizedBox(height: SgSpace.s2),
             row(
               SgIcons.history,
-              'Your rides',
+              sgStrings(context).yourRides,
               () => onTab(1),
               key: const Key('menu_rides'),
             ),
@@ -518,26 +509,30 @@ class _MenuDrawer extends StatelessWidget {
             ),
             row(
               kCardIcon,
-              'Payment methods',
+              sgStrings(context).paymentMethods,
               () => context.push('/payment-methods'),
             ),
             row(
               SgIcons.bell,
-              'Notifications',
+              sgStrings(context).notifications,
               () => context.push('/notifications'),
               count: unread,
             ),
             if (MarketConfigStore.instance.current.referralsAvailable)
-              row(kGiftIcon, 'Refer a friend', () => context.push('/refer')),
+              row(
+                kGiftIcon,
+                sgStrings(context).referFriend,
+                () => context.push('/refer'),
+              ),
             row(
               SgIcons.user,
-              'Profile',
+              sgStrings(context).profile,
               () => onTab(3),
               key: const Key('menu_profile'),
             ),
             row(
               SgIcons.help,
-              'Help and support',
+              sgStrings(context).helpSupport,
               () => context.push('/help-support'),
             ),
           ],
@@ -587,8 +582,8 @@ class _HomeTab extends StatelessWidget {
     // Check if pickup is loaded before navigating
     if (provider.pickupLocation == null && currentPosition == null) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Please select pickup location first'),
+        SnackBar(
+          content: Text(sgStrings(context).selectPickupFirst),
           backgroundColor: SgColors.gold500,
           duration: Duration(seconds: 2),
         ),
@@ -602,7 +597,7 @@ class _HomeTab extends StatelessWidget {
       await provider.prepareAndCalculateRoute(
         pickupName: pickupController.text.isNotEmpty
             ? pickupController.text
-            : 'Current Location',
+            : sgStrings(context).currentLocation,
         presetPickup: currentPosition,
         dropPlaceId: dropPlaceId,
         dropName: dropName,
@@ -859,7 +854,7 @@ class _ProfileTab extends StatelessWidget {
     return ListView(
       padding: EdgeInsets.zero,
       children: [
-        const SgPageTitle('Profile'),
+        SgPageTitle(sgStrings(context).profile),
         // Only what the account holds: no stock photo, name or rating.
         SgPersonHeader(
           name: auth.fullName,
@@ -871,7 +866,7 @@ class _ProfileTab extends StatelessWidget {
         SgListGroup([
           SgListRow(
             icon: SgIcons.user,
-            label: 'Personal information',
+            label: sgStrings(context).personalInfo,
             chevron: true,
             onTap: () => context.push('/personal-info'),
           ),
@@ -884,25 +879,25 @@ class _ProfileTab extends StatelessWidget {
           ),
           SgListRow(
             icon: kCardIcon,
-            label: 'Payment methods',
+            label: sgStrings(context).paymentMethods,
             chevron: true,
             onTap: () => context.push('/payment-methods'),
           ),
           SgListRow(
             icon: SgIcons.bell,
-            label: 'Notifications',
+            label: sgStrings(context).notifications,
             chevron: true,
             onTap: () => context.push('/notifications'),
           ),
           SgListRow(
             icon: SgIcons.lock,
-            label: 'Privacy and security',
+            label: sgStrings(context).privacySecurity,
             chevron: true,
             onTap: () => context.push('/privacy-security'),
           ),
           SgListRow(
             icon: SgIcons.help,
-            label: 'Help and support',
+            label: sgStrings(context).helpSupport,
             chevron: true,
             onTap: () => context.push('/help-support'),
           ),
@@ -910,7 +905,7 @@ class _ProfileTab extends StatelessWidget {
           if (MarketConfigStore.instance.current.referralsAvailable)
             SgListRow(
               icon: kGiftIcon,
-              label: 'Refer a friend',
+              label: sgStrings(context).referFriend,
               chevron: true,
               onTap: () => context.push('/refer'),
             ),
@@ -922,7 +917,7 @@ class _ProfileTab extends StatelessWidget {
           SgListRow(
             key: const Key('profile_logout'),
             icon: kLogoutIcon,
-            label: 'Log out',
+            label: sgStrings(context).logOut,
             danger: true,
             onTap: () async {
               await context.read<AuthProvider>().logout();
@@ -1001,7 +996,7 @@ class _LocationCardState extends State<_LocationCard> {
     if (!mounted || !widget.pickupFocusNode.hasFocus) return;
     final text = widget.pickupController.text;
     final provider = context.read<MapProvider>();
-    if (text.length >= 4 && text != 'Current Location') {
+    if (text.length >= 4 && text != sgStrings(context).currentLocation) {
       provider.fetchSuggestions(text);
     } else {
       provider.clearSuggestions();
@@ -1077,7 +1072,7 @@ class _LocationCardState extends State<_LocationCard> {
                 size: 20,
               ),
             ),
-            Text('Current Location', style: SgText.body),
+            Text(sgStrings(context).currentLocation, style: SgText.body),
           ],
         ),
       ),
@@ -1104,8 +1099,8 @@ class _LocationCardState extends State<_LocationCard> {
           if (provider.pickupLocation == null &&
               widget.currentPosition == null) {
             ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(
-                content: Text('Please select pickup location first'),
+              SnackBar(
+                content: Text(sgStrings(context).selectPickupFirst),
                 backgroundColor: SgColors.gold500,
                 duration: Duration(seconds: 2),
               ),
@@ -1121,7 +1116,7 @@ class _LocationCardState extends State<_LocationCard> {
             await provider.prepareAndCalculateRoute(
               pickupName: widget.pickupController.text.isNotEmpty
                   ? widget.pickupController.text
-                  : 'Current Location',
+                  : sgStrings(context).currentLocation,
               presetPickup:
                   provider.pickupLocation?.latLng ?? widget.currentPosition,
               dropPlaceId: suggestion.placeId,
@@ -1226,7 +1221,7 @@ class _LocationCardState extends State<_LocationCard> {
               )
             else if (!atCurrent)
               IconButton(
-                tooltip: 'Use my location',
+                tooltip: sgStrings(context).useMyLocation,
                 constraints: const BoxConstraints(
                   minWidth: kSgTouch,
                   minHeight: kSgTouch,
@@ -1275,7 +1270,8 @@ class _ActiveRideTile extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final mapProvider = context.watch<MapProvider>();
-    final destination = mapProvider.destinationAddress ?? 'Active Ride';
+    final destination =
+        mapProvider.destinationAddress ?? sgStrings(context).activeRideTitle;
 
     return Material(
       color: Colors.transparent,

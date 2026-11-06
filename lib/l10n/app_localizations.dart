@@ -705,6 +705,432 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'{n, plural, =1{1 seat} other{{n} seats}}'**
   String seatsCount(int n);
+
+  /// Rider screen text, moved from code: Your rides
+  ///
+  /// In en, this message translates to:
+  /// **'Your rides'**
+  String get yourRides;
+
+  /// Rider screen text, moved from code: Payment methods
+  ///
+  /// In en, this message translates to:
+  /// **'Payment methods'**
+  String get paymentMethods;
+
+  /// Rider screen text, moved from code: Notifications
+  ///
+  /// In en, this message translates to:
+  /// **'Notifications'**
+  String get notifications;
+
+  /// Rider screen text, moved from code: Refer a friend
+  ///
+  /// In en, this message translates to:
+  /// **'Refer a friend'**
+  String get referFriend;
+
+  /// Rider screen text, moved from code: Profile
+  ///
+  /// In en, this message translates to:
+  /// **'Profile'**
+  String get profile;
+
+  /// Rider screen text, moved from code: Help and support
+  ///
+  /// In en, this message translates to:
+  /// **'Help and support'**
+  String get helpSupport;
+
+  /// Rider screen text, moved from code: Personal information
+  ///
+  /// In en, this message translates to:
+  /// **'Personal information'**
+  String get personalInfo;
+
+  /// Rider screen text, moved from code: Privacy and security
+  ///
+  /// In en, this message translates to:
+  /// **'Privacy and security'**
+  String get privacySecurity;
+
+  /// Rider screen text, moved from code: Log out
+  ///
+  /// In en, this message translates to:
+  /// **'Log out'**
+  String get logOut;
+
+  /// Rider screen text, moved from code: Current Location
+  ///
+  /// In en, this message translates to:
+  /// **'Current Location'**
+  String get currentLocation;
+
+  /// Rider screen text, moved from code: Use my location
+  ///
+  /// In en, this message translates to:
+  /// **'Use my location'**
+  String get useMyLocation;
+
+  /// Rider screen text, moved from code: Please select pickup location first
+  ///
+  /// In en, this message translates to:
+  /// **'Please select pickup location first'**
+  String get selectPickupFirst;
+
+  /// Rider screen text, moved from code: Location services are disabled. Please enable them in settings.
+  ///
+  /// In en, this message translates to:
+  /// **'Location services are disabled. Please enable them in settings.'**
+  String get locationServicesOff;
+
+  /// Rider screen text, moved from code: Location permissions are denied.
+  ///
+  /// In en, this message translates to:
+  /// **'Location permissions are denied.'**
+  String get locationDenied;
+
+  /// Rider screen text, moved from code: Location permissions are permanently denied, we cannot request permissions.
+  ///
+  /// In en, this message translates to:
+  /// **'Location permissions are permanently denied, we cannot request permissions.'**
+  String get locationDeniedForever;
+
+  /// Rider screen text, moved from code: We couldn't find your location. Enter your pickup point.
+  ///
+  /// In en, this message translates to:
+  /// **'We couldn\'t find your location. Enter your pickup point.'**
+  String get locationNotFound;
+
+  /// Rider screen text, moved from code: Resuming your active ride...
+  ///
+  /// In en, this message translates to:
+  /// **'Resuming your active ride...'**
+  String get resumingRide;
+
+  /// Rider screen text, moved from code: Active Ride
+  ///
+  /// In en, this message translates to:
+  /// **'Active Ride'**
+  String get activeRideTitle;
+
+  /// Rider screen text, moved from code: You already have an active ride request or trip. Would you like to view it?
+  ///
+  /// In en, this message translates to:
+  /// **'You already have an active ride request or trip. Would you like to view it?'**
+  String get activeRideBody;
+
+  /// Rider screen text, moved from code: Dismiss
+  ///
+  /// In en, this message translates to:
+  /// **'Dismiss'**
+  String get dismiss;
+
+  /// Rider screen text, moved from code: Where to?
+  ///
+  /// In en, this message translates to:
+  /// **'Where to?'**
+  String get whereTo;
+
+  /// Rider screen text, moved from code: Places you ride to will appear here.
+  ///
+  /// In en, this message translates to:
+  /// **'Places you ride to will appear here.'**
+  String get placesAppearHere;
+
+  /// Rider screen text, moved from code: Back
+  ///
+  /// In en, this message translates to:
+  /// **'Back'**
+  String get back;
+
+  /// Rider screen text, moved from code: Finding your Saaradhi
+  ///
+  /// In en, this message translates to:
+  /// **'Finding your Saaradhi'**
+  String get findingSaaradhi;
+
+  /// Rider screen text, moved from code: No Saaradhi nearby right now
+  ///
+  /// In en, this message translates to:
+  /// **'No Saaradhi nearby right now'**
+  String get noSaaradhiNearby;
+
+  /// Rider screen text, moved from code: Cancel Search?
+  ///
+  /// In en, this message translates to:
+  /// **'Cancel Search?'**
+  String get cancelSearchTitle;
+
+  /// Rider screen text, moved from code: Are you sure you want to cancel your ride request?
+  ///
+  /// In en, this message translates to:
+  /// **'Are you sure you want to cancel your ride request?'**
+  String get cancelSearchBody;
+
+  /// Rider screen text, moved from code: Wait
+  ///
+  /// In en, this message translates to:
+  /// **'Wait'**
+  String get wait;
+
+  /// Rider screen text, moved from code: Cancel Anyway
+  ///
+  /// In en, this message translates to:
+  /// **'Cancel Anyway'**
+  String get cancelAnyway;
+
+  /// Rider screen text, moved from code: Ongoing Ride
+  ///
+  /// In en, this message translates to:
+  /// **'Ongoing Ride'**
+  String get ongoingRideTitle;
+
+  /// Rider screen text, moved from code: You have an active ride request. Are you sure you want to cancel?
+  ///
+  /// In en, this message translates to:
+  /// **'You have an active ride request. Are you sure you want to cancel?'**
+  String get cancelActiveRequestBody;
+
+  /// Rider screen text, moved from code: Are you sure you want to cancel your ongoing ride?
+  ///
+  /// In en, this message translates to:
+  /// **'Are you sure you want to cancel your ongoing ride?'**
+  String get cancelOngoingRideBody;
+
+  /// Rider screen text, moved from code: Continue Ride
+  ///
+  /// In en, this message translates to:
+  /// **'Continue Ride'**
+  String get continueRide;
+
+  /// Rider screen text, moved from code: Driver phone unavailable. Use in-app chat instead.
+  ///
+  /// In en, this message translates to:
+  /// **'Driver phone unavailable. Use in-app chat instead.'**
+  String get driverPhoneUnavailable;
+
+  /// Rider screen text, moved from code: Could not open dialer on this device.
+  ///
+  /// In en, this message translates to:
+  /// **'Could not open dialer on this device.'**
+  String get dialerUnavailable;
+
+  /// Rider screen text, moved from code: Could not start a call.
+  ///
+  /// In en, this message translates to:
+  /// **'Could not start a call.'**
+  String get callFailed;
+
+  /// Rider screen text, moved from code: Pay with Cash
+  ///
+  /// In en, this message translates to:
+  /// **'Pay with Cash'**
+  String get payWithCashTitle;
+
+  /// Rider screen text, moved from code: Hand it to your driver
+  ///
+  /// In en, this message translates to:
+  /// **'Hand it to your driver'**
+  String get handToDriver;
+
+  /// Rider screen text, moved from code: Pay from Wallet
+  ///
+  /// In en, this message translates to:
+  /// **'Pay from Wallet'**
+  String get payFromWallet;
+
+  /// Rider screen text, moved from code: Not enough balance
+  ///
+  /// In en, this message translates to:
+  /// **'Not enough balance'**
+  String get notEnoughBalance;
+
+  /// Rider screen text, moved from code: Pay via UPI/Card
+  ///
+  /// In en, this message translates to:
+  /// **'Pay via UPI/Card'**
+  String get payViaUpiCard;
+
+  /// Rider screen text, moved from code: Pay with Cash instead?
+  ///
+  /// In en, this message translates to:
+  /// **'Pay with Cash instead?'**
+  String get payCashInstead;
+
+  /// Rider screen text, moved from code: Thanks for rating your trip.
+  ///
+  /// In en, this message translates to:
+  /// **'Thanks for rating your trip.'**
+  String get thanksForRating;
+
+  /// Rider screen text, moved from code: Insufficient Balance
+  ///
+  /// In en, this message translates to:
+  /// **'Insufficient Balance'**
+  String get insufficientBalance;
+
+  /// Rider screen text, moved from code: Would you like to:
+  ///
+  /// In en, this message translates to:
+  /// **'Would you like to:'**
+  String get wouldYouLike;
+
+  /// Rider screen text, moved from code: Add Money
+  ///
+  /// In en, this message translates to:
+  /// **'Add Money'**
+  String get addMoney;
+
+  /// Rider screen text, moved from code: Pay with UPI/Card
+  ///
+  /// In en, this message translates to:
+  /// **'Pay with UPI/Card'**
+  String get payUpiCard;
+
+  /// Rider screen text, moved from code: Cash payment received. Thank you.
+  ///
+  /// In en, this message translates to:
+  /// **'Cash payment received. Thank you.'**
+  String get cashReceived;
+
+  /// Rider screen text, moved from code: Please sign in again to pay for this trip.
+  ///
+  /// In en, this message translates to:
+  /// **'Please sign in again to pay for this trip.'**
+  String get signInToPay;
+
+  /// Rider screen text, moved from code: No active trip found. Please refresh and try again.
+  ///
+  /// In en, this message translates to:
+  /// **'No active trip found. Please refresh and try again.'**
+  String get noActiveTrip;
+
+  /// Rider screen text, moved from code: Search for help
+  ///
+  /// In en, this message translates to:
+  /// **'Search for help'**
+  String get searchForHelp;
+
+  /// Rider screen text, moved from code: How was your ride?
+  ///
+  /// In en, this message translates to:
+  /// **'How was your ride?'**
+  String get howWasRide;
+
+  /// Rider screen text, moved from code: Done
+  ///
+  /// In en, this message translates to:
+  /// **'Done'**
+  String get done;
+
+  /// Rider screen text, moved from code: Could not save your rating.
+  ///
+  /// In en, this message translates to:
+  /// **'Could not save your rating.'**
+  String get couldNotSaveRating;
+
+  /// Rider screen text, moved from code: Message your driver
+  ///
+  /// In en, this message translates to:
+  /// **'Message your driver'**
+  String get messageDriverHint;
+
+  /// Rider screen text, moved from code: No rides yet
+  ///
+  /// In en, this message translates to:
+  /// **'No rides yet'**
+  String get noRidesYet;
+
+  /// Rider screen text, moved from code: Rides you take will show here.
+  ///
+  /// In en, this message translates to:
+  /// **'Rides you take will show here.'**
+  String get ridesShowHere;
+
+  /// Rider screen text, moved from code: Set your pickup on the home screen first.
+  ///
+  /// In en, this message translates to:
+  /// **'Set your pickup on the home screen first.'**
+  String get setPickupFirst;
+
+  /// Rider screen text, moved from code: Ride here again
+  ///
+  /// In en, this message translates to:
+  /// **'Ride here again'**
+  String get rideHereAgain;
+
+  /// Rider screen text, moved from code: Map unavailable
+  ///
+  /// In en, this message translates to:
+  /// **'Map unavailable'**
+  String get mapUnavailable;
+
+  /// Rider screen text, moved from code: Please check your connection
+  ///
+  /// In en, this message translates to:
+  /// **'Please check your connection'**
+  String get checkConnection;
+
+  /// Rider screen text, moved from code: Retry
+  ///
+  /// In en, this message translates to:
+  /// **'Retry'**
+  String get retry;
+
+  /// Rider screen text, moved from code: Unable to load fare estimates
+  ///
+  /// In en, this message translates to:
+  /// **'Unable to load fare estimates'**
+  String get faresUnavailable;
+
+  /// Rider screen text, moved from code: Please check your connection and try again
+  ///
+  /// In en, this message translates to:
+  /// **'Please check your connection and try again'**
+  String get checkConnectionRetry;
+
+  /// Rider screen text, moved from code: Are you sure you want to cancel and go back?
+  ///
+  /// In en, this message translates to:
+  /// **'Are you sure you want to cancel and go back?'**
+  String get cancelGoBack;
+
+  /// Rider screen text, moved from code: Password
+  ///
+  /// In en, this message translates to:
+  /// **'Password'**
+  String get passwordHint;
+
+  /// Rider screen text, moved from code: Forgot password?
+  ///
+  /// In en, this message translates to:
+  /// **'Forgot password?'**
+  String get forgotPassword;
+
+  /// Rider screen text, moved from code: Enter your email address
+  ///
+  /// In en, this message translates to:
+  /// **'Enter your email address'**
+  String get enterEmail;
+
+  /// Rider screen text, moved from code: Enter your password
+  ///
+  /// In en, this message translates to:
+  /// **'Enter your password'**
+  String get enterPassword;
+
+  /// Rider screen text, moved from code: Please enter a valid phone number
+  ///
+  /// In en, this message translates to:
+  /// **'Please enter a valid phone number'**
+  String get validPhone;
+
+  /// Rider screen text, moved from code: OTP sent. Check your messages.
+  ///
+  /// In en, this message translates to:
+  /// **'OTP sent. Check your messages.'**
+  String get otpSent;
 }
 
 class _AppLocalizationsDelegate

@@ -369,4 +369,219 @@ class AppLocalizationsHi extends AppLocalizations {
     );
     return '$_temp0';
   }
+
+  @override
+  String get yourRides => 'आपकी राइड';
+
+  @override
+  String get paymentMethods => 'भुगतान के तरीके';
+
+  @override
+  String get notifications => 'सूचनाएँ';
+
+  @override
+  String get referFriend => 'दोस्त को बुलाएँ';
+
+  @override
+  String get profile => 'प्रोफ़ाइल';
+
+  @override
+  String get helpSupport => 'मदद और सहायता';
+
+  @override
+  String get personalInfo => 'निजी जानकारी';
+
+  @override
+  String get privacySecurity => 'गोपनीयता और सुरक्षा';
+
+  @override
+  String get logOut => 'लॉग आउट';
+
+  @override
+  String get currentLocation => 'मौजूदा जगह';
+
+  @override
+  String get useMyLocation => 'मेरी जगह इस्तेमाल करें';
+
+  @override
+  String get selectPickupFirst => 'पहले पिकअप चुनें';
+
+  @override
+  String get locationServicesOff => 'लोकेशन बंद है। सेटिंग्स में चालू करें।';
+
+  @override
+  String get locationDenied => 'लोकेशन की अनुमति नहीं है।';
+
+  @override
+  String get locationDeniedForever =>
+      'लोकेशन की अनुमति हमेशा के लिए बंद है। सेटिंग्स में दें।';
+
+  @override
+  String get locationNotFound => 'आपकी जगह नहीं मिली। पिकअप डालें।';
+
+  @override
+  String get resumingRide => 'आपकी राइड फिर खोल रहे हैं...';
+
+  @override
+  String get activeRideTitle => 'चालू राइड';
+
+  @override
+  String get activeRideBody => 'आपकी एक राइड पहले से चालू है। देखें?';
+
+  @override
+  String get dismiss => 'बंद करें';
+
+  @override
+  String get whereTo => 'कहाँ जाना है?';
+
+  @override
+  String get placesAppearHere => 'आपकी जगहें यहाँ दिखेंगी।';
+
+  @override
+  String get back => 'वापस';
+
+  @override
+  String get findingSaaradhi => 'आपका सारथी ढूँढ रहे हैं';
+
+  @override
+  String get noSaaradhiNearby => 'अभी पास में कोई सारथी नहीं';
+
+  @override
+  String get cancelSearchTitle => 'खोज रद्द करें?';
+
+  @override
+  String get cancelSearchBody => 'राइड अनुरोध रद्द करें?';
+
+  @override
+  String get wait => 'रुकें';
+
+  @override
+  String get cancelAnyway => 'फिर भी रद्द करें';
+
+  @override
+  String get ongoingRideTitle => 'चालू राइड';
+
+  @override
+  String get cancelActiveRequestBody => 'आपका राइड अनुरोध चालू है। रद्द करें?';
+
+  @override
+  String get cancelOngoingRideBody => 'चालू राइड रद्द करें?';
+
+  @override
+  String get continueRide => 'राइड जारी रखें';
+
+  @override
+  String get driverPhoneUnavailable => 'ड्राइवर का फ़ोन नहीं है। चैट करें।';
+
+  @override
+  String get dialerUnavailable => 'इस फ़ोन पर डायलर नहीं खुला।';
+
+  @override
+  String get callFailed => 'कॉल नहीं हो सकी।';
+
+  @override
+  String get payWithCashTitle => 'नकद से भुगतान';
+
+  @override
+  String get handToDriver => 'ड्राइवर को दें';
+
+  @override
+  String get payFromWallet => 'वॉलेट से भुगतान';
+
+  @override
+  String get notEnoughBalance => 'बैलेंस कम है';
+
+  @override
+  String get payViaUpiCard => 'UPI/कार्ड से भुगतान';
+
+  @override
+  String get payCashInstead => 'इसके बजाय नकद दें?';
+
+  @override
+  String get thanksForRating => 'रेटिंग के लिए धन्यवाद।';
+
+  @override
+  String get insufficientBalance => 'बैलेंस कम है';
+
+  @override
+  String get wouldYouLike => 'आप क्या करना चाहेंगे:';
+
+  @override
+  String get addMoney => 'पैसे जोड़ें';
+
+  @override
+  String get payUpiCard => 'UPI/कार्ड से भुगतान';
+
+  @override
+  String get cashReceived => 'नकद मिल गया। धन्यवाद।';
+
+  @override
+  String get signInToPay => 'भुगतान के लिए फिर से साइन इन करें।';
+
+  @override
+  String get noActiveTrip =>
+      'कोई चालू ट्रिप नहीं। रिफ्रेश करके फिर कोशिश करें।';
+
+  @override
+  String get searchForHelp => 'मदद खोजें';
+
+  @override
+  String get howWasRide => 'आपकी राइड कैसी रही?';
+
+  @override
+  String get done => 'हो गया';
+
+  @override
+  String get couldNotSaveRating => 'रेटिंग सेव नहीं हुई।';
+
+  @override
+  String get messageDriverHint => 'ड्राइवर को संदेश भेजें';
+
+  @override
+  String get noRidesYet => 'अभी कोई राइड नहीं';
+
+  @override
+  String get ridesShowHere => 'आपकी राइड यहाँ दिखेंगी।';
+
+  @override
+  String get setPickupFirst => 'पहले होम पर पिकअप चुनें।';
+
+  @override
+  String get rideHereAgain => 'फिर यहाँ जाएँ';
+
+  @override
+  String get mapUnavailable => 'नक्शा उपलब्ध नहीं';
+
+  @override
+  String get checkConnection => 'कनेक्शन जाँचें';
+
+  @override
+  String get retry => 'फिर कोशिश करें';
+
+  @override
+  String get faresUnavailable => 'किराया लोड नहीं हुआ';
+
+  @override
+  String get checkConnectionRetry => 'कनेक्शन जाँचकर फिर कोशिश करें';
+
+  @override
+  String get cancelGoBack => 'रद्द करके वापस जाएँ?';
+
+  @override
+  String get passwordHint => 'पासवर्ड';
+
+  @override
+  String get forgotPassword => 'पासवर्ड भूल गए?';
+
+  @override
+  String get enterEmail => 'अपना ईमेल डालें';
+
+  @override
+  String get enterPassword => 'पासवर्ड डालें';
+
+  @override
+  String get validPhone => 'सही फ़ोन नंबर डालें';
+
+  @override
+  String get otpSent => 'कोड भेजा गया। संदेश देखें।';
 }

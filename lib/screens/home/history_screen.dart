@@ -1,3 +1,4 @@
+import '../../ui/appearance_settings.dart' show sgStrings;
 import '../../core/vehicle_classes.dart';
 import '../components/market_overlays.dart';
 import 'package:flutter/material.dart';
@@ -61,7 +62,9 @@ class _HistoryScreenState extends State<HistoryScreen> {
             child: CustomScrollView(
               physics: const AlwaysScrollableScrollPhysics(),
               slivers: [
-                const SliverToBoxAdapter(child: SgPageTitle('Your rides')),
+                SliverToBoxAdapter(
+                  child: SgPageTitle(sgStrings(context).yourRides),
+                ),
                 if (provider.isLoading && provider.trips.isEmpty)
                   _buildSkeletonSliver()
                 else if (provider.errorMessage != null &&
@@ -147,9 +150,9 @@ class _HistoryScreenState extends State<HistoryScreen> {
         children: [
           Icon(Icons.history, size: 64, color: SgColors.inkSubtle),
           const SizedBox(height: 16),
-          Text('No rides yet', style: SgText.title),
+          Text(sgStrings(context).noRidesYet, style: SgText.title),
           const SizedBox(height: 8),
-          Text('Rides you take will show here.', style: SgText.caption),
+          Text(sgStrings(context).ridesShowHere, style: SgText.caption),
         ],
       ),
     );
@@ -207,9 +210,7 @@ class _HistoryRideCard extends StatelessWidget {
     final provider = context.read<MapProvider>();
     if (provider.pickupLocation == null) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Set your pickup on the home screen first.'),
-        ),
+        SnackBar(content: Text(sgStrings(context).setPickupFirst)),
       );
       return;
     }
@@ -282,7 +283,7 @@ class _HistoryRideCard extends StatelessWidget {
                 ),
               ),
               child: Text(
-                'Ride here again',
+                sgStrings(context).rideHereAgain,
                 style: SgText.body.copyWith(fontWeight: FontWeight.w700),
               ),
             ),

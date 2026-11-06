@@ -380,7 +380,7 @@ class _RouteMapScreenState extends State<RouteMapScreen> {
                                       ),
                                       const SizedBox(height: 16),
                                       Text(
-                                        'Map unavailable',
+                                        sgStrings(context).mapUnavailable,
                                         style: TextStyle(
                                           color: SgColors.ink,
                                           fontSize: 18,
@@ -389,7 +389,7 @@ class _RouteMapScreenState extends State<RouteMapScreen> {
                                       ),
                                       const SizedBox(height: 8),
                                       Text(
-                                        'Please check your connection',
+                                        sgStrings(context).checkConnection,
                                         style: TextStyle(
                                           color: SgColors.inkMuted,
                                           fontSize: 14,
@@ -411,7 +411,7 @@ class _RouteMapScreenState extends State<RouteMapScreen> {
                                             vertical: 12,
                                           ),
                                         ),
-                                        child: const Text('Retry'),
+                                        child: Text(sgStrings(context).retry),
                                       ),
                                     ],
                                   ),
@@ -426,7 +426,7 @@ class _RouteMapScreenState extends State<RouteMapScreen> {
                         left: SgSpace.s4,
                         child: SgMapButton(
                           icon: SgIcons.back,
-                          label: 'Back',
+                          label: sgStrings(context).back,
                           onTap: () async {
                             if (hasTripDetails) {
                               final shouldPop = await _showCancelConfirmation(
@@ -468,15 +468,15 @@ class _RouteMapScreenState extends State<RouteMapScreen> {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Text('Unable to load fare estimates', style: SgText.title),
+            Text(sgStrings(context).faresUnavailable, style: SgText.title),
             const SizedBox(height: SgSpace.s2),
             Text(
-              'Please check your connection and try again',
+              sgStrings(context).checkConnectionRetry,
               style: SgText.caption,
             ),
             const SizedBox(height: SgSpace.s4),
             SgPrimaryButton(
-              label: 'Retry',
+              label: sgStrings(context).retry,
               onPressed: () {
                 if (provider.pickupLocation != null &&
                     provider.dropLocation != null) {
@@ -556,7 +556,7 @@ class _RouteMapScreenState extends State<RouteMapScreen> {
               ),
             ),
             content: Text(
-              'Are you sure you want to cancel and go back?',
+              sgStrings(context).cancelGoBack,
               style: TextStyle(color: SgColors.inkMuted),
             ),
             actions: [
