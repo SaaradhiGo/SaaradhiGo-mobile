@@ -22,6 +22,7 @@ import '../state/ride_state.dart';
 import '../services/websocket_service.dart';
 import '../services/token_store.dart';
 import '../core/promo/promo_selection.dart';
+import '../core/pricing/quote_lock.dart';
 
 enum LocationStatus { unknown, loading, confirmed, failed }
 
@@ -43,7 +44,9 @@ class MapProvider extends ChangeNotifier {
     DriverService? driverService,
     FavoriteLocationService? favoriteLocationService,
     RideService? rideService,
-  }) : _locationService = locationService ?? LocationService(),
+    QuoteLockState? quoteLock,
+  }) : _quoteLock = quoteLock ?? QuoteLockState.instance,
+       _locationService = locationService ?? LocationService(),
        _fareService = fareService ?? FareService(),
        _driverService = driverService ?? DriverService(),
        _favoriteLocationService =
@@ -61,6 +64,42 @@ class MapProvider extends ChangeNotifier {
       }
       notifyListeners();
     });
+    _quoteLock.addListener(_applyFreshQuote);
+  }
+
+  final QuoteLockState _quoteLock;
+
+  /// The server refused the booking's quote and sent a fresh one: it becomes
+  /// the chosen class's fare, so the ticket shows what Confirm will book.
+  void _applyFreshQuote() {
+    final refresh = _quoteLock.pending;
+    if (refresh == null) return;
+    final type =
+        refresh.freshQuote['vehicle_type']?.toString() ??
+        refresh.vehicleType ??
+        _selectedVehicleType;
+    if (type == null) return;
+    if (refresh.freshQuote['estimated_fare'] == null) {
+      // No fare to show: drop the stale quote so Confirm cannot send it.
+      _fareEstimates.remove(type);
+    } else {
+      _fareEstimates[type] = {...?_fareEstimates[type], ...refresh.freshQuote};
+    }
+    notifyListeners();
+  }
+
+  /// The quote the ticket shows for the chosen class, sent with the booking.
+  String? get selectedQuoteId {
+    final type = _selectedVehicleType;
+    final id = type == null ? null : _fareEstimates[type]?['quote_id'];
+    final text = id?.toString();
+    return (text == null || text.isEmpty) ? null : text;
+  }
+
+  @override
+  void dispose() {
+    _quoteLock.removeListener(_applyFreshQuote);
+    super.dispose();
   }
 
   List<PlaceSuggestion> _suggestions = [];
@@ -186,8 +225,8 @@ class MapProvider extends ChangeNotifier {
   }
 
   /// The address of a map point, for the pickup the rider dragged to.
-  Future<String?> addressFor(LatLng point) =>
-      _locationService.getAddressFromCoordinates(point.latitude, point.longitude);
+  Future<String?> addressFor(LatLng point) => _locationService
+      .getAddressFromCoordinates(point.latitude, point.longitude);
 
   void setPrecisePickupLocation(LatLng location, {String? address}) {
     _precisePickupAddress = address;
@@ -427,7 +466,10 @@ class MapProvider extends ChangeNotifier {
       );
       if (dropDetails != null) {
         // A saved or recent place arrives as bare coordinates; keep its name.
-        final named = dropName != null && dropName.trim().isNotEmpty && dropPlaceId.contains(',');
+        final named =
+            dropName != null &&
+            dropName.trim().isNotEmpty &&
+            dropPlaceId.contains(',');
         _dropLocation = named
             ? PlaceDetails(
                 placeId: dropDetails.placeId,
@@ -533,10 +575,13 @@ class MapProvider extends ChangeNotifier {
     _fareEstimates = {};
     // A code applied to the previous quote says nothing about this one.
     PromoSelection.instance.clear();
+    // Nor does a "fare updated" line about the previous quote.
+    _quoteLock.clear();
     notifyListeners();
 
     final effectivePickup = _precisePickupLocation ?? _pickupLocation!.latLng;
-    final types = await _fareService.vehicleTypesAt(
+    final types =
+        await _fareService.vehicleTypesAt(
           effectivePickup.latitude,
           effectivePickup.longitude,
         ) ??
@@ -557,8 +602,8 @@ class MapProvider extends ChangeNotifier {
     for (var i = 0; i < types.length; i++) {
       final estimate = results[i];
       if (estimate == null || estimate['estimated_fare'] == null) continue;
-      estimate['time_to_drop'] =
-          (km / vehicleClassSpeedKmh(types[i]) * 60).round();
+      estimate['time_to_drop'] = (km / vehicleClassSpeedKmh(types[i]) * 60)
+          .round();
       _fareEstimates[types[i]] = estimate;
     }
     // A class chosen for the previous route may not be priced on this one.
@@ -597,6 +642,9 @@ class MapProvider extends ChangeNotifier {
     final km = kmMatch != null ? double.parse(kmMatch.group(1)!) : 0.0;
     final mins = minMatch != null ? int.parse(minMatch.group(1)!) : 0;
     final effectivePickup = _precisePickupLocation ?? _pickupLocation!.latLng;
+    // Read before the line below is cleared: this is the fare on the ticket.
+    final quoteId = selectedQuoteId;
+    _quoteLock.clear();
 
     container
         ?.read(rideNotifierProvider.notifier)
@@ -629,6 +677,7 @@ class MapProvider extends ChangeNotifier {
           vehicleType: _selectedVehicleType!,
           paymentMethod: selectedPaymentMethod,
           promoCode: PromoSelection.instance.code,
+          quoteId: quoteId,
         );
   }
 

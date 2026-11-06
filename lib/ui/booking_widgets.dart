@@ -367,10 +367,15 @@ class FareTicketSheet extends StatelessWidget {
     required this.ticket,
     required this.buttonLabel,
     required this.onConfirm,
+    this.notice,
   });
   final Widget ticket;
   final String buttonLabel;
   final VoidCallback? onConfirm;
+
+  /// Why the fare on the ticket changed ("Fare updated to ₹X because time
+  /// passed"), or "Updating your fare" while it is being re-quoted.
+  final String? notice;
 
   @override
   Widget build(BuildContext context) => SgSheetSurface(
@@ -378,6 +383,28 @@ class FareTicketSheet extends StatelessWidget {
       mainAxisSize: MainAxisSize.min,
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
+        if (notice != null) ...[
+          Semantics(
+            liveRegion: true,
+            child: Row(
+              children: [
+                SgIcon(SgIcons.clock, size: 18, color: SgColors.goldText),
+                const SizedBox(width: SgSpace.s2),
+                Expanded(
+                  child: Text(
+                    notice!,
+                    key: const Key('fare_ticket_notice'),
+                    style: SgText.body.copyWith(
+                      color: SgColors.goldText,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: SgSpace.s3),
+        ],
         Flexible(child: SingleChildScrollView(child: ticket)),
         const SizedBox(height: SgSpace.s4),
         SgPrimaryButton(

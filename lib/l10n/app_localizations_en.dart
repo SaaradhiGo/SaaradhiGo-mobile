@@ -369,4 +369,17 @@ class AppLocalizationsEn extends AppLocalizations {
     );
     return '$_temp0';
   }
+
+  @override
+  String fareUpdatedTimePassed(String fare) {
+    return 'Fare updated to $fare because time passed';
+  }
+
+  @override
+  String fareUpdatedPickupChanged(String fare) {
+    return 'Fare updated to $fare because the pickup changed';
+  }
+
+  @override
+  String get fareUpdating => 'Updating your fare';
 }
