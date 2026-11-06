@@ -204,13 +204,16 @@ class SgPinBoxes extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final digits = pin.padRight(4, '-').substring(0, 4).split('');
+    // The backend's trip PIN is six digits; every digit shows.
+    final count = pin.length.clamp(4, 6);
+    final digits = pin.padRight(count, '-').substring(0, count).split('');
+    final six = count > 4;
     return Row(mainAxisSize: MainAxisSize.min, children: [
-      for (var i = 0; i < 4; i++) ...[
-        if (i > 0) const SizedBox(width: 6),
+      for (var i = 0; i < count; i++) ...[
+        if (i > 0) SizedBox(width: six ? 4 : 6),
         Container(
           key: Key('pin_box_$i'),
-          width: 36,
+          width: six ? 30 : 36,
           height: 44,
           alignment: Alignment.center,
           decoration: BoxDecoration(
