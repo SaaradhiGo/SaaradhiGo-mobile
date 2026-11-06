@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import '../services/websocket_service.dart';
 import '../state/ride_notifier.dart';
 
 class LifecycleObserver extends ConsumerStatefulWidget {
@@ -76,8 +77,15 @@ class _LifecycleObserverState extends ConsumerState<LifecycleObserver>
 
     // Check if we need to refresh data based on staleness
     final shouldRefresh = await _shouldRefreshData();
+    // A ride in progress is always checked on resume, however short the
+    // absence: the driver may have cancelled while the socket was down. The
+    // notifier drops the answer if a live frame lands first.
+    final rideActive = ref.read(rideNotifierProvider).isActiveRide;
+    if (rideActive) {
+      ref.read(webSocketServiceProvider).reconnectTripIfDown();
+    }
 
-    if (shouldRefresh) {
+    if (shouldRefresh || rideActive) {
       // Trigger state refresh on resume
       ref.read(rideNotifierProvider.notifier).loadInitialState();
     }
@@ -168,8 +176,16 @@ class _LifecycleObserverState extends ConsumerState<LifecycleObserver>
           final currentRoute =
               router.routerDelegate.currentConfiguration.last.matchedLocation;
 
+          // Ride screens follow the ride state, never a saved route: a
+          // route saved on "on the way" must not reopen it after a cancel.
+          const rideRoutes = {
+            '/searching-driver',
+            '/driver-found',
+            '/tracking',
+            '/ride-summary',
+          };
           // Only navigate if we're not already on that route
-          if (currentRoute != lastRoute) {
+          if (currentRoute != lastRoute && !rideRoutes.contains(lastRoute)) {
             debugPrint('Restoring app state to route: $lastRoute');
             // Use go() to navigate to the saved route
             router.go(lastRoute);

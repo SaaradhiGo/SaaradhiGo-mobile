@@ -141,6 +141,93 @@ class RideNotifier extends Notifier<RideState> {
   /// counted twice.
   final Map<int, int> _askedByWave = {};
 
+  /// Bumped by every live change of the ride (a socket or push frame that
+  /// moves the status, a new booking, a clear). A REST answer is applied only
+  /// if no live change happened while it was in flight.
+  ///
+  /// The resume check (`GET /ride/active/`) used to be applied whenever it
+  /// came back. Asked while the trip was `accepted`, it could land after the
+  /// driver's cancel frame and put the rider back on "on the way" for a trip
+  /// that no longer existed, with no socket left to correct it. The driver
+  /// app had the same race on accept (driver PR #27).
+  int _generation = 0;
+
+  /// Trips this app has seen end by cancellation. A REST answer never brings
+  /// one of these back.
+  final Set<String> _cancelledTrips = {};
+
+  static const _postAccept = {
+    RideStatus.driverAccepted,
+    RideStatus.driverArrived,
+    RideStatus.rideStarted,
+  };
+
+  /// True (and logged) when a live change happened since [generation].
+  bool _isStale(int generation, String what) {
+    if (generation == _generation) return false;
+    debugPrint(
+      'RideNotifier: $what ignored -- the ride changed while it was in '
+      'flight (status now ${state.status}).',
+    );
+    return true;
+  }
+
+  /// The trip ended by cancellation, learned from somewhere other than the
+  /// live cancel frame (the trip socket's greeting, the FCM push).
+  void _endByCancel(String tripId) {
+    _cancelledTrips.add(tripId);
+    _generation++;
+    state = state.copyWith(
+      status: RideStatus.cancelled,
+      rawResponse: {...?state.rawResponse, 'status': 'cancel'},
+    );
+    _saveState();
+  }
+
+  /// The trip socket's greeting (`connection_established`) carries the
+  /// committed `trip_status` from PostgreSQL, and for the rider the PIN. A
+  /// frame sent while the socket was down (Android drops sockets in the
+  /// background; the reconnect backs off up to 30 s) is lost, so this
+  /// greeting is the socket's only record of a cancel in that gap. It used to
+  /// be ignored outright.
+  void _applyTripGreeting(Map<String, dynamic> data) {
+    final frameTrip = data['trip_id']?.toString();
+    if (frameTrip == null || frameTrip != state.tripId) return;
+    final otp = data['otp']?.toString() ?? '';
+    if (otp.isNotEmpty && _postAccept.contains(state.status)) {
+      state = state.copyWith(rawResponse: {...?state.rawResponse, 'otp': otp});
+    }
+    final code = data['trip_status']?.toString();
+    if (code == null) return;
+    final mapped = rideStatusFromBackendCode(code);
+    if (mapped == RideStatus.cancelled) {
+      if (_postAccept.contains(state.status)) {
+        _endByCancel(frameTrip);
+      } else if (state.status == RideStatus.searchingDriver) {
+        failSearch(kNoDriverMessage);
+      }
+      return;
+    }
+    // Only ever forward: a greeting never undoes a frame that already arrived.
+    const order = [
+      RideStatus.searchingDriver,
+      RideStatus.driverAccepted,
+      RideStatus.driverArrived,
+      RideStatus.rideStarted,
+    ];
+    final now = order.indexOf(state.status);
+    RideStatus? next;
+    if (code == 'completed' && state.status == RideStatus.rideStarted) {
+      next = RideStatus.rideCompleted;
+    } else if (mapped != null && now >= 0 && order.indexOf(mapped) > now) {
+      next = mapped;
+    }
+    if (next == null) return;
+    _generation++;
+    state = state.copyWith(status: next);
+    _saveState();
+  }
+
   @override
   RideState build() {
     final wsService = ref.watch(webSocketServiceProvider);
@@ -178,10 +265,14 @@ class RideNotifier extends Notifier<RideState> {
       return;
     }
 
+    // Every answer below is applied only if nothing live happened meanwhile.
+    final gen = _generation;
+
     // 1. Try to fetch active trip from backend
     try {
       final rideService = ref.read(rideServiceProvider);
       final activeTripResponse = await rideService.fetchActiveTrip(token);
+      if (_isStale(gen, 'Active-trip answer')) return;
 
       if (activeTripResponse != null &&
           activeTripResponse['status'] == 'success' &&
@@ -196,7 +287,10 @@ class RideNotifier extends Notifier<RideState> {
 
           // Sync state directly from the active trip response
           // This avoids making additional API calls to trip-specific endpoints
-          await syncStateFromActiveTripResponse(activeTripResponse);
+          await syncStateFromActiveTripResponse(
+            activeTripResponse,
+            generation: gen,
+          );
           return;
         }
       }
@@ -207,12 +301,13 @@ class RideNotifier extends Notifier<RideState> {
         // We have a locally saved trip ID but backend says no active trip
         // This could be stale data - try to fetch the trip details
         final tripStatus = await rideService.getTripStatus(token, savedTripId);
+        if (_isStale(gen, 'Saved-trip answer')) return;
 
         if (tripStatus != null &&
             tripStatus['status'] == 'success' &&
             tripStatus['data'] != null) {
           // Trip still exists, sync state using trip-specific endpoints
-          await syncStateFromBackend(savedTripId);
+          await syncStateFromBackend(savedTripId, generation: gen);
         } else {
           // Trip doesn't exist or error - clear stale ID
           await _clearActiveTripId();
@@ -229,9 +324,10 @@ class RideNotifier extends Notifier<RideState> {
 
       // Fallback to local storage if available
       final savedTripId = prefs.getString('active_trip_id');
+      if (_isStale(gen, 'Failed recovery')) return;
       if (savedTripId != null && savedTripId.isNotEmpty) {
         // Try to sync with backend (will handle errors in syncStateFromBackend)
-        await syncStateFromBackend(savedTripId);
+        await syncStateFromBackend(savedTripId, generation: gen);
       } else {
         await _clearActiveTripId();
         await clearState();
@@ -239,7 +335,8 @@ class RideNotifier extends Notifier<RideState> {
     }
   }
 
-  Future<void> syncStateFromBackend(String tripId) async {
+  Future<void> syncStateFromBackend(String tripId, {int? generation}) async {
+    final gen = generation ?? _generation;
     state = state.copyWith(isSyncing: true);
 
     final prefs = await SharedPreferences.getInstance();
@@ -261,6 +358,11 @@ class RideNotifier extends Notifier<RideState> {
 
     final statusData = results[0];
     final detailsData = results[1];
+
+    if (_isStale(gen, 'Trip $tripId answer')) {
+      state = state.copyWith(isSyncing: false);
+      return;
+    }
 
     if (statusData == null ||
         statusData['status'] == 'error' ||
@@ -293,6 +395,11 @@ class RideNotifier extends Notifier<RideState> {
       );
     }
     final RideStatus newStatus = mapped ?? state.status;
+    if (_cancelledTrips.contains(tripId) && newStatus != RideStatus.cancelled) {
+      debugPrint('RideNotifier: trip $tripId was cancelled; not reviving it.');
+      state = state.copyWith(isSyncing: false);
+      return;
+    }
 
     Map<String, dynamic> mergedResponse = Map<String, dynamic>.from(
       state.rawResponse ?? {},
@@ -326,8 +433,12 @@ class RideNotifier extends Notifier<RideState> {
   /// Syncs state directly from the /ride/active/ endpoint response
   /// This avoids making additional API calls to trip-specific endpoints
   Future<void> syncStateFromActiveTripResponse(
-    Map<String, dynamic> activeTripResponse,
-  ) async {
+    Map<String, dynamic> activeTripResponse, {
+    int? generation,
+  }) async {
+    if (generation != null && _isStale(generation, 'Active-trip answer')) {
+      return;
+    }
     state = state.copyWith(isSyncing: true);
 
     if (activeTripResponse['status'] != 'success' ||
@@ -362,6 +473,11 @@ class RideNotifier extends Notifier<RideState> {
       );
     }
     final RideStatus newStatus = mapped ?? state.status;
+    if (_cancelledTrips.contains(tripId) && newStatus != RideStatus.cancelled) {
+      debugPrint('RideNotifier: trip $tripId was cancelled; not reviving it.');
+      state = state.copyWith(isSyncing: false);
+      return;
+    }
 
     Map<String, dynamic> mergedResponse = Map<String, dynamic>.from(
       state.rawResponse ?? {},
@@ -419,6 +535,7 @@ class RideNotifier extends Notifier<RideState> {
     String? duration,
   }) {
     _askedByWave.clear();
+    _generation++;
     state = state.copyWith(
       status: RideStatus.searchingDriver,
       pickupLocation: pickup,
@@ -624,6 +741,42 @@ class RideNotifier extends Notifier<RideState> {
       return;
     }
 
+    // The trip socket's greeting: the committed status after a (re)connect.
+    if (type == 'connection_established') {
+      _applyTripGreeting(data);
+      return;
+    }
+
+    // The FCM push for a cancelled trip (consumers.py and views.py send
+    // `type: ride_cancelled`). It used to match nothing below and was
+    // dropped, so a rider whose socket missed the cancel frame stayed on
+    // "on the way". Only after accept: a search that ends is told on the
+    // search screen by its own frames.
+    if (type == 'ride_cancelled') {
+      final t = data['trip_id']?.toString();
+      if (t != null &&
+          t == state.tripId &&
+          _postAccept.contains(state.status)) {
+        _endByCancel(t);
+      }
+      return;
+    }
+
+    // A status frame for another trip (a late frame from an earlier ride)
+    // must not end or move this one.
+    final frameTrip = data['trip_id']?.toString();
+    if ((type == 'trip_update' || type == 'trip_status_update') &&
+        frameTrip != null &&
+        state.tripId != null &&
+        frameTrip != state.tripId &&
+        _postAccept.contains(state.status)) {
+      debugPrint(
+        'RideNotifier: $type for trip $frameTrip ignored; '
+        'the ride is trip ${state.tripId}.',
+      );
+      return;
+    }
+
     RideStatus newStatus = state.status;
 
     // Strict event -> state mapping
@@ -642,7 +795,9 @@ class RideNotifier extends Notifier<RideState> {
         newStatus = RideStatus.rideStarted;
       } else if (status == 'complete') {
         newStatus = RideStatus.rideCompleted;
-      } else if (status == 'cancel') {
+      } else if (status == 'cancel' || status == 'cancelled') {
+        // The sockets send the action name ('cancel'); accept the status
+        // code too, so a sender that uses it is not silently dropped.
         newStatus = RideStatus.cancelled;
       }
     }
@@ -702,6 +857,10 @@ class RideNotifier extends Notifier<RideState> {
       });
     }
 
+    if (newStatus != state.status) _generation++;
+    if (newStatus == RideStatus.cancelled && tripId != null) {
+      _cancelledTrips.add(tripId);
+    }
     state = state.copyWith(
       status: newStatus,
       rawResponse: mergedResponse,
@@ -788,6 +947,7 @@ class RideNotifier extends Notifier<RideState> {
   /// raced each other. A cancel or completion followed closely by the app being
   /// killed could leave the finished trip's id on disk.
   Future<void> clearState() async {
+    _generation++;
     state = const RideState();
     // One write, not two racing ones: _saveState() would remove the key anyway
     // for an empty state, but being explicit here is what callers depend on.
