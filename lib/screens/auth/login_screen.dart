@@ -6,8 +6,12 @@ import 'package:provider/provider.dart';
 import '../../providers/auth_provider.dart';
 import '../components/market_overlays.dart';
 
-import '../../ui/sg_tokens.dart';
+import '../../ui/appearance_settings.dart';
+import '../../ui/sg_appearance.dart';
 import '../../ui/sg_brand.dart';
+import '../../ui/sg_text.dart';
+import '../../ui/sg_tokens.dart';
+import '../../ui/sg_widgets.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -157,426 +161,183 @@ class _LoginScreenState extends State<LoginScreen> {
     super.dispose();
   }
 
+  /// Shown on a first launch only: no language saved on this device yet.
+  late final bool _showLanguageTiles = !SgAppearance.instance.hasSavedLanguage;
+
   @override
   Widget build(BuildContext context) {
     final auth = context.watch<AuthProvider>();
+    final l = sgStrings(context);
+    final mobile = _mode == LoginMode.mobile;
 
     return Scaffold(
       backgroundColor: SgColors.bg000,
       resizeToAvoidBottomInset: true,
-      body: Stack(
-        children: [
-          Container(color: SgColors.bg000),
-          Positioned.fill(
-            child: Opacity(
-              opacity: 0.15,
-              child: CustomPaint(painter: _MapGridPainter()),
-            ),
-          ),
-          Positioned.fill(
-            child: Container(
-              decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  begin: Alignment.topCenter,
-                  end: Alignment.bottomCenter,
-                  colors: [
-                    SgColors.bg000.withValues(alpha: 0.10),
-                    SgColors.bg000.withValues(alpha: 0.67),
+      body: SafeArea(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Expanded(
+              child: SingleChildScrollView(
+                padding: const EdgeInsets.fromLTRB(
+                  SgSpace.s5,
+                  SgSpace.s4,
+                  SgSpace.s5,
+                  SgSpace.s4,
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    const Align(
+                      alignment: Alignment.centerLeft,
+                      child: SgBrandLockup(badgeSize: 40),
+                    ),
+                    const SizedBox(height: SgSpace.s6),
+                    if (_showLanguageTiles) ...[
+                      Text(l.langChooseTitle, style: SgText.heading),
+                      const SizedBox(height: SgSpace.s4),
+                      for (final code in const ['te', 'hi', 'en'])
+                        Padding(
+                          padding: const EdgeInsets.only(bottom: SgSpace.s2),
+                          child: LanguageTile(
+                            key: Key('lang_tile_$code'),
+                            label: languageLabel(l, code),
+                            selected: SgAppearance.instance.language == code,
+                            onTap: () =>
+                                SgAppearance.instance.setLanguage(code),
+                          ),
+                        ),
+                      const SizedBox(height: SgSpace.s5),
+                    ],
+                    Text(mobile ? l.phoneTitle : 'Email', style: SgText.title),
+                    const SizedBox(height: SgSpace.s1),
+                    Text(
+                      mobile ? 'PHONE NUMBER' : 'EMAIL',
+                      style: SgText.label,
+                    ),
+                    const SizedBox(height: SgSpace.s2),
+                    if (!mobile) ...[
+                      _EmailField(
+                        key: const Key('login_email_field'),
+                        controller: _emailController,
+                      ),
+                      const SizedBox(height: SgSpace.s3),
+                      _PasswordField(
+                        key: const Key('login_password_field'),
+                        controller: _passwordController,
+                        obscure: !_showPassword,
+                        onToggle: () =>
+                            setState(() => _showPassword = !_showPassword),
+                      ),
+                      if (_needsMfa) ...[
+                        const SizedBox(height: SgSpace.s3),
+                        // Shown only for an operator account, and only
+                        // after the password was already accepted.
+                        _EmailField(
+                          key: const Key('login_mfa_field'),
+                          controller: _mfaController,
+                          hint: '6-digit authenticator code',
+                          keyboardType: TextInputType.number,
+                        ),
+                      ],
+                      Align(
+                        alignment: Alignment.centerRight,
+                        child: TextButton(
+                          key: const Key('login_forgot_password'),
+                          onPressed: auth.isLoading ? null : _forgotPassword,
+                          child: Text(
+                            'Forgot password?',
+                            style: SgText.body.copyWith(
+                              color: SgColors.goldText,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
+                    if (mobile)
+                      _PhoneField(
+                        controller: _phoneController,
+                        dialPrefix: marketOf(context, listen: false).dialPrefix,
+                        hint: l.phoneHint,
+                      ),
+                    const SizedBox(height: SgSpace.s2),
+                    // Mobile is first and default: it is what a pilot rider
+                    // has, it needs no password, and it is the only route
+                    // that can CREATE an account. Email is for someone who
+                    // has set a password, and for QA accounts that must be
+                    // reachable without waiting on an SMS.
+                    Align(
+                      alignment: Alignment.centerLeft,
+                      child: TextButton(
+                        key: Key(
+                          mobile ? 'login_tab_email' : 'login_tab_mobile',
+                        ),
+                        style: TextButton.styleFrom(
+                          minimumSize: const Size(0, kSgTouch),
+                          padding: EdgeInsets.zero,
+                        ),
+                        onPressed: () => setState(() {
+                          _mode = mobile ? LoginMode.email : LoginMode.mobile;
+                          _needsMfa = false;
+                        }),
+                        child: Text(
+                          mobile ? l.useEmail : l.useMobile,
+                          style: SgText.body.copyWith(
+                            color: SgColors.goldText,
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
+                      ),
+                    ),
                   ],
                 ),
               ),
             ),
-          ),
-          SafeArea(
-            child: Column(
-              children: [
-                Padding(
-                  padding: const EdgeInsets.fromLTRB(24, 12, 24, 0),
-                  child: Row(
-                    children: [
-                      _CircleIconButton(icon: Icons.close, onTap: () {}),
-                      const Spacer(),
-                      SizedBox(
-                        width: 40,
-                        child: Text(
-                          'Help',
-                          textAlign: TextAlign.right,
-                          style: TextStyle(
-                            color: SgColors.goldText,
-                            fontWeight: FontWeight.w600,
-                          ),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(
+                SgSpace.s5,
+                SgSpace.s2,
+                SgSpace.s5,
+                SgSpace.s4,
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  if (auth.isLoading)
+                    const SizedBox(
+                      height: 56,
+                      child: Center(
+                        child: CircularProgressIndicator(
+                          color: SgColors.gold500,
                         ),
                       ),
-                    ],
-                  ),
-                ),
-                Expanded(
-                  child: SingleChildScrollView(
-                    padding: const EdgeInsets.fromLTRB(32, 40, 32, 0),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        const Center(child: SgFullLogo(height: 120)),
-                        const SizedBox(height: 24),
-                        Text(
-                          'Welcome to SaaradhiGo',
-                          style: TextStyle(
-                            color: SgColors.ink,
-                            fontSize: 38,
-                            height: 1.05,
-                            fontWeight: FontWeight.w700,
-                          ),
-                        ),
-                        const SizedBox(height: 12),
-                        Text(
-                          'Enter your mobile number to start your premium journey.',
-                          style: TextStyle(
-                            color: SgColors.inkMuted,
-                            fontSize: 18,
-                          ),
-                        ),
-                        const SizedBox(height: 42),
-
-                        // Mobile | Email.
-                        //
-                        // Mobile is first and default: it is what a pilot
-                        // rider has, it needs no password, and it is the only
-                        // route that can CREATE an account. Email is for
-                        // someone who has set a password, and for QA accounts
-                        // that must be reachable without waiting on an SMS.
-                        Row(
-                          children: [
-                            _ModeTab(
-                              key: const Key('login_tab_mobile'),
-                              label: 'Mobile',
-                              selected: _mode == LoginMode.mobile,
-                              onTap: () => setState(() {
-                                _mode = LoginMode.mobile;
-                                _needsMfa = false;
-                              }),
-                            ),
-                            const SizedBox(width: 8),
-                            _ModeTab(
-                              key: const Key('login_tab_email'),
-                              label: 'Email',
-                              selected: _mode == LoginMode.email,
-                              onTap: () =>
-                                  setState(() => _mode = LoginMode.email),
-                            ),
-                          ],
-                        ),
-                        const SizedBox(height: 24),
-
-                        Text(
-                          _mode == LoginMode.mobile ? 'PHONE NUMBER' : 'EMAIL',
-                          style: TextStyle(
-                            color: SgColors.goldText,
-                            letterSpacing: 1.8,
-                            fontWeight: FontWeight.w700,
-                          ),
-                        ),
-                        const SizedBox(height: 8),
-
-                        if (_mode == LoginMode.email) ...[
-                          _EmailField(
-                            key: const Key('login_email_field'),
-                            controller: _emailController,
-                          ),
-                          const SizedBox(height: 12),
-                          _PasswordField(
-                            key: const Key('login_password_field'),
-                            controller: _passwordController,
-                            obscure: !_showPassword,
-                            onToggle: () =>
-                                setState(() => _showPassword = !_showPassword),
-                          ),
-                          if (_needsMfa) ...[
-                            const SizedBox(height: 12),
-                            // Shown only for an operator account, and only
-                            // after the password was already accepted.
-                            _EmailField(
-                              key: const Key('login_mfa_field'),
-                              controller: _mfaController,
-                              hint: '6-digit authenticator code',
-                              keyboardType: TextInputType.number,
-                            ),
-                          ],
-                          Align(
-                            alignment: Alignment.centerRight,
-                            child: TextButton(
-                              key: const Key('login_forgot_password'),
-                              onPressed: auth.isLoading
-                                  ? null
-                                  : _forgotPassword,
-                              child: Text(
-                                'Forgot password?',
-                                style: TextStyle(color: SgColors.goldText),
-                              ),
-                            ),
-                          ),
-                        ],
-
-                        if (_mode == LoginMode.mobile)
-                          Container(
-                            height: 64,
-                            decoration: BoxDecoration(
-                              color: SgColors.bg200,
-                              border: Border.all(color: SgColors.line),
-                              borderRadius: BorderRadius.circular(14),
-                            ),
-                            child: Row(
-                              children: [
-                                Padding(
-                                  padding: const EdgeInsets.symmetric(
-                                    horizontal: 14,
-                                  ),
-                                  child: Row(
-                                    children: [
-                                      Text(
-                                        marketOf(
-                                          context,
-                                          listen: false,
-                                        ).dialPrefix,
-                                        style: TextStyle(
-                                          color: SgColors.ink,
-                                          fontSize: 18,
-                                          fontWeight: FontWeight.w600,
-                                        ),
-                                      ),
-                                      const SizedBox(width: 4),
-                                      Icon(
-                                        Icons.keyboard_arrow_down,
-                                        color: SgColors.inkSubtle,
-                                      ),
-                                    ],
-                                  ),
-                                ),
-                                Container(
-                                  width: 1,
-                                  height: 30,
-                                  color: SgColors.bg200,
-                                ),
-                                Expanded(
-                                  child: TextField(
-                                    controller: _phoneController,
-                                    keyboardType: TextInputType.phone,
-                                    style: TextStyle(
-                                      color: SgColors.ink,
-                                      fontSize: 22,
-                                      fontWeight: FontWeight.w500,
-                                    ),
-                                    decoration: InputDecoration(
-                                      border: InputBorder.none,
-                                      hintText: '555 000-0000',
-                                      hintStyle: TextStyle(
-                                        color: SgColors.inkSubtle,
-                                        fontSize: 30,
-                                      ),
-                                      contentPadding: EdgeInsets.symmetric(
-                                        horizontal: 12,
-                                      ),
-                                    ),
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                        const SizedBox(height: 22),
-                        SizedBox(
-                          width: double.infinity,
-                          height: 64,
-                          child: ElevatedButton(
-                            key: const Key('login_submit'),
-                            onPressed: auth.isLoading
-                                ? null
-                                : (_mode == LoginMode.mobile
-                                      ? _requestOtp
-                                      : _signInWithEmail),
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: SgColors.gold500,
-                              foregroundColor: SgColors.onGold,
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(14),
-                              ),
-                            ),
-                            child: auth.isLoading
-                                ? const SizedBox(
-                                    height: 22,
-                                    width: 22,
-                                    child: CircularProgressIndicator(
-                                      strokeWidth: 2.5,
-                                    ),
-                                  )
-                                : Text(
-                                    _mode == LoginMode.mobile
-                                        ? 'Continue'
-                                        : 'Sign in',
-                                    style: const TextStyle(
-                                      fontSize: 20,
-                                      fontWeight: FontWeight.w700,
-                                    ),
-                                  ),
-                          ),
-                        ),
-                        const SizedBox(height: 36),
-                        Row(
-                          children: [
-                            Expanded(child: Divider(color: SgColors.line)),
-                            Padding(
-                              padding: EdgeInsets.symmetric(horizontal: 12),
-                              child: Text(
-                                'OR CONTINUE WITH',
-                                style: TextStyle(
-                                  color: SgColors.inkSubtle,
-                                  letterSpacing: 1.4,
-                                ),
-                              ),
-                            ),
-                            Expanded(child: Divider(color: SgColors.line)),
-                          ],
-                        ),
-                        const SizedBox(height: 22),
-                        Row(
-                          children: const [
-                            Expanded(
-                              child: _SocialChip(
-                                icon: Icons.g_mobiledata,
-                                label: 'Google',
-                              ),
-                            ),
-                            SizedBox(width: 10),
-                            Expanded(
-                              child: _SocialChip(
-                                icon: Icons.apple,
-                                label: 'Apple',
-                              ),
-                            ),
-                          ],
-                        ),
-                      ],
+                    )
+                  else
+                    SgPrimaryButton(
+                      key: const Key('login_submit'),
+                      label: mobile ? l.sendCode : 'Sign in',
+                      onPressed: mobile ? _requestOtp : _signInWithEmail,
                     ),
+                  const SizedBox(height: SgSpace.s3),
+                  Text(
+                    l.termsLine,
+                    textAlign: TextAlign.center,
+                    style: SgText.caption.copyWith(fontSize: 12, height: 1.4),
                   ),
-                ),
-                Padding(
-                  padding: const EdgeInsets.fromLTRB(24, 0, 24, 14),
-                  child: Column(
-                    children: [
-                      Text.rich(
-                        TextSpan(
-                          text: 'By continuing, you agree to SaaradhiGo\'s ',
-                          style: TextStyle(
-                            color: SgColors.inkSubtle,
-                            fontSize: 12,
-                          ),
-                          children: [
-                            TextSpan(
-                              text: 'Terms of Service',
-                              style: TextStyle(
-                                color: SgColors.goldText,
-                                decoration: TextDecoration.underline,
-                              ),
-                            ),
-                            TextSpan(text: ' and '),
-                            TextSpan(
-                              text: 'Privacy Policy',
-                              style: TextStyle(
-                                color: SgColors.goldText,
-                                decoration: TextDecoration.underline,
-                              ),
-                            ),
-                          ],
-                        ),
-                        textAlign: TextAlign.center,
-                      ),
-                    ],
-                  ),
-                ),
-              ],
+                ],
+              ),
             ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _CircleIconButton extends StatelessWidget {
-  const _CircleIconButton({required this.icon, required this.onTap});
-
-  final IconData icon;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    return InkWell(
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(20),
-      child: Container(
-        height: 36,
-        width: 36,
-        decoration: BoxDecoration(
-          color: SgColors.bg300,
-          shape: BoxShape.circle,
+          ],
         ),
-        child: Icon(icon, color: SgColors.ink),
       ),
     );
   }
 }
 
-class _SocialChip extends StatelessWidget {
-  const _SocialChip({required this.icon, required this.label});
-
-  final IconData icon;
-  final String label;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      height: 56,
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: SgColors.line),
-        color: SgColors.bg200,
-      ),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Icon(icon, color: SgColors.inkMuted),
-          const SizedBox(width: 8),
-          Text(
-            label,
-            style: TextStyle(color: SgColors.ink, fontWeight: FontWeight.w600),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _MapGridPainter extends CustomPainter {
-  @override
-  void paint(Canvas canvas, Size size) {
-    final paint = Paint()
-      ..color = SgColors.ink
-      ..strokeWidth = 1;
-    const gap = 36.0;
-
-    for (double x = 0; x < size.width; x += gap) {
-      canvas.drawLine(Offset(x, 0), Offset(x, size.height), paint);
-    }
-    for (double y = 0; y < size.height; y += gap) {
-      canvas.drawLine(Offset(0, y), Offset(size.width, y), paint);
-    }
-  }
-
-  @override
-  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
-}
-
-/// One of the two credential tabs.
-class _ModeTab extends StatelessWidget {
-  const _ModeTab({
+/// One of the three first-launch language tiles: 68px, its name in its own
+/// script, a radio on the right.
+class LanguageTile extends StatelessWidget {
+  const LanguageTile({
     super.key,
     required this.label,
     required this.selected,
@@ -588,32 +349,99 @@ class _ModeTab extends StatelessWidget {
   final VoidCallback onTap;
 
   @override
-  Widget build(BuildContext context) {
-    return Expanded(
-      child: GestureDetector(
+  Widget build(BuildContext context) => Semantics(
+    button: true,
+    selected: selected,
+    label: label,
+    excludeSemantics: true,
+    child: Material(
+      color: selected ? SgColors.goldSoft : SgColors.bg200,
+      borderRadius: BorderRadius.circular(SgRadius.md),
+      child: InkWell(
         onTap: onTap,
-        child: Container(
-          padding: const EdgeInsets.symmetric(vertical: 13),
+        borderRadius: BorderRadius.circular(SgRadius.md),
+        child: AnimatedContainer(
+          duration: SgMotion.press,
+          curve: SgMotion.curve,
+          height: 68,
+          padding: const EdgeInsets.symmetric(horizontal: SgSpace.s4),
           decoration: BoxDecoration(
-            color: selected ? SgColors.gold500 : SgColors.bg200,
+            borderRadius: BorderRadius.circular(SgRadius.md),
             border: Border.all(
-              color: selected ? SgColors.goldText : SgColors.line,
+              color: selected ? SgColors.gold500 : SgColors.line,
+              width: selected ? 2.5 : 1,
             ),
-            borderRadius: BorderRadius.circular(12),
           ),
-          alignment: Alignment.center,
-          child: Text(
-            label,
-            style: TextStyle(
-              color: selected ? SgColors.onGold : SgColors.inkMuted,
-              fontSize: 15,
-              fontWeight: FontWeight.w700,
-            ),
+          child: Row(
+            children: [
+              Expanded(
+                child: Text(
+                  label,
+                  style: SgText.title.copyWith(fontSize: 20, height: 26 / 20),
+                ),
+              ),
+              SgRadio(selected: selected),
+            ],
           ),
         ),
       ),
-    );
-  }
+    ),
+  );
+}
+
+/// The phone field: dialling code from the market config, then the number.
+class _PhoneField extends StatelessWidget {
+  const _PhoneField({
+    required this.controller,
+    required this.dialPrefix,
+    required this.hint,
+  });
+
+  final TextEditingController controller;
+  final String dialPrefix;
+  final String hint;
+
+  @override
+  Widget build(BuildContext context) => Container(
+    height: 64,
+    decoration: BoxDecoration(
+      color: SgColors.bg200,
+      border: Border.all(color: SgColors.lineStrong),
+      borderRadius: BorderRadius.circular(SgRadius.md),
+    ),
+    child: Row(
+      children: [
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: SgSpace.s4),
+          child: Text(
+            dialPrefix,
+            style: SgText.title.copyWith(fontSize: 20, height: 26 / 20),
+          ),
+        ),
+        Container(width: 1, height: 32, color: SgColors.line),
+        Expanded(
+          child: TextField(
+            controller: controller,
+            keyboardType: TextInputType.phone,
+            autofillHints: const [AutofillHints.telephoneNumberNational],
+            style: SgText.title.copyWith(
+              fontSize: 20,
+              height: 26 / 20,
+              fontFeatures: const [FontFeature.tabularFigures()],
+            ),
+            decoration: InputDecoration(
+              border: InputBorder.none,
+              hintText: hint,
+              hintStyle: SgText.body.copyWith(color: SgColors.inkSubtle),
+              contentPadding: const EdgeInsets.symmetric(
+                horizontal: SgSpace.s3,
+              ),
+            ),
+          ),
+        ),
+      ],
+    ),
+  );
 }
 
 /// A dark text field matching the phone input's styling.

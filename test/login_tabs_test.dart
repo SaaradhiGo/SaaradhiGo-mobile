@@ -13,6 +13,7 @@ library;
 
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:saaradhigo_rider/ui/sg_appearance.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 import 'package:saaradhigo_rider/core/market/market_config_store.dart';
@@ -49,7 +50,10 @@ class _FakeAuthApiClient implements AuthApiClient {
   }
 
   @override
-  Future<Map<String, dynamic>?> requestOtp(String phoneNumber, String role) async {
+  Future<Map<String, dynamic>?> requestOtp(
+    String phoneNumber,
+    String role,
+  ) async {
     requestedOtpPhone = phoneNumber;
     return {'status': 'success', 'data': {}};
   }
@@ -59,8 +63,7 @@ class _FakeAuthApiClient implements AuthApiClient {
     String phoneNumber,
     String otp,
     String? deviceToken,
-  ) async =>
-      null;
+  ) async => null;
 
   @override
   Future<bool> registerPushToken(String token) async {
@@ -84,8 +87,7 @@ class _FakeAuthApiClient implements AuthApiClient {
     String? city,
     String? zipCode,
     String? homeCity,
-  }) async =>
-      null;
+  }) async => null;
 
   @override
   Future<Map<String, dynamic>?> getProfile() async => null;
@@ -97,13 +99,16 @@ class _FakeAuthApiClient implements AuthApiClient {
 void main() {
   late _FakeAuthApiClient api;
 
-  setUp(() {
+  setUp(() async {
     SharedPreferences.setMockInitialValues({});
+    // No language saved on this device: a first launch.
+    await SgAppearance.instance.restore();
     api = _FakeAuthApiClient();
   });
 
   Future<void> pump(WidgetTester tester, {bool withMarket = false}) async {
-    final view = TestWidgetsFlutterBinding.instance.platformDispatcher.views.first;
+    final view =
+        TestWidgetsFlutterBinding.instance.platformDispatcher.views.first;
     view.physicalSize = const Size(1200, 3000);
     view.devicePixelRatio = 1.0;
     addTearDown(() {
@@ -146,35 +151,40 @@ void main() {
     await tester.pumpAndSettle();
   }
 
-  testWidgets('Mobile is the default tab and the phone field is shown',
-      (tester) async {
+  testWidgets('Mobile is the default tab and the phone field is shown', (
+    tester,
+  ) async {
     await pump(tester);
 
-    expect(find.byKey(const Key('login_tab_mobile')), findsOneWidget);
+    // One switch: to email. Mobile is already chosen.
+    expect(find.byKey(const Key('login_tab_mobile')), findsNothing);
     expect(find.byKey(const Key('login_tab_email')), findsOneWidget);
     // The email form is not built until the tab is chosen.
     expect(find.byKey(const Key('login_email_field')), findsNothing);
     expect(find.text('PHONE NUMBER'), findsOneWidget);
-    expect(find.text('Continue'), findsOneWidget);
+    expect(find.text('Send code'), findsOneWidget);
   });
 
-  testWidgets('Continue with a phone number asks for an OTP (market store present)',
-      (tester) async {
-    // With the market store provided, as in the app, "Continue" threw a
-    // Provider assertion in debug builds (marketOf listened inside an event
-    // handler), so a QA build could not sign in by phone at all.
-    await pump(tester, withMarket: true);
+  testWidgets(
+    'Send code with a phone number asks for an OTP (market store present)',
+    (tester) async {
+      // With the market store provided, as in the app, "Continue" threw a
+      // Provider assertion in debug builds (marketOf listened inside an event
+      // handler), so a QA build could not sign in by phone at all.
+      await pump(tester, withMarket: true);
 
-    await tester.enterText(find.byType(TextField).first, '9876543210');
-    await tester.tap(find.text('Continue'));
-    await tester.pumpAndSettle();
+      await tester.enterText(find.byType(TextField).first, '9876543210');
+      await tester.tap(find.text('Send code'));
+      await tester.pumpAndSettle();
 
-    expect(tester.takeException(), isNull);
-    expect(api.requestedOtpPhone, '+919876543210');
-  });
+      expect(tester.takeException(), isNull);
+      expect(api.requestedOtpPhone, '+919876543210');
+    },
+  );
 
-  testWidgets('choosing Email shows the email and password fields',
-      (tester) async {
+  testWidgets('choosing Email shows the email and password fields', (
+    tester,
+  ) async {
     await pump(tester);
 
     await tester.tap(find.byKey(const Key('login_tab_email')));
@@ -190,18 +200,19 @@ void main() {
     expect(find.text('PHONE NUMBER'), findsNothing);
   });
 
-  testWidgets('the password is obscured until the eye is tapped',
-      (tester) async {
+  testWidgets('the password is obscured until the eye is tapped', (
+    tester,
+  ) async {
     await pump(tester);
     await tester.tap(find.byKey(const Key('login_tab_email')));
     await tester.pumpAndSettle();
 
     TextField field() => tester.widget<TextField>(
-          find.descendant(
-            of: find.byKey(const Key('login_password_field')),
-            matching: find.byType(TextField),
-          ),
-        );
+      find.descendant(
+        of: find.byKey(const Key('login_password_field')),
+        matching: find.byType(TextField),
+      ),
+    );
 
     expect(field().obscureText, isTrue);
 
@@ -211,8 +222,9 @@ void main() {
     expect(field().obscureText, isFalse);
   });
 
-  testWidgets('signing in sends the email and password to the API',
-      (tester) async {
+  testWidgets('signing in sends the email and password to the API', (
+    tester,
+  ) async {
     api.emailLoginResponse = {
       'status': 'success',
       'data': {'token': 't', 'refresh_token': 'r', 'user': {}},
@@ -222,9 +234,13 @@ void main() {
     await tester.pumpAndSettle();
 
     await tester.enterText(
-        find.byKey(const Key('login_email_field')), '  Rider@Example.test ');
+      find.byKey(const Key('login_email_field')),
+      '  Rider@Example.test ',
+    );
     await tester.enterText(
-        find.byKey(const Key('login_password_field')), 'Cadence-Harbour-74');
+      find.byKey(const Key('login_password_field')),
+      'Cadence-Harbour-74',
+    );
     await tester.tap(find.byKey(const Key('login_submit')));
     await tester.pump();
 
@@ -249,29 +265,38 @@ void main() {
     expect(find.byKey(const Key('login_mfa_field')), findsNothing);
 
     await tester.enterText(
-        find.byKey(const Key('login_email_field')), 'ops@example.test');
+      find.byKey(const Key('login_email_field')),
+      'ops@example.test',
+    );
     await tester.enterText(
-        find.byKey(const Key('login_password_field')), 'Cadence-Harbour-74');
+      find.byKey(const Key('login_password_field')),
+      'Cadence-Harbour-74',
+    );
     await tester.tap(find.byKey(const Key('login_submit')));
     await tester.pumpAndSettle();
 
     expect(find.byKey(const Key('login_mfa_field')), findsOneWidget);
   });
 
-  testWidgets('a credential failure shows one generic message',
-      (tester) async {
+  testWidgets('a credential failure shows one generic message', (tester) async {
     api.emailLoginResponse = {
-      '_error': {'code': 'AUTH_INVALID_CREDENTIALS',
-                 'message': 'Invalid email or password.'},
+      '_error': {
+        'code': 'AUTH_INVALID_CREDENTIALS',
+        'message': 'Invalid email or password.',
+      },
     };
     await pump(tester);
     await tester.tap(find.byKey(const Key('login_tab_email')));
     await tester.pumpAndSettle();
 
     await tester.enterText(
-        find.byKey(const Key('login_email_field')), 'nobody@example.test');
+      find.byKey(const Key('login_email_field')),
+      'nobody@example.test',
+    );
     await tester.enterText(
-        find.byKey(const Key('login_password_field')), 'whatever');
+      find.byKey(const Key('login_password_field')),
+      'whatever',
+    );
     await tester.tap(find.byKey(const Key('login_submit')));
     await tester.pumpAndSettle();
 
@@ -289,15 +314,18 @@ void main() {
     await tester.tap(find.byKey(const Key('login_forgot_password')));
     await tester.pump();
 
-    expect(find.textContaining('Enter your email address first'),
-        findsOneWidget);
+    expect(
+      find.textContaining('Enter your email address first'),
+      findsOneWidget,
+    );
     // Nothing was sent, so this cannot be used to probe addresses by
     // leaving the field blank.
     expect(api.passwordResetEmail, isNull);
   });
 
-  testWidgets('forgot password says the same thing whatever the server found',
-      (tester) async {
+  testWidgets('forgot password says the same thing whatever the server found', (
+    tester,
+  ) async {
     // Its own test rather than a second tap in the one above: SnackBars
     // queue, so the second message is not on screen until the first has
     // timed out, and asserting on it immediately fails for the wrong reason.
@@ -306,17 +334,20 @@ void main() {
     await tester.pumpAndSettle();
 
     await tester.enterText(
-        find.byKey(const Key('login_email_field')), 'rider@example.test');
+      find.byKey(const Key('login_email_field')),
+      'rider@example.test',
+    );
     await tester.tap(find.byKey(const Key('login_forgot_password')));
     await tester.pump();
 
     expect(api.passwordResetEmail, 'rider@example.test');
-    expect(find.textContaining('If that address belongs to an account'),
-        findsOneWidget);
+    expect(
+      find.textContaining('If that address belongs to an account'),
+      findsOneWidget,
+    );
   });
 
-  testWidgets('switching back to Mobile restores the OTP flow',
-      (tester) async {
+  testWidgets('switching back to Mobile restores the OTP flow', (tester) async {
     await pump(tester);
     await tester.tap(find.byKey(const Key('login_tab_email')));
     await tester.pumpAndSettle();
@@ -325,6 +356,32 @@ void main() {
 
     expect(find.text('PHONE NUMBER'), findsOneWidget);
     expect(find.byKey(const Key('login_email_field')), findsNothing);
-    expect(find.text('Continue'), findsOneWidget);
+    expect(find.text('Send code'), findsOneWidget);
+  });
+
+  testWidgets('a first launch shows the three language tiles; a tap switches '
+      'and keeps the language', (tester) async {
+    await pump(tester);
+    for (final code in ['te', 'hi', 'en']) {
+      expect(find.byKey(Key('lang_tile_$code')), findsOneWidget);
+      expect(tester.getSize(find.byKey(Key('lang_tile_$code'))).height, 68);
+    }
+    await tester.tap(find.byKey(const Key('lang_tile_te')));
+    await tester.pumpAndSettle();
+    expect(SgAppearance.instance.language, 'te');
+    expect(SgAppearance.instance.hasSavedLanguage, isTrue);
+    final prefs = await SharedPreferences.getInstance();
+    expect(prefs.getString(SgAppearance.localeKey), 'te');
+    await SgAppearance.instance.setLanguage('en');
+  });
+
+  testWidgets('a later launch skips the tiles', (tester) async {
+    SharedPreferences.setMockInitialValues({SgAppearance.localeKey: 'hi'});
+    await SgAppearance.instance.restore();
+    await pump(tester);
+    expect(find.byKey(const Key('lang_tile_te')), findsNothing);
+    expect(SgAppearance.instance.language, 'hi');
+    SharedPreferences.setMockInitialValues({});
+    await SgAppearance.instance.restore();
   });
 }
