@@ -461,6 +461,13 @@ class RideNotifier extends Notifier<RideState> {
       await clearState();
       return;
     }
+    // Backend #181: `is_active: false` is the server saying this trip is not
+    // in progress. Only a completed trip is kept (the receipt recovery,
+    // `recovery: recently_completed`); anything else is never shown live.
+    if (tripData['is_active'] == false && tripStatus != 'completed') {
+      await clearState();
+      return;
+    }
 
     final mapped = rideStatusFromBackendCode(tripStatus);
     if (mapped == null) {

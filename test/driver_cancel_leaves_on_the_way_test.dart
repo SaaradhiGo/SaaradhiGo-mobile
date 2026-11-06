@@ -99,6 +99,14 @@ void main() {
     expect(status(), RideStatus.cancelled);
   });
 
+  test('is_active false (backend #181) never shows a trip live', () async {
+    await notifier.syncStateFromActiveTripResponse({
+      'status': 'success',
+      'data': {'id': 143, 'status': 'accepted', 'is_active': false},
+    });
+    expect(status(), RideStatus.none);
+  });
+
   test('the trip socket greeting after a reconnect ends the trip', () {
     notifier.updateFromWebSocket({
       'type': 'connection_established',
