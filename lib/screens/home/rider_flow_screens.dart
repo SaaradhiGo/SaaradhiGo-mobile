@@ -15,6 +15,7 @@
 //
 // Deleting them is a reasonable future change; doing it silently as part of a
 // lint cleanup is not, which is why this comment exists instead.
+import '../../core/pricing/quote_lock.dart';
 import '../../core/market/market_config_store.dart';
 import '../components/market_overlays.dart';
 import 'dart:async';
@@ -297,7 +298,23 @@ class _SearchingDriverScreenState extends State<SearchingDriverScreen> {
       if (!mounted) return;
       _mapProvider = context.read<MapProvider>();
       _mapProvider?.addListener(_handleStateChange);
+      QuoteLockState.instance.addListener(_onQuoteRefresh);
       _startSearch();
+    });
+  }
+
+  /// The server refused the ticket's quote and sent a fresh fare: nothing
+  /// was booked. Back to the ticket, which shows the new fare and why; the
+  /// rider confirms again to book it.
+  void _onQuoteRefresh() {
+    if (!mounted || _isNavigated || QuoteLockState.instance.pending == null) {
+      return;
+    }
+    _isNavigated = true;
+    _watchdog?.cancel();
+    setState(() => _canPop = true);
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) Navigator.of(context).maybePop();
     });
   }
 
@@ -337,6 +354,7 @@ class _SearchingDriverScreenState extends State<SearchingDriverScreen> {
   void dispose() {
     _watchdog?.cancel();
     _mapProvider?.removeListener(_handleStateChange);
+    QuoteLockState.instance.removeListener(_onQuoteRefresh);
     super.dispose();
   }
 

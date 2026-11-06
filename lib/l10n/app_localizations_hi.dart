@@ -369,4 +369,17 @@ class AppLocalizationsHi extends AppLocalizations {
     );
     return '$_temp0';
   }
+
+  @override
+  String fareUpdatedTimePassed(String fare) {
+    return 'समय बीत जाने से किराया $fare हो गया';
+  }
+
+  @override
+  String fareUpdatedPickupChanged(String fare) {
+    return 'पिकअप बदलने से किराया $fare हो गया';
+  }
+
+  @override
+  String get fareUpdating => 'किराया अपडेट हो रहा है';
 }

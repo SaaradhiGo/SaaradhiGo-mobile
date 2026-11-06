@@ -370,4 +370,17 @@ class AppLocalizationsTe extends AppLocalizations {
     );
     return '$_temp0';
   }
+
+  @override
+  String fareUpdatedTimePassed(String fare) {
+    return 'సమయం గడిచినందున ఛార్జీ $fareకు మారింది';
+  }
+
+  @override
+  String fareUpdatedPickupChanged(String fare) {
+    return 'పికప్ మారినందున ఛార్జీ $fareకు మారింది';
+  }
+
+  @override
+  String get fareUpdating => 'ఛార్జీ నవీకరిస్తున్నాం';
 }
