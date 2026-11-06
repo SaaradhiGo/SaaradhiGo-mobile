@@ -4,6 +4,8 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:geolocator/geolocator.dart';
 import '../../ui/sg_brand.dart';
+import '../../ui/sg_text.dart';
+import '../../ui/sg_tokens.dart';
 
 class SplashScreen extends StatefulWidget {
   const SplashScreen({super.key});
@@ -84,60 +86,28 @@ class _SplashScreenState extends State<SplashScreen> {
     );
   }
 
+  /// The badge, "Saaradhi Go" and a plain spinner. No progress figure: the app
+  /// does not know how far along it is, so it does not pretend to.
   Widget _buildInitializingPage() {
-    final colorScheme = Theme.of(context).colorScheme;
-    return Column(
-      mainAxisAlignment: MainAxisAlignment.center,
-      children: [
-        const Spacer(),
-        const SgFullLogo(height: 200),
-        const Spacer(),
-        Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 48, vertical: 48),
-          child: Column(
-            children: [
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Text(
-                    'INITIALIZING',
-                    style: TextStyle(
-                      fontSize: 10,
-                      letterSpacing: 2,
-                      color: colorScheme.onSurface.withValues(alpha: 0.5),
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                  Text(
-                    '64%',
-                    style: TextStyle(
-                      fontSize: 10,
-                      color: colorScheme.primary,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 8),
-              LinearProgressIndicator(
-                value: 0.64,
-                backgroundColor: colorScheme.primary.withValues(alpha: 0.1),
-                color: colorScheme.primary,
-                minHeight: 2,
-              ),
-              const SizedBox(height: 24),
-              Text(
-                'PRIORITIZING DRIVERS & RIDERS',
-                style: TextStyle(
-                  fontSize: 11,
-                  letterSpacing: 3,
-                  color: colorScheme.onSurface.withValues(alpha: 0.4),
-                ),
-              ),
-            ],
+    return Center(
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          const SgBrandBadge(size: 120),
+          const SizedBox(height: SgSpace.s4),
+          Text('Saaradhi Go', style: SgText.brandLockup(32)),
+          const SizedBox(height: SgSpace.s6),
+          const SizedBox(
+            width: 28,
+            height: 28,
+            child: CircularProgressIndicator(
+              key: Key('splash_spinner'),
+              strokeWidth: 2.5,
+              color: SgColors.gold500,
+            ),
           ),
-        ),
-      ],
+        ],
+      ),
     );
   }
 
@@ -447,7 +417,7 @@ class _SplashScreenState extends State<SplashScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Theme.of(context).colorScheme.surface,
+      backgroundColor: SgColors.bg000,
       body: PageView(
         controller: _pageController,
         onPageChanged: (index) {
