@@ -202,6 +202,51 @@ void main() {
     });
   });
 
+  group('asked N drivers nearby', () {
+    Map<String, dynamic> progress(int wave, int n, {int trip = 7}) => {
+      'type': 'dispatch_progress',
+      'trip_id': trip,
+      'wave': wave,
+      'waves_total': 3,
+      'radius_m': 1000 * wave,
+      'drivers_notified': n,
+      'final_wave': wave == 3,
+    };
+    Object? asked() => state().rawResponse?['drivers_asked'];
+
+    test('waves add up; a repeated wave is not counted twice', () {
+      final n = searching();
+      n.updateFromWebSocket({'type': 'trip_created', 'trip_id': 7});
+      n.updateFromWebSocket(progress(1, 3));
+      expect(asked(), 3);
+      n.updateFromWebSocket(progress(2, 2));
+      n.updateFromWebSocket(progress(2, 2));
+      expect(asked(), 5);
+      expect(state().status, RideStatus.searchingDriver);
+    });
+
+    test('nobody asked yet stays at zero, so the line is hidden', () {
+      final n = searching();
+      n.updateFromWebSocket(progress(1, 0));
+      expect(asked(), 0);
+    });
+
+    test('a frame from an earlier search is ignored', () {
+      final n = searching();
+      n.updateFromWebSocket({'type': 'trip_created', 'trip_id': 7});
+      n.updateFromWebSocket(progress(1, 4, trip: 6));
+      expect(asked(), isNull);
+    });
+
+    test('a new search starts from zero', () {
+      final n = searching();
+      n.updateFromWebSocket(progress(1, 4));
+      searching();
+      n.updateFromWebSocket(progress(1, 1));
+      expect(asked(), 1);
+    });
+  });
+
   group('the booking frame', () {
     test('carries an idempotency key, so a reconnect resend is not a second ride', () {
       final frame = WebSocketService.buildRideRequestPayload(
