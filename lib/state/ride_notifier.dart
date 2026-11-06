@@ -524,6 +524,9 @@ class RideNotifier extends Notifier<RideState> {
     'promo_code',
     'currency',
     'payment_status',
+    // The on-trip arrival line ("Arriving about HH:MM").
+    'started_at',
+    'estimated_duration_min',
   ];
 
   static void _mergeMoney(Map<String, dynamic> into, dynamic trip) {

@@ -10,7 +10,16 @@ import '../services/websocket_service.dart';
 class RideNavigationHandler extends ConsumerWidget {
   final Widget child;
 
-  const RideNavigationHandler({super.key, required this.child});
+  const RideNavigationHandler({super.key, required this.child, this.router});
+
+  /// The app's router. This widget sits ABOVE MaterialApp.router, so
+  /// `GoRouter.of(context)` here finds nothing: every navigation it made threw
+  /// ("No GoRouter found in context"), and a ride recovered at launch never
+  /// opened its trip socket nor left its screen when the trip ended or was
+  /// cancelled (QA, 2026-11-06). main passes the router in.
+  final GoRouter? router;
+
+  GoRouter _r(BuildContext context) => router ?? GoRouter.of(context);
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -123,7 +132,7 @@ class RideNavigationHandler extends ConsumerWidget {
       // The banner will be shown by the UI layer (main.dart) based on ride state
       // We need to ensure we're on the home screen
       if (!_isOnHomeScreen(context)) {
-        context.go('/home');
+        _r(context).go('/home');
       }
 
       // Start WebSocket listening for the active trip
@@ -145,7 +154,7 @@ class RideNavigationHandler extends ConsumerWidget {
     if (routePath.isNotEmpty) {
       // Use go() to clear the navigation stack and start fresh
       // This ensures clean backstack on app resume
-      context.go(routePath);
+      _r(context).go(routePath);
 
       // Start WebSocket listening if required for this screen
       if (StateRecoveryDecisionService.requiresWebSocket(screenType) &&
@@ -161,7 +170,8 @@ class RideNavigationHandler extends ConsumerWidget {
 
   /// Checks if the current route is the home screen
   bool _isOnHomeScreen(BuildContext context) {
-    final route = GoRouterState.of(context).uri.path;
+    final c = _r(context).routerDelegate.currentConfiguration;
+    final route = c.isEmpty ? '' : c.last.matchedLocation;
     return route == '/home' || route == '/';
   }
 
@@ -189,23 +199,23 @@ class RideNavigationHandler extends ConsumerWidget {
     // Original navigation logic as fallback
     switch (rideState.status) {
       case RideStatus.searchingDriver:
-        context.go('/searching-driver');
+        _r(context).go('/searching-driver');
         break;
       case RideStatus.driverAccepted:
       case RideStatus.driverArrived:
-        context.go('/driver-found');
+        _r(context).go('/driver-found');
         break;
       case RideStatus.rideStarted:
-        context.go('/tracking');
+        _r(context).go('/tracking');
         break;
       case RideStatus.rideCompleted:
       case RideStatus.paymentPending:
-        context.go('/ride-summary');
+        _r(context).go('/ride-summary');
         break;
       case RideStatus.rated:
       case RideStatus.cancelled:
       case RideStatus.none:
-        context.go('/home');
+        _r(context).go('/home');
         break;
     }
   }

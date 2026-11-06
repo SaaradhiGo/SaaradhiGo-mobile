@@ -370,6 +370,7 @@ class _SaaradhiGoAppState extends State<SaaradhiGoApp> {
   Widget build(BuildContext context) {
     return SgAppearanceScope(
       builder: (context, appearance) => RideNavigationHandler(
+        router: router,
         child: LifecycleObserver(
           child: MaterialApp.router(
             // The name shown in the Android task switcher. Was 'VahanGo'
@@ -390,29 +391,42 @@ class _SaaradhiGoAppState extends State<SaaradhiGoApp> {
                       wireRideForegroundService(ref);
 
                       final rideState = ref.watch(rideNotifierProvider);
+                      final pending =
+                          rideState.status == RideStatus.paymentPending;
                       return Stack(
                         children: [
-                          if (child != null) child,
-                          if (rideState.isSyncing) const SyncOverlay(),
-                          if (rideState.showCancelledOverlay)
-                            const CancelledOverlay(),
-                          if (rideState.status == RideStatus.paymentPending)
-                            // Not over the receipt itself: there it covered
-                            // the Back button and said what the screen says.
-                            Positioned(
-                              top: 0,
-                              left: 0,
-                              right: 0,
-                              child: ListenableBuilder(
-                                listenable: router.routerDelegate,
-                                builder: (context, _) => _onReceipt(router)
-                                    ? const SizedBox.shrink()
-                                    : PaymentPendingBanner(
+                          if (child != null)
+                            // The payment banner takes its own room above the
+                            // screen instead of covering its header (it hid
+                            // the home header's theme and language buttons).
+                            // Not on the receipt itself, which says the same.
+                            ListenableBuilder(
+                              listenable: router.routerDelegate,
+                              // One shape always (a Column), so the router's
+                              // navigator never moves in the tree.
+                              builder: (context, _) {
+                                final show = pending && !_onReceipt(router);
+                                return Column(
+                                  children: [
+                                    if (show)
+                                      PaymentPendingBanner(
                                         onOpen: () =>
                                             router.go('/ride-summary'),
                                       ),
-                              ),
+                                    Expanded(
+                                      child: MediaQuery.removePadding(
+                                        context: context,
+                                        removeTop: show,
+                                        child: child,
+                                      ),
+                                    ),
+                                  ],
+                                );
+                              },
                             ),
+                          if (rideState.isSyncing) const SyncOverlay(),
+                          if (rideState.showCancelledOverlay)
+                            const CancelledOverlay(),
                         ],
                       );
                     },

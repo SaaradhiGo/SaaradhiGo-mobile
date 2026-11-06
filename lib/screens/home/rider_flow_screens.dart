@@ -912,9 +912,14 @@ class _FullMapTrackingScreenState extends State<FullMapTrackingScreen> {
     });
   }
 
+  /// The trip the route was asked for; asked again only for a new trip id
+  /// (the id can arrive after this screen opens).
+  String? _routeAskedFor;
+
   Future<void> _loadPlannedRoute() async {
     final tripId = _mapProvider?.tripId;
-    if (tripId == null) return;
+    if (tripId == null || tripId == _routeAskedFor) return;
+    _routeAskedFor = tripId;
     final token = (await SharedPreferences.getInstance()).getString(
       'access_token',
     );
@@ -935,6 +940,7 @@ class _FullMapTrackingScreenState extends State<FullMapTrackingScreen> {
   }
 
   void _handleStateChange() {
+    if (_plannedRoute == null) _loadPlannedRoute();
     if (!mounted || _isNavigated) return;
 
     final mapProvider = _mapProvider;

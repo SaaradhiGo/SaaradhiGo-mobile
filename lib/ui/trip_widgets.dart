@@ -593,7 +593,7 @@ class SgStars extends StatelessWidget {
           onPressed: onChanged == null ? null : () => onChanged!(i),
           icon: SgStar(
             size: 52,
-            color: i <= score ? SgColors.gold500 : SgColors.bg300,
+            color: i <= score ? SgColors.gold500 : SgColors.lineStrong,
           ),
         ),
     ],
