@@ -94,7 +94,7 @@ void main() {
           meetLine: 'Meet at Gate 2',
           driver: const DriverCardData(
               name: 'Ravi Kumar', rating: '4.92', vehicleLine: 'Maruti Dzire · White', plate: 'TS 09 EX 4821'),
-          pin: '4821',
+          pin: '482193',
           onCancel: () {},
           actions: [
             SgActionData(key: 'c', label: 'Call', icon: SgIcons.call, onTap: () {}),

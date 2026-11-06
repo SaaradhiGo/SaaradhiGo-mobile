@@ -210,7 +210,7 @@ void main() {
           badge: 'On the way',
           meetLine: 'Meet at Gate 2',
           driver: _ravi(),
-          pin: '4821',
+          pin: '482193',
           actions: _actions(tapped.add),
         ),
       )));
@@ -228,7 +228,7 @@ void main() {
       expect((box.decoration as BoxDecoration).color, const Color(0xFFFFF4BF));
       expect(find.text('RIDE PIN'), findsOneWidget);
       expect(find.text('Share only in the car'), findsOneWidget);
-      for (var i = 0; i < 4; i++) {
+      for (var i = 0; i < 6; i++) {
         expect(find.byKey(Key('pin_box_$i')), findsOneWidget);
       }
       expect(find.text('4'), findsOneWidget);
