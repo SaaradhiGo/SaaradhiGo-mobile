@@ -705,6 +705,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'{n, plural, =1{1 seat} other{{n} seats}}'**
   String seatsCount(int n);
+
+  /// Finding: how many drivers the search has offered the ride to so far (dispatch_progress drivers_notified, summed over waves). Shown only when above zero.
+  ///
+  /// In en, this message translates to:
+  /// **'{n, plural, =1{Asked 1 driver nearby} other{Asked {n} drivers nearby}}'**
+  String askedDriversNearby(int n);
 }
 
 class _AppLocalizationsDelegate

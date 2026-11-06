@@ -201,5 +201,7 @@
   "noDriversNearby": "No drivers nearby",
   "@noDriversNearby": {"description": "Every fare: a class with no driver near."},
   "seatsCount": "{n, plural, =1{1 seat} other{{n} seats}}",
-  "@seatsCount": {"description": "Every fare: seats in the class.", "placeholders": {"n": {"type": "int"}}}
+  "@seatsCount": {"description": "Every fare: seats in the class.", "placeholders": {"n": {"type": "int"}}},
+  "askedDriversNearby": "{n, plural, =1{Asked 1 driver nearby} other{Asked {n} drivers nearby}}",
+  "@askedDriversNearby": {"description": "Finding: how many drivers the search has offered the ride to so far (dispatch_progress drivers_notified, summed over waves). Shown only when above zero.", "placeholders": {"n": {"type": "int"}}}
 }

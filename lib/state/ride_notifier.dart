@@ -134,6 +134,12 @@ class RideNotifier extends Notifier<RideState> {
 
   bool _disposed = false;
 
+  /// Drivers offered this search, per dispatch wave (`dispatch_progress`).
+  /// Each wave offers only drivers not offered before in the same search, so
+  /// the total asked is the sum. Keyed by wave so a repeated frame is not
+  /// counted twice.
+  final Map<int, int> _askedByWave = {};
+
   @override
   RideState build() {
     final wsService = ref.watch(webSocketServiceProvider);
@@ -411,6 +417,7 @@ class RideNotifier extends Notifier<RideState> {
     String? distance,
     String? duration,
   }) {
+    _askedByWave.clear();
     state = state.copyWith(
       status: RideStatus.searchingDriver,
       pickupLocation: pickup,
@@ -453,8 +460,9 @@ class RideNotifier extends Notifier<RideState> {
 
     if (tripId == null) {
       // Never acknowledged. Did the trip get made anyway?
-      final active =
-          token.isEmpty ? null : await rideService.fetchActiveTrip(token);
+      final active = token.isEmpty
+          ? null
+          : await rideService.fetchActiveTrip(token);
       final data = active?['status'] == 'success' ? active!['data'] : null;
       if (data is Map && data['status'] != 'completed') {
         await syncStateFromActiveTripResponse(active!);
@@ -578,6 +586,30 @@ class RideNotifier extends Notifier<RideState> {
         );
         _saveState();
       }
+      return;
+    }
+
+    // Search progress: how many drivers have been asked so far. Kept as
+    // `drivers_asked` on the response for the Finding screen.
+    if (type == 'dispatch_progress') {
+      if (state.status != RideStatus.searchingDriver) return;
+      final frameTrip = data['trip_id']?.toString();
+      if (frameTrip != null &&
+          state.tripId != null &&
+          frameTrip != state.tripId) {
+        return; // A frame from an earlier search.
+      }
+      final wave = (data['wave'] is num) ? (data['wave'] as num).toInt() : 0;
+      final n = (data['drivers_notified'] is num)
+          ? (data['drivers_notified'] as num).toInt()
+          : 0;
+      _askedByWave[wave] = n < 0 ? 0 : n;
+      final asked = _askedByWave.values.fold<int>(0, (a, b) => a + b);
+      state = state.copyWith(
+        tripId: state.tripId ?? frameTrip,
+        rawResponse: {...?state.rawResponse, 'drivers_asked': asked},
+      );
+      _saveState();
       return;
     }
 
