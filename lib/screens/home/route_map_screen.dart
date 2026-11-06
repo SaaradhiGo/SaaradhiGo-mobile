@@ -213,7 +213,7 @@ class _RouteMapScreenState extends State<RouteMapScreen> {
               id: 'pickup',
               point: pickupPoint,
               icon: const SgSvgMarker('assets/markers/pickup.svg'),
-              label: 'Pickup',
+              label: sgStrings(context).pickupLabel,
             );
 
             if (pickupMarker != null) {
@@ -229,7 +229,7 @@ class _RouteMapScreenState extends State<RouteMapScreen> {
               id: 'drop',
               point: mapProvider.dropLocation!.latLng,
               icon: const SgSvgMarker('assets/markers/dropoff.svg'),
-              label: 'Drop',
+              label: sgStrings(context).dropLabel,
             );
 
             if (dropoffMarker != null) {
@@ -569,7 +569,7 @@ class _RouteMapScreenState extends State<RouteMapScreen> {
               ),
               TextButton(
                 onPressed: () => Navigator.pop(context, true),
-                child: Text('Cancel', style: TextStyle(color: SgColors.danger)),
+                child: Text(sgStrings(context).cancel, style: TextStyle(color: SgColors.danger)),
               ),
             ],
           ),

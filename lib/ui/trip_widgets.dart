@@ -2,6 +2,7 @@
 /// DriverCard, FareSummary, Badge). Pure widgets: values in, taps out.
 library;
 
+import 'appearance_settings.dart' show sgStrings;
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 
@@ -160,7 +161,7 @@ class _SgProgressBarState extends State<SgProgressBar>
 
   @override
   Widget build(BuildContext context) => Semantics(
-    label: 'Searching for a driver',
+    label: sgStrings(context).searchingForDriver,
     child: ClipRRect(
       borderRadius: BorderRadius.circular(SgRadius.pill),
       child: Container(
@@ -632,7 +633,7 @@ class ConfirmPickupSheet extends StatelessWidget {
       mainAxisSize: MainAxisSize.min,
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        _title('Confirm pickup'),
+        _title(sgStrings(context).confirmPickup),
         const SizedBox(height: SgSpace.s3),
         Container(
           padding: const EdgeInsets.symmetric(horizontal: SgSpace.s3),
@@ -721,7 +722,7 @@ class FixedPickupPin extends StatelessWidget {
   @override
   Widget build(BuildContext context) => IgnorePointer(
     child: Semantics(
-      label: 'Pickup',
+      label: sgStrings(context).pickupLabel,
       child: SizedBox(
         width: 44,
         height: 88,
@@ -776,7 +777,7 @@ class FindingSheet extends StatelessWidget {
       mainAxisSize: MainAxisSize.min,
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        _displayLine('Finding your Saaradhi'),
+        _displayLine(sgStrings(context).findingSaaradhi),
         const SizedBox(height: SgSpace.s2),
         Semantics(liveRegion: true, child: _subline(subline)),
         const SizedBox(height: SgSpace.s4),
@@ -784,7 +785,7 @@ class FindingSheet extends StatelessWidget {
         const SizedBox(height: SgSpace.s4),
         fare,
         const SizedBox(height: SgSpace.s3),
-        SgGhostButton(label: 'Cancel request', onPressed: onCancel),
+        SgGhostButton(label: sgStrings(context).cancelRequest, onPressed: onCancel),
       ],
     ),
   );
@@ -810,15 +811,15 @@ class NoDriverSheet extends StatelessWidget {
       mainAxisSize: MainAxisSize.min,
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        _displayLine('No Saaradhi nearby right now'),
+        _displayLine(sgStrings(context).noSaaradhiNearby),
         const SizedBox(height: SgSpace.s2),
         Semantics(liveRegion: true, child: _subline(subline)),
         const SizedBox(height: SgSpace.s4),
         fare,
         const SizedBox(height: SgSpace.s4),
-        SgPrimaryButton(label: 'Try again', onPressed: onTryAgain),
+        SgPrimaryButton(label: sgStrings(context).tryAgain, onPressed: onTryAgain),
         const SizedBox(height: SgSpace.s2),
-        SgGhostButton(label: 'Change ride', onPressed: onChangeRide),
+        SgGhostButton(label: sgStrings(context).changeRide, onPressed: onChangeRide),
       ],
     ),
   );
@@ -886,7 +887,7 @@ class ArrivingSheet extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text('RIDE PIN', style: SgText.label),
-                    Text('Share only in the car', style: SgText.caption),
+                    Text(sgStrings(context).shareOnlyInCar, style: SgText.caption),
                   ],
                 ),
               ),
@@ -948,7 +949,7 @@ class LiveTripSheet extends StatelessWidget {
   );
 }
 
-/// The gold check, "You have arrived", and where and when.
+/// The gold check, sgStrings(context).youHaveArrived, and where and when.
 class TripArrivedHeader extends StatelessWidget {
   const TripArrivedHeader({super.key, required this.detailLine});
   final String detailLine;
@@ -971,7 +972,7 @@ class TripArrivedHeader extends StatelessWidget {
         ),
       ),
       const SizedBox(height: SgSpace.s3),
-      _displayLine('You have arrived'),
+      _displayLine(sgStrings(context).youHaveArrived),
       const SizedBox(height: SgSpace.s2),
       if (detailLine.isNotEmpty) _subline(detailLine),
     ],

@@ -1,3 +1,4 @@
+import '../../ui/appearance_settings.dart' show sgStrings;
 import '../components/market_overlays.dart';
 import 'package:flutter/material.dart';
 import '../../ui/account_widgets.dart';
@@ -199,7 +200,7 @@ class _WalletScreenState extends State<WalletScreen> {
           child: Row(
             children: [
               _FilterChip(
-                label: 'All',
+                label: sgStrings(context).filterAll,
                 isSelected: _selectedFilter == 'All',
                 onTap: () => setState(() {
                   _selectedFilter = 'All';
@@ -220,7 +221,7 @@ class _WalletScreenState extends State<WalletScreen> {
               ),
               const SizedBox(width: 8),
               _FilterChip(
-                label: 'Payments',
+                label: sgStrings(context).filterPayments,
                 isSelected: _selectedFilter == 'Payments',
                 onTap: () => setState(() {
                   _selectedFilter = 'Payments';
@@ -309,7 +310,7 @@ class _WalletBalanceCard extends StatelessWidget {
                 Expanded(
                   child: _WalletActionButton(
                     icon: Icons.add_rounded,
-                    label: 'Add Money',
+                    label: sgStrings(context).addMoney,
                     onTap: () {
                       context.push('/add-money');
                     },
@@ -513,7 +514,7 @@ class _ErrorState extends StatelessWidget {
         const SizedBox(height: 16),
         TextButton(
           onPressed: () => context.read<WalletProvider>().refreshWallet(),
-          child: Text('Retry', style: TextStyle(color: SgColors.goldText)),
+          child: Text(sgStrings(context).retry, style: TextStyle(color: SgColors.goldText)),
         ),
       ],
     );

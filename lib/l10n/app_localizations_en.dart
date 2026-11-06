@@ -592,4 +592,56 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get otpSent => 'OTP sent. Check your messages.';
+
+  @override
+  String get tryAgain => 'Try again';
+
+  @override
+  String get searchingForDriver => 'Searching for a driver';
+
+  @override
+  String get confirmPickup => 'Confirm pickup';
+
+  @override
+  String get shareOnlyInCar => 'Share only in the car';
+
+  @override
+  String get youHaveArrived => 'You have arrived';
+
+  @override
+  String get filterAll => 'All';
+
+  @override
+  String get filterPayments => 'Payments';
+
+  @override
+  String get tripDetailsCopied => 'Trip details copied — paste to share';
+
+  @override
+  String get holdToSendAlert => 'Hold to send alert';
+
+  @override
+  String get ratingCommentHint => 'Anything you want us to know? (optional)';
+
+  @override
+  String get submitRating => 'Submit rating';
+
+  @override
+  String get remove => 'Remove';
+
+  @override
+  String get promoCodeHint => 'Promo code';
+
+  @override
+  String get youPay => 'You pay';
+
+  @override
+  String get cancel => 'Cancel';
+
+  @override
+  String get enterEmailFirst =>
+      'Enter your email address first, then tap again';
+
+  @override
+  String get update => 'Update';
 }

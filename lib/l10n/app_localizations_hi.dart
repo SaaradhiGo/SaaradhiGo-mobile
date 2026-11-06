@@ -584,4 +584,55 @@ class AppLocalizationsHi extends AppLocalizations {
 
   @override
   String get otpSent => 'कोड भेजा गया। संदेश देखें।';
+
+  @override
+  String get tryAgain => 'फिर कोशिश करें';
+
+  @override
+  String get searchingForDriver => 'ड्राइवर ढूँढ रहे हैं';
+
+  @override
+  String get confirmPickup => 'पिकअप पक्का करें';
+
+  @override
+  String get shareOnlyInCar => 'सिर्फ़ कार में बताएँ';
+
+  @override
+  String get youHaveArrived => 'आप पहुँच गए';
+
+  @override
+  String get filterAll => 'सभी';
+
+  @override
+  String get filterPayments => 'भुगतान';
+
+  @override
+  String get tripDetailsCopied => 'ट्रिप की जानकारी कॉपी हुई। पेस्ट करके भेजें';
+
+  @override
+  String get holdToSendAlert => 'अलर्ट के लिए दबाए रखें';
+
+  @override
+  String get ratingCommentHint => 'कुछ और बताना है? (वैकल्पिक)';
+
+  @override
+  String get submitRating => 'रेटिंग भेजें';
+
+  @override
+  String get remove => 'हटाएँ';
+
+  @override
+  String get promoCodeHint => 'प्रोमो कोड';
+
+  @override
+  String get youPay => 'आप देंगे';
+
+  @override
+  String get cancel => 'रद्द करें';
+
+  @override
+  String get enterEmailFirst => 'पहले ईमेल डालें, फिर दबाएँ';
+
+  @override
+  String get update => 'अपडेट करें';
 }

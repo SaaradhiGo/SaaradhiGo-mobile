@@ -104,7 +104,7 @@ Future<void> shareTripDetails(
     await Clipboard.setData(ClipboardData(text: message));
     if (!context.mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Trip details copied — paste to share')),
+      SnackBar(content: Text(sgStrings(context).tripDetailsCopied)),
     );
   }
 }
@@ -307,7 +307,7 @@ class _SafetySheetState extends State<SafetySheet> {
                     const SizedBox(height: SgSpace.s3),
                     HoldToSendButton(
                       key: const Key('sos_hold'),
-                      label: 'Hold to send alert',
+                      label: sgStrings(context).holdToSendAlert,
                       onConfirmed: () => _raise(_category),
                     ),
                   ],

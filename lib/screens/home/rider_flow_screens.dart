@@ -2189,7 +2189,7 @@ class _DarkMapScaffoldState extends State<_DarkMapScaffold>
                     mapProvider.precisePickupLocation ??
                     mapProvider.pickupLocation!.latLng,
                 icon: const SgSvgMarker('assets/markers/pickup.svg'),
-                label: 'Pickup',
+                label: sgStrings(context).pickupLabel,
               ),
             );
           }
@@ -2202,7 +2202,7 @@ class _DarkMapScaffoldState extends State<_DarkMapScaffold>
                 id: 'drop',
                 point: mapProvider.dropLocation!.latLng,
                 icon: const SgSvgMarker('assets/markers/dropoff.svg'),
-                label: 'Drop',
+                label: sgStrings(context).dropLabel,
               ),
             );
           }
@@ -2215,7 +2215,7 @@ class _DarkMapScaffoldState extends State<_DarkMapScaffold>
                 point: _animatedDriverLocation!,
                 icon: const SgCarMarker(),
                 anchor: const Offset(0.5, 0.5),
-                label: 'Your driver',
+                label: sgStrings(context).yourDriver,
               ),
             );
           }

@@ -1,3 +1,4 @@
+import '../ui/appearance_settings.dart' show sgStrings;
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -192,7 +193,7 @@ class _PromoCodeFieldState extends State<PromoCodeField> {
           TextButton(
             key: const Key('promo_remove'),
             onPressed: widget.onRemoved,
-            child: Text('Remove', style: TextStyle(color: SgColors.goldText)),
+            child: Text(sgStrings(context).remove, style: TextStyle(color: SgColors.goldText)),
           ),
         ],
       ),
@@ -215,7 +216,7 @@ class _PromoCodeFieldState extends State<PromoCodeField> {
                 textCapitalization: TextCapitalization.characters,
                 style: TextStyle(color: SgColors.ink),
                 decoration: InputDecoration(
-                  hintText: 'Promo code',
+                  hintText: sgStrings(context).promoCodeHint,
                   hintStyle: TextStyle(color: SgColors.inkMuted),
                   filled: true,
                   fillColor: SgColors.bg300,

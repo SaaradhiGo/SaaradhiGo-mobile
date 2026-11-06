@@ -1131,6 +1131,108 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'OTP sent. Check your messages.'**
   String get otpSent;
+
+  /// Rider screen text, moved from code: Try again
+  ///
+  /// In en, this message translates to:
+  /// **'Try again'**
+  String get tryAgain;
+
+  /// Rider screen text, moved from code: Searching for a driver
+  ///
+  /// In en, this message translates to:
+  /// **'Searching for a driver'**
+  String get searchingForDriver;
+
+  /// Rider screen text, moved from code: Confirm pickup
+  ///
+  /// In en, this message translates to:
+  /// **'Confirm pickup'**
+  String get confirmPickup;
+
+  /// Rider screen text, moved from code: Share only in the car
+  ///
+  /// In en, this message translates to:
+  /// **'Share only in the car'**
+  String get shareOnlyInCar;
+
+  /// Rider screen text, moved from code: You have arrived
+  ///
+  /// In en, this message translates to:
+  /// **'You have arrived'**
+  String get youHaveArrived;
+
+  /// Rider screen text, moved from code: All
+  ///
+  /// In en, this message translates to:
+  /// **'All'**
+  String get filterAll;
+
+  /// Rider screen text, moved from code: Payments
+  ///
+  /// In en, this message translates to:
+  /// **'Payments'**
+  String get filterPayments;
+
+  /// Rider screen text, moved from code: Trip details copied — paste to share
+  ///
+  /// In en, this message translates to:
+  /// **'Trip details copied — paste to share'**
+  String get tripDetailsCopied;
+
+  /// Rider screen text, moved from code: Hold to send alert
+  ///
+  /// In en, this message translates to:
+  /// **'Hold to send alert'**
+  String get holdToSendAlert;
+
+  /// Rider screen text, moved from code: Anything you want us to know? (optional)
+  ///
+  /// In en, this message translates to:
+  /// **'Anything you want us to know? (optional)'**
+  String get ratingCommentHint;
+
+  /// Rider screen text, moved from code: Submit rating
+  ///
+  /// In en, this message translates to:
+  /// **'Submit rating'**
+  String get submitRating;
+
+  /// Rider screen text, moved from code: Remove
+  ///
+  /// In en, this message translates to:
+  /// **'Remove'**
+  String get remove;
+
+  /// Rider screen text, moved from code: Promo code
+  ///
+  /// In en, this message translates to:
+  /// **'Promo code'**
+  String get promoCodeHint;
+
+  /// Rider screen text, moved from code: You pay
+  ///
+  /// In en, this message translates to:
+  /// **'You pay'**
+  String get youPay;
+
+  /// Rider screen text, moved from code: Cancel
+  ///
+  /// In en, this message translates to:
+  /// **'Cancel'**
+  String get cancel;
+
+  /// Rider screen text, moved from code: Enter your email address first, then tap again
+  ///
+  /// In en, this message translates to:
+  /// **'Enter your email address first, then tap again'**
+  String get enterEmailFirst;
+
+  /// Rider screen text, moved from code: Update
+  ///
+  /// In en, this message translates to:
+  /// **'Update'**
+  String get update;
 }
 
 class _AppLocalizationsDelegate

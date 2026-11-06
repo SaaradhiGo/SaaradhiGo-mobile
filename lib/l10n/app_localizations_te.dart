@@ -587,4 +587,56 @@ class AppLocalizationsTe extends AppLocalizations {
 
   @override
   String get otpSent => 'కోడ్ పంపాం. మెసేజ్‌లు చూడండి.';
+
+  @override
+  String get tryAgain => 'మళ్లీ ప్రయత్నించండి';
+
+  @override
+  String get searchingForDriver => 'డ్రైవర్ కోసం వెతుకుతున్నాం';
+
+  @override
+  String get confirmPickup => 'పికప్ నిర్ధారించండి';
+
+  @override
+  String get shareOnlyInCar => 'కారులో మాత్రమే చెప్పండి';
+
+  @override
+  String get youHaveArrived => 'మీరు చేరుకున్నారు';
+
+  @override
+  String get filterAll => 'అన్నీ';
+
+  @override
+  String get filterPayments => 'చెల్లింపులు';
+
+  @override
+  String get tripDetailsCopied =>
+      'ట్రిప్ వివరాలు కాపీ అయ్యాయి. పేస్ట్ చేసి పంపండి';
+
+  @override
+  String get holdToSendAlert => 'అలర్ట్ కోసం నొక్కి పట్టండి';
+
+  @override
+  String get ratingCommentHint => 'ఇంకేమైనా చెప్పాలా? (ఐచ్ఛికం)';
+
+  @override
+  String get submitRating => 'రేటింగ్ పంపండి';
+
+  @override
+  String get remove => 'తీసివేయండి';
+
+  @override
+  String get promoCodeHint => 'ప్రోమో కోడ్';
+
+  @override
+  String get youPay => 'మీరు చెల్లించేది';
+
+  @override
+  String get cancel => 'రద్దు';
+
+  @override
+  String get enterEmailFirst => 'ముందు ఈమెయిల్ ఇచ్చి మళ్లీ నొక్కండి';
+
+  @override
+  String get update => 'అప్‌డేట్';
 }

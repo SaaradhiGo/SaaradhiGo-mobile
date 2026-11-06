@@ -1,3 +1,4 @@
+import '../ui/appearance_settings.dart' show sgStrings;
 import 'package:flutter/material.dart';
 
 import '../services/trip_charge.dart';
@@ -130,7 +131,7 @@ class TripChargeCard extends StatelessWidget {
               ),
               if (payableText != null) ...[
                 const SizedBox(height: 6),
-                Text('You pay', style: TextStyle(color: _muted, fontSize: 13)),
+                Text(sgStrings(context).youPay, style: TextStyle(color: _muted, fontSize: 13)),
                 Text(
                   payableText,
                   key: const Key('you_pay_amount'),

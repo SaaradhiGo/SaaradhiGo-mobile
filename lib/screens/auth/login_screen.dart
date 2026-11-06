@@ -94,8 +94,8 @@ class _LoginScreenState extends State<LoginScreen> {
     final email = _emailController.text.trim();
     if (email.isEmpty || !email.contains('@')) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Enter your email address first, then tap again'),
+        SnackBar(
+          content: Text(sgStrings(context).enterEmailFirst),
         ),
       );
       return;
