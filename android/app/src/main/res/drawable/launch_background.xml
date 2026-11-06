@@ -1,10 +1,10 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- Native launch splash: pure black with the gold emblem centred. -->
+<!-- Native launch splash: pure black with the gold badge centred. -->
 <layer-list xmlns:android="http://schemas.android.com/apk/res/android">
     <item android:drawable="@android:color/black" />
     <item>
         <bitmap
             android:gravity="center"
-            android:src="@drawable/launch_emblem" />
+            android:src="@drawable/launch_badge" />
     </item>
 </layer-list>
