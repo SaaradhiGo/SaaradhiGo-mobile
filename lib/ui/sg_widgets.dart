@@ -190,3 +190,17 @@ class SgSheetSurface extends StatelessWidget {
     ),
   );
 }
+
+/// An eyebrow above a section: plain uppercase label text in gold-text. No
+/// rule, dash or bar is drawn before it (Night 2, step 1).
+class SgEyebrow extends StatelessWidget {
+  const SgEyebrow(this.text, {super.key, this.color});
+  final String text;
+  final Color? color;
+
+  @override
+  Widget build(BuildContext context) => Text(
+    text.toUpperCase(),
+    style: SgText.label.copyWith(color: color ?? SgColors.goldText),
+  );
+}
