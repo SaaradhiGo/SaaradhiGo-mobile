@@ -11,7 +11,8 @@ import 'sg_tokens.dart';
 class SgIcons {
   SgIcons._();
   static const menu = '<path d="M4 7h16M4 12h16M4 17h10"/>';
-  static const user = '<circle cx="12" cy="8" r="4"/><path d="M4 21c1-4 4-6 8-6s7 2 8 6"/>';
+  static const user =
+      '<circle cx="12" cy="8" r="4"/><path d="M4 21c1-4 4-6 8-6s7 2 8 6"/>';
   static const home = '<path d="M4 11l8-7 8 7v9h-5v-6H9v6H4z"/>';
   static const work =
       '<rect x="3" y="7" width="18" height="13" rx="2"/><path d="M9 7V5h6v2M3 13h18"/>';
@@ -24,7 +25,8 @@ class SgIcons {
       '<rect x="3" y="6" width="18" height="12" rx="2"/><circle cx="12" cy="12" r="2.5"/>';
   static const bell =
       '<path d="M6 17V11a6 6 0 0112 0v6l2 2H4z"/><path d="M10 21h4"/>';
-  static const history = '<path d="M3 12a9 9 0 109-9 9 9 0 00-6.4 2.6L3 8"/><path d="M3 3v5h5M12 7v5l3 2"/>';
+  static const history =
+      '<path d="M3 12a9 9 0 109-9 9 9 0 00-6.4 2.6L3 8"/><path d="M3 3v5h5M12 7v5l3 2"/>';
   static const wallet =
       '<path d="M3 7a2 2 0 012-2h13v4"/><rect x="3" y="7" width="18" height="13" rx="2"/><path d="M16 13.5h2"/>';
   static const call =
@@ -36,57 +38,79 @@ class SgIcons {
   static const check = '<path d="M5 12l5 5 9-10"/>';
   static const lock =
       '<rect x="5" y="11" width="14" height="9" rx="2"/><path d="M8 11V8a4 4 0 018 0v3"/>';
-  static const help = '<circle cx="12" cy="12" r="9"/><path d="M9.5 9.5a2.5 2.5 0 115 0c0 1.5-2.5 2-2.5 3.5M12 17h.01"/>';
+  static const theme =
+      '<circle cx="12" cy="12" r="4"/><path d="M12 3v2M12 19v2M3 12h2M19 12h2M5.6 5.6l1.4 1.4M17 17l1.4 1.4M5.6 18.4L7 17M17 7l1.4-1.4"/>';
+  static const language =
+      '<circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3c3 3 3 15 0 18M12 3c-3 3-3 15 0 18"/>';
+  static const help =
+      '<circle cx="12" cy="12" r="9"/><path d="M9.5 9.5a2.5 2.5 0 115 0c0 1.5-2.5 2-2.5 3.5M12 17h.01"/>';
 }
 
 class SgIcon extends StatelessWidget {
-  const SgIcon(this.body, {super.key, this.size = 20, this.color = SgColors.inkMuted});
+  const SgIcon(this.body, {super.key, this.size = 20, Color? color})
+    : _color = color;
   final String body;
   final double size;
-  final Color color;
+  final Color? _color;
+  Color get color => _color ?? SgColors.inkMuted;
 
   @override
   Widget build(BuildContext context) => SvgPicture.string(
-        '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" '
-        'stroke="currentColor" stroke-width="1.75" stroke-linecap="round" '
-        'stroke-linejoin="round">$body</svg>',
-        width: size,
-        height: size,
-        theme: SvgTheme(currentColor: color),
-      );
+    '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" '
+    'stroke="currentColor" stroke-width="1.75" stroke-linecap="round" '
+    'stroke-linejoin="round">$body</svg>',
+    width: size,
+    height: size,
+    theme: SvgTheme(currentColor: color),
+  );
 }
 
 /// Round 48px button floating over the map.
 class SgMapButton extends StatelessWidget {
-  const SgMapButton({super.key, required this.icon, required this.label, required this.onTap});
+  const SgMapButton({
+    super.key,
+    required this.icon,
+    required this.label,
+    required this.onTap,
+  });
   final String icon;
   final String label;
   final VoidCallback onTap;
 
   @override
   Widget build(BuildContext context) => Semantics(
-        button: true,
-        label: label,
-        child: GestureDetector(
-          onTap: onTap,
-          child: Container(
-            width: kSgTouch,
-            height: kSgTouch,
-            decoration: BoxDecoration(
-              color: SgColors.bg100,
-              shape: BoxShape.circle,
-              border: Border.all(color: SgColors.goldLine),
-              boxShadow: const [BoxShadow(color: Color(0x99000000), blurRadius: 24, offset: Offset(0, 8))],
+    button: true,
+    label: label,
+    child: GestureDetector(
+      onTap: onTap,
+      child: Container(
+        width: kSgTouch,
+        height: kSgTouch,
+        decoration: BoxDecoration(
+          color: SgColors.bg100,
+          shape: BoxShape.circle,
+          border: Border.all(color: SgColors.goldLine),
+          boxShadow: [
+            BoxShadow(
+              color: SgColors.shadow,
+              blurRadius: 24,
+              offset: Offset(0, 8),
             ),
-            child: Center(child: SgIcon(icon, size: 20, color: SgColors.ink)),
-          ),
+          ],
         ),
-      );
+        child: Center(child: SgIcon(icon, size: 20, color: SgColors.ink)),
+      ),
+    ),
+  );
 }
 
 /// The one gold button on a screen.
 class SgPrimaryButton extends StatelessWidget {
-  const SgPrimaryButton({super.key, required this.label, required this.onPressed});
+  const SgPrimaryButton({
+    super.key,
+    required this.label,
+    required this.onPressed,
+  });
   final String label;
   final VoidCallback? onPressed;
 
@@ -126,30 +150,43 @@ class SgSheetSurface extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Container(
-        decoration: const BoxDecoration(
-          color: SgColors.bg100,
-          borderRadius: BorderRadius.vertical(top: Radius.circular(SgRadius.lg)),
-          border: Border(top: BorderSide(color: SgColors.goldLine)),
-          boxShadow: [BoxShadow(color: Color(0x99000000), blurRadius: 40, offset: Offset(0, -12))],
+    decoration: BoxDecoration(
+      color: SgColors.bg100,
+      borderRadius: BorderRadius.vertical(top: Radius.circular(SgRadius.lg)),
+      border: Border(top: BorderSide(color: SgColors.goldLine)),
+      boxShadow: [
+        BoxShadow(
+          color: SgColors.shadow,
+          blurRadius: 40,
+          offset: Offset(0, -12),
         ),
-        padding: padding ?? const EdgeInsets.fromLTRB(SgSpace.s4, SgSpace.s3, SgSpace.s4, SgSpace.s4),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            Center(
-              child: Container(
-                width: 40,
-                height: 4,
-                margin: const EdgeInsets.only(bottom: SgSpace.s4),
-                decoration: BoxDecoration(
-                  color: SgColors.lineStrong,
-                  borderRadius: BorderRadius.circular(SgRadius.pill),
-                ),
-              ),
+      ],
+    ),
+    padding:
+        padding ??
+        const EdgeInsets.fromLTRB(
+          SgSpace.s4,
+          SgSpace.s3,
+          SgSpace.s4,
+          SgSpace.s4,
+        ),
+    child: Column(
+      mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Center(
+          child: Container(
+            width: 40,
+            height: 4,
+            margin: const EdgeInsets.only(bottom: SgSpace.s4),
+            decoration: BoxDecoration(
+              color: SgColors.lineStrong,
+              borderRadius: BorderRadius.circular(SgRadius.pill),
             ),
-            Flexible(child: child),
-          ],
+          ),
         ),
-      );
+        Flexible(child: child),
+      ],
+    ),
+  );
 }

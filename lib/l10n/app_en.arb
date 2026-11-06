@@ -1,0 +1,21 @@
+{
+  "@@locale": "en",
+  "appearance": "Appearance",
+  "@appearance": {"description": "Account row and sheet title: choose the colour theme."},
+  "themeDark": "Dark",
+  "@themeDark": {"description": "Theme option: dark."},
+  "themeLight": "Light",
+  "@themeLight": {"description": "Theme option: light."},
+  "themeAutomatic": "Automatic",
+  "@themeAutomatic": {"description": "Theme option: follow the device setting."},
+  "themeAutomaticHint": "Follows your phone",
+  "@themeAutomaticHint": {"description": "Subtitle under the Automatic theme option."},
+  "language": "Language",
+  "@language": {"description": "Account row and sheet title: choose the app language."},
+  "languageEnglish": "English",
+  "@languageEnglish": {"description": "Language option, shown in its own script."},
+  "languageTelugu": "తెలుగు",
+  "@languageTelugu": {"description": "Language option, shown in its own script."},
+  "languageHindi": "हिन्दी",
+  "@languageHindi": {"description": "Language option, shown in its own script."}
+}

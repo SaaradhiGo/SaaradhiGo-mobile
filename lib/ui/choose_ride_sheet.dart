@@ -50,11 +50,25 @@ class RideOption {
 
   String get shortName => vehicleClassName(type);
 
-  static const _etaKeys = ['pickup_eta_min', 'eta_min', 'eta_minutes', 'pickup_eta', 'driver_eta_min'];
-  static const _seatKeys = ['seats', 'seat_count', 'seating_capacity', 'capacity'];
+  static const _etaKeys = [
+    'pickup_eta_min',
+    'eta_min',
+    'eta_minutes',
+    'pickup_eta',
+    'driver_eta_min',
+  ];
+  static const _seatKeys = [
+    'seats',
+    'seat_count',
+    'seating_capacity',
+    'capacity',
+  ];
 
   static num? _num(Map<String, dynamic> m, List<String> keys) {
-    for (final src in [m, if (m['vehicle'] is Map) (m['vehicle'] as Map).cast<String, dynamic>()]) {
+    for (final src in [
+      m,
+      if (m['vehicle'] is Map) (m['vehicle'] as Map).cast<String, dynamic>(),
+    ]) {
       for (final k in keys) {
         final v = src[k];
         if (v is num) return v;
@@ -72,12 +86,18 @@ class RideOption {
 
   /// A server reason, with the word "surge" never reaching the rider.
   static String? _reason(Map<String, dynamic> e) {
-    final raw = (e['price_reason'] ?? e['fare_reason'] ?? e['surge_reason'])?.toString().trim();
+    final raw = (e['price_reason'] ?? e['fare_reason'] ?? e['surge_reason'])
+        ?.toString()
+        .trim();
     if (raw != null && raw.isNotEmpty) {
-      return RegExp('surge', caseSensitive: false).hasMatch(raw) ? 'Higher demand right now' : raw;
+      return RegExp('surge', caseSensitive: false).hasMatch(raw)
+          ? 'Higher demand right now'
+          : raw;
     }
     final bd = e['fare_breakdown'];
-    final m = bd is Map ? num.tryParse(bd['surge_multiplier']?.toString() ?? '') : null;
+    final m = bd is Map
+        ? num.tryParse(bd['surge_multiplier']?.toString() ?? '')
+        : null;
     return (m != null && m > 1) ? 'Higher demand right now' : null;
   }
 
@@ -88,7 +108,10 @@ class RideOption {
     final seats = _num(e, _seatKeys) ?? vehicleClassSeats(type);
     final nearby = e['drivers_nearby'] != false;
     final parts = <String>[
-      if (!nearby) 'No drivers nearby' else if (eta != null) '${eta.ceil()} min',
+      if (!nearby)
+        'No drivers nearby'
+      else if (eta != null)
+        '${eta.ceil()} min',
       if (seats != null) '${seats.toInt()} ${seats == 1 ? 'seat' : 'seats'}',
     ];
     return RideOption(
@@ -104,10 +127,11 @@ class RideOption {
   }
 
   /// Priced classes only, cheapest first.
-  static List<RideOption> fromEstimates(Map<String, Map<String, dynamic>> estimates) {
+  static List<RideOption> fromEstimates(
+    Map<String, Map<String, dynamic>> estimates,
+  ) {
     final out = [
-      for (final e in estimates.entries)
-        ?fromEstimate(e.key, e.value),
+      for (final e in estimates.entries) ?fromEstimate(e.key, e.value),
     ]..sort((a, b) => a.fare.compareTo(b.fare));
     return out;
   }
@@ -163,7 +187,12 @@ class ChooseRideSheet extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.baseline,
             textBaseline: TextBaseline.alphabetic,
             children: [
-              Expanded(child: Text('Choose a ride', style: SgText.title.copyWith(fontSize: 20, height: 26 / 20))),
+              Expanded(
+                child: Text(
+                  'Choose a ride',
+                  style: SgText.title.copyWith(fontSize: 20, height: 26 / 20),
+                ),
+              ),
               ?(summary == null ? null : Text(summary!, style: SgText.caption)),
             ],
           ),
@@ -194,7 +223,7 @@ class ChooseRideSheet extends StatelessWidget {
           const SizedBox(height: SgSpace.s2),
           Container(
             height: kSgTouch,
-            decoration: const BoxDecoration(
+            decoration: BoxDecoration(
               border: Border(top: BorderSide(color: SgColors.line)),
             ),
             child: Row(
@@ -209,8 +238,13 @@ class ChooseRideSheet extends StatelessWidget {
                       minimumSize: const Size(kSgTouch, kSgTouch),
                       foregroundColor: SgColors.goldText,
                     ),
-                    child: Text('Change',
-                        style: SgText.body.copyWith(color: SgColors.goldText, fontWeight: FontWeight.w700)),
+                    child: Text(
+                      'Change',
+                      style: SgText.body.copyWith(
+                        color: SgColors.goldText,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
                   ),
               ],
             ),
@@ -229,7 +263,11 @@ class ChooseRideSheet extends StatelessWidget {
 }
 
 class _RideRow extends StatelessWidget {
-  const _RideRow({required this.option, required this.selected, required this.onTap});
+  const _RideRow({
+    required this.option,
+    required this.selected,
+    required this.onTap,
+  });
   final RideOption option;
   final bool selected;
   final VoidCallback onTap;
@@ -244,7 +282,10 @@ class _RideRow extends StatelessWidget {
         onTap: onTap,
         child: Container(
           constraints: const BoxConstraints(minHeight: 68),
-          padding: const EdgeInsets.symmetric(horizontal: SgSpace.s3, vertical: SgSpace.s2),
+          padding: const EdgeInsets.symmetric(
+            horizontal: SgSpace.s3,
+            vertical: SgSpace.s2,
+          ),
           decoration: BoxDecoration(
             color: selected ? SgColors.goldSoft : SgColors.bg200,
             borderRadius: BorderRadius.circular(SgRadius.md),
@@ -259,11 +300,19 @@ class _RideRow extends StatelessWidget {
                 width: 56,
                 height: 40,
                 decoration: BoxDecoration(
-                  color: SgColors.bg300,
+                  color: vehicleTileColour(option.type),
                   borderRadius: BorderRadius.circular(SgRadius.sm),
                 ),
                 child: Center(
-                  child: SvgPicture.asset(vehicleClassAsset(option.type), width: 30, height: 30),
+                  child: SvgPicture.asset(
+                    vehicleClassAsset(option.type),
+                    width: 30,
+                    height: 30,
+                    colorFilter: ColorFilter.mode(
+                      vehicleIconColour(option.type),
+                      BlendMode.srcIn,
+                    ),
+                  ),
                 ),
               ),
               const SizedBox(width: SgSpace.s3),
@@ -271,15 +320,24 @@ class _RideRow extends StatelessWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(option.name,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: SgText.body.copyWith(fontSize: 16, fontWeight: FontWeight.w700)),
+                    Text(
+                      option.name,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: SgText.body.copyWith(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
                     if (option.meta.isNotEmpty)
-                      Text(option.meta,
-                          style: option.driversNearby
-                              ? SgText.caption
-                              : SgText.caption.copyWith(color: SgColors.inkSubtle)),
+                      Text(
+                        option.meta,
+                        style: option.driversNearby
+                            ? SgText.caption
+                            : SgText.caption.copyWith(
+                                color: SgColors.inkSubtle,
+                              ),
+                      ),
                   ],
                 ),
               ),

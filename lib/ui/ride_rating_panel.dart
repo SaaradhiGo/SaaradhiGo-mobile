@@ -12,7 +12,13 @@ import 'trip_widgets.dart';
 /// Stars and Done. Done saves the stars if any were chosen, then calls
 /// [onDone] with whether the trip ended up rated. No tips: the API has none.
 class RideRatingPanel extends StatefulWidget {
-  const RideRatingPanel({super.key, required this.tripId, this.driverName, this.service, required this.onDone});
+  const RideRatingPanel({
+    super.key,
+    required this.tripId,
+    this.driverName,
+    this.service,
+    required this.onDone,
+  });
 
   final String tripId;
   final String? driverName;
@@ -35,7 +41,11 @@ class _RideRatingPanelState extends State<RideRatingPanel> {
       _busy = true;
       _error = null;
     });
-    final r = await _service.rateTrip(tripId: widget.tripId, score: _score, comments: '');
+    final r = await _service.rateTrip(
+      tripId: widget.tripId,
+      score: _score,
+      comments: '',
+    );
     if (!mounted) return;
     if (r.isSettled) return widget.onDone(true);
     setState(() {
@@ -47,18 +57,31 @@ class _RideRatingPanelState extends State<RideRatingPanel> {
   @override
   Widget build(BuildContext context) {
     final who = firstNameOf(widget.driverName);
-    return Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
-      Text(who.isEmpty ? 'How was your ride?' : 'How was your ride with $who?',
-          textAlign: TextAlign.center, style: SgText.body.copyWith(color: SgColors.inkMuted)),
-      const SizedBox(height: SgSpace.s2),
-      SgStars(score: _score, onChanged: _busy ? null : (v) => setState(() => _score = v)),
-      if (_error != null)
-        Padding(
-          padding: const EdgeInsets.only(top: SgSpace.s2),
-          child: Text(_error!, textAlign: TextAlign.center, style: SgText.caption.copyWith(color: SgColors.danger)),
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Text(
+          who.isEmpty ? 'How was your ride?' : 'How was your ride with $who?',
+          textAlign: TextAlign.center,
+          style: SgText.body.copyWith(color: SgColors.inkMuted),
         ),
-      const SizedBox(height: SgSpace.s4),
-      SgPrimaryButton(label: 'Done', onPressed: _busy ? null : _done),
-    ]);
+        const SizedBox(height: SgSpace.s2),
+        SgStars(
+          score: _score,
+          onChanged: _busy ? null : (v) => setState(() => _score = v),
+        ),
+        if (_error != null)
+          Padding(
+            padding: const EdgeInsets.only(top: SgSpace.s2),
+            child: Text(
+              _error!,
+              textAlign: TextAlign.center,
+              style: SgText.caption.copyWith(color: SgColors.danger),
+            ),
+          ),
+        const SizedBox(height: SgSpace.s4),
+        SgPrimaryButton(label: 'Done', onPressed: _busy ? null : _done),
+      ],
+    );
   }
 }

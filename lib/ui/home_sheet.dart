@@ -88,7 +88,7 @@ class HomeSheet extends StatelessWidget {
           children: [
             if (!expanded) ...[
               Text(greeting, style: SgText.caption),
-              Text('Where to?', style: SgText.displayLg),
+              Text('Where to?', style: SgText.display),
               const SizedBox(height: SgSpace.s3),
             ],
             // Keyed: opening the search removes the lines above it, and an
@@ -205,16 +205,14 @@ class _Place extends StatelessWidget {
     child: Container(
       constraints: const BoxConstraints(minHeight: 64),
       decoration: BoxDecoration(
-        border: last
-            ? null
-            : const Border(bottom: BorderSide(color: SgColors.line)),
+        border: last ? null : Border(bottom: BorderSide(color: SgColors.line)),
       ),
       child: Row(
         children: [
           Container(
             width: 40,
             height: 40,
-            decoration: const BoxDecoration(
+            decoration: BoxDecoration(
               color: SgColors.bg200,
               shape: BoxShape.circle,
             ),
