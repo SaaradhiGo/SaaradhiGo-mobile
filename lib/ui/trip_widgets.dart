@@ -583,14 +583,16 @@ class SgStars extends StatelessWidget {
         IconButton(
           key: Key('star_$i'),
           tooltip: '$i star${i == 1 ? '' : 's'}',
-          iconSize: 36,
+          // 52px stars (Tier 2 receipt).
+          iconSize: 52,
+          padding: const EdgeInsets.all(2),
           constraints: const BoxConstraints(
             minWidth: kSgTouch,
             minHeight: kSgTouch,
           ),
           onPressed: onChanged == null ? null : () => onChanged!(i),
           icon: SgStar(
-            size: 36,
+            size: 52,
             color: i <= score ? SgColors.gold500 : SgColors.bg300,
           ),
         ),

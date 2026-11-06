@@ -185,6 +185,9 @@ class SgColors {
   static const mapPark = Color(0xFF0D140E);
   static const mapLabel = Color(0xFF7D8BA1);
 
+  /// The blue IND strip on an Indian number plate.
+  static const plateBlue = Color(0xFF003399);
+
   /// The number plate and the premium class.
   static const champagne = Color(0xFFFFF4BF);
   static Color get pickup => _active.pickup;

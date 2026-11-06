@@ -44,8 +44,9 @@ import '../../widgets/safety_sheet.dart';
 import '../../state/ride_notifier.dart';
 import '../../state/ride_state.dart';
 import '../../core/vehicle_classes.dart';
-import '../../ui/appearance_settings.dart' show sgStrings;
+import '../../ui/appearance_settings.dart' show paymentMethodLabel, sgStrings;
 import '../../ui/booking_widgets.dart';
+import '../../ui/trip_t2_widgets.dart';
 import '../../ui/choose_ride_sheet.dart';
 import '../../ui/ride_rating_panel.dart';
 import '../../ui/sg_text.dart';
@@ -596,10 +597,11 @@ class _DriverFoundScreenState extends State<DriverFoundScreen> {
         final mins = mapProvider.driverLocation == null
             ? null
             : _minutesOf(mapProvider.duration);
-        final who = d.first.isEmpty ? 'Your driver' : d.first;
-        final headline = arrived
-            ? (d.first.isEmpty ? 'Your driver has arrived' : '$who has arrived')
-            : (mins == null ? '$who is on the way' : '$who is $mins min away');
+        final l = sgStrings(context);
+        final market = MarketConfigStore.instance.current;
+        final who = d.first.isEmpty ? l.yourDriver : d.first;
+        final headline = arrived ? l.driverArrived(who) : l.driverOnWay(who);
+        void sos() => showSafetySheet(context, trip: d.safety);
 
         return PopScope(
           canPop: _canPop,
@@ -617,44 +619,54 @@ class _DriverFoundScreenState extends State<DriverFoundScreen> {
           child: _DarkMapScaffold(
             title: headline,
             close: true,
-            mapBottom: 470,
+            mapBottom: 520,
             onBack: () async {
               if (mounted && context.mounted) {
                 Navigator.of(context).maybePop();
               }
             },
-            sheet: ArrivingSheet(
+            topRight: SgSosPill(
+              key: const ValueKey('arriving_sos_button'),
+              onTap: sos,
+            ),
+            sheet: ArrivingT2Sheet(
+              // The pickup ETA at 52px only when there is one.
+              eta: (arrived || mins == null) ? null : l.minutesShort(mins),
               headline: headline,
-              badge: arrived ? 'Arrived' : 'On the way',
               meetLine: d.meetLine,
-              driver: d.card,
-              photoUrl: d.photo,
-              pin: d.pin,
-              onCancel: () => Navigator.of(context).maybePop(),
+              driver: SgDriverRow(
+                name: d.card.name,
+                rating: d.card.rating,
+                vehicleLine: d.card.vehicleLine,
+                plate: d.card.plate,
+                indianPlate: market.countryCode == 'IN',
+              ),
+              pinPanel: d.pin.isEmpty
+                  ? null
+                  : SgPinPanel(
+                      label: l.ridePin,
+                      hint: l.ridePinHint,
+                      pin: d.pin,
+                    ),
+              // TODO(data): share trip, masked calling and the trip-share
+              // contact are not available, so there is no Share button.
               actions: [
-                SgActionData(
-                  key: 'arriving_call',
-                  label: 'Call',
+                SgIconButtonWide(
+                  key: const Key('arriving_call'),
                   icon: SgIcons.call,
+                  label: l.call,
                   onTap: () => _callDriver(context, d),
                 ),
-                SgActionData(
-                  key: 'arriving_message',
-                  label: 'Message',
+                SgIconButtonWide(
+                  key: const Key('arriving_message'),
                   icon: SgIcons.message,
+                  label: l.message,
                   onTap: () => _openChat(context, d),
                 ),
-                SgActionData(
-                  key: 'arriving_share',
-                  label: 'Share trip',
-                  icon: SgIcons.share,
-                  onTap: () => shareTripDetails(context, d.safety),
-                ),
-                _safetyAction(
-                  const ValueKey('arriving_sos_button'),
-                  () => showSafetySheet(context, trip: d.safety),
-                ),
               ],
+              cancelLabel: l.cancelRide,
+              onCancel: () => Navigator.of(context).maybePop(),
+              cancelNote: market.freeToCancel ? l.freeToCancel : null,
             ),
           ),
         );
@@ -838,11 +850,28 @@ class _FullMapTrackingScreenState extends State<FullMapTrackingScreen> {
             .split(',')
             .first
             .trim();
-        final mins = _minutesOf(mapProvider.duration);
-        final headline = [
-          drop.isEmpty ? 'On the way' : 'On the way to $drop',
-          if (mins != null) '$mins min',
-        ].join(' \u00B7 ');
+        final l = sgStrings(context);
+        final rideMap = ride is Map ? ride : const {};
+        // "Arriving about HH:MM" from started_at + estimated_duration_min.
+        // TODO(data): when the trip payload lacks either, there is no live
+        // ETA, so the sheet says where the trip is going and nothing more.
+        final est = ArrivalEstimate.from(
+          startedAt: DateTime.tryParse(
+            (rideMap['started_at'] ?? rideMap['start_time'] ?? '').toString(),
+          )?.toLocal(),
+          estimatedMinutes: num.tryParse(
+            (rideMap['estimated_duration_min'] ?? '').toString(),
+          ),
+          now: DateTime.now(),
+        );
+        final headline = est == null
+            ? (drop.isEmpty ? l.arrivingSoon : l.onTheWayTo(drop))
+            : est.overdue
+            ? l.arrivingSoon
+            : l.arrivingAbout(clockText(est.at));
+        final fare = _lockedFare(mapProvider);
+        void sos() =>
+            showSafetySheet(context, trip: _safetyContext(mapProvider));
         return PopScope(
           canPop: _canPop,
           onPopInvokedWithResult: (didPop, result) async {
@@ -859,38 +888,50 @@ class _FullMapTrackingScreenState extends State<FullMapTrackingScreen> {
           child: _DarkMapScaffold(
             title: headline,
             close: true,
-            mapBottom: 330,
+            mapBottom: 420,
             onBack: () async {
               if (mounted && context.mounted) {
                 Navigator.of(context).maybePop();
               }
             },
             forceInProgress: true,
-            sheet: LiveTripSheet(
-              headline: headline,
-              driver: d.card,
+            // Always visible on a live trip.
+            topRight: SgSosPill(
+              key: const ValueKey('tracking_sos_pill'),
+              onTap: sos,
+            ),
+            sheet: OnTripSheet(
+              arrivalLine: headline,
+              minutesLeft: est?.minutesLeft == null
+                  ? null
+                  : l.minutesLeft(est!.minutesLeft!),
+              progress: est?.progress,
+              driver: SgDriverRow(
+                name: d.card.name,
+                rating: d.card.rating,
+                plate: d.card.plate,
+                indianPlate:
+                    MarketConfigStore.instance.current.countryCode == 'IN',
+                trailing: fare.fareText.isEmpty
+                    ? null
+                    : LockedFare(fareText: fare.fareText, locked: l.locked),
+              ),
               extra: ride?['status'] == 'complete'
                   ? SgPrimaryButton(
-                      label: 'View summary',
+                      label: l.viewSummary,
                       onPressed: () => context.push('/ride-summary'),
                     )
                   : null,
+              // TODO(data): Share trip is hidden (no trip-share contact or
+              // link service). The safety sheet POSTs /sos/, offers 112, and
+              // shows a failure instead of swallowing it.
               actions: [
-                SgActionData(
-                  key: 'tracking_share',
-                  label: 'Share trip',
-                  icon: SgIcons.share,
-                  onTap: () =>
-                      shareTripDetails(context, _safetyContext(mapProvider)),
-                ),
-                // The safety sheet POSTs /sos/, offers 112, and shows a failure
-                // instead of swallowing it. Always one tap from this screen.
-                _safetyAction(
-                  const ValueKey('tracking_sos_button'),
-                  () => showSafetySheet(
-                    context,
-                    trip: _safetyContext(mapProvider),
-                  ),
+                SgIconButtonWide(
+                  key: const ValueKey('tracking_sos_button'),
+                  icon: SgIcons.shield,
+                  label: l.safety,
+                  danger: true,
+                  onTap: sos,
                 ),
               ],
             ),
@@ -1506,12 +1547,22 @@ class _RidePaymentSummaryScreenState extends State<RidePaymentSummaryScreen> {
                   ),
                 ),
                 const SizedBox(height: SgSpace.s5),
-                TripChargeCard(
-                  fare: totalFareStr.toString(),
+                ..._receiptTop(
+                  context,
+                  quotedRaw: rideData?['estimated_fare'],
+                  cost: payTotal,
                   currencyCode: currencyCode,
-                  charge: charge,
-                  endedBySupport: endedBySupport,
-                  distanceDriven: distanceDriven,
+                  promo: charge.notCharged
+                      ? null
+                      : double.tryParse(charge.discount ?? ''),
+                  breakdown: TripChargeCard(
+                    fare: totalFareStr.toString(),
+                    currencyCode: currencyCode,
+                    charge: charge,
+                    endedBySupport: endedBySupport,
+                    distanceDriven: distanceDriven,
+                  ),
+                  plain: charge.notCharged || endedBySupport,
                 ),
                 if (_confirming != null) ...[
                   const SizedBox(height: SgSpace.s3),
@@ -1563,8 +1614,29 @@ class _RidePaymentSummaryScreenState extends State<RidePaymentSummaryScreen> {
                         setState(() => _selectedPaymentMethod = 'upi_card'),
                   ),
                   const SizedBox(height: SgSpace.s5),
+                  if (_selectedPaymentMethod == 'cash')
+                    Padding(
+                      padding: const EdgeInsets.only(bottom: SgSpace.s3),
+                      child: Text(
+                        sgStrings(context).payingCash(
+                          exactMoney(payTotal, currencyCode),
+                          _driverFirst(rideData, context),
+                        ),
+                        key: const Key('receipt_cash_note'),
+                        style: SgText.body.copyWith(color: SgColors.inkMuted),
+                      ),
+                    ),
                   SgPrimaryButton(
-                    label: _isProcessing ? 'Processing' : 'Confirm & Pay',
+                    key: const Key('pay_button'),
+                    label: _isProcessing
+                        ? 'Processing'
+                        : sgStrings(context).payBy(
+                            exactMoney(payTotal, currencyCode),
+                            paymentMethodLabel(
+                              sgStrings(context),
+                              _selectedPaymentMethod,
+                            ),
+                          ),
                     onPressed: _isProcessing
                         ? null
                         : () => _selectedPaymentMethod == 'cash'
@@ -1602,6 +1674,97 @@ class _RidePaymentSummaryScreenState extends State<RidePaymentSummaryScreen> {
         );
       },
     );
+  }
+
+  String _driverFirst(dynamic rideData, BuildContext context) {
+    final first = _DriverView(rideData).first;
+    return first.isEmpty ? sgStrings(context).yourDriver : first;
+  }
+
+  /// "Your ticket said" next to "Trip cost", the difference lines, and the
+  /// existing charge card folded under "How it adds up".
+  List<Widget> _receiptTop(
+    BuildContext context, {
+    required Object? quotedRaw,
+    required double cost,
+    required String? currencyCode,
+    required double? promo,
+    required Widget breakdown,
+    required bool plain,
+  }) {
+    final l = sgStrings(context);
+    final quoted = double.tryParse(quotedRaw?.toString() ?? '');
+    // No quote to compare with, a trip support ended, or no charge: the
+    // charge card says it as before.
+    if (quoted == null || plain) return [breakdown];
+    final lines = receiptLines(
+      quoted: quoted,
+      cost: cost,
+      promoDiscount: promo,
+    );
+    String signed(double v) =>
+        '${v < 0 ? '−' : '+'}${exactMoney(v.abs(), currencyCode)}';
+    return [
+      ReceiptTiles(
+        ticketLabel: l.ticketSaid,
+        ticketText: exactMoney(quoted, currencyCode),
+        costLabel: l.tripCost,
+        costText: exactMoney(cost, currencyCode),
+        equal: lines.isEmpty,
+      ),
+      const SizedBox(height: SgSpace.s3),
+      if (lines.isEmpty)
+        Row(
+          key: const Key('receipt_exact'),
+          children: [
+            SgIcon(SgIcons.check, size: 18, color: SgColors.success),
+            const SizedBox(width: SgSpace.s2),
+            Expanded(
+              child: Text(
+                l.exactlyQuoted,
+                style: SgText.body.copyWith(
+                  color: SgColors.success,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+            ),
+          ],
+        )
+      else
+        for (final line in lines)
+          Padding(
+            padding: const EdgeInsets.only(bottom: SgSpace.s1),
+            child: line.kind == ReceiptLineKind.promotion
+                ? Row(
+                    children: [
+                      Expanded(child: Text(l.promotion, style: SgText.body)),
+                      Text(signed(line.amount), style: SgText.body),
+                    ],
+                  )
+                : Text(
+                    l.differenceUnexplained(signed(line.amount)),
+                    key: const Key('receipt_unexplained'),
+                    style: SgText.body.copyWith(color: SgColors.inkMuted),
+                  ),
+          ),
+      Theme(
+        data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
+        child: ExpansionTile(
+          key: const Key('receipt_how'),
+          tilePadding: EdgeInsets.zero,
+          title: Text(
+            l.howItAddsUp,
+            style: SgText.body.copyWith(
+              color: SgColors.goldText,
+              fontWeight: FontWeight.w700,
+            ),
+          ),
+          iconColor: SgColors.goldText,
+          collapsedIconColor: SgColors.goldText,
+          children: [breakdown],
+        ),
+      ),
+    ];
   }
 
   Widget _buildPaymentOption({
@@ -1753,7 +1916,11 @@ class _DarkMapScaffold extends StatefulWidget {
     this.searching = false,
     this.pulse = false,
     this.mapBottom = 300,
+    this.topRight,
   });
+
+  /// Top right over the map: the SOS pill on the trip screens.
+  final Widget? topRight;
 
   /// Read by screen readers; the sheet carries the visible words.
   final String title;
@@ -2011,6 +2178,12 @@ class _DarkMapScaffoldState extends State<_DarkMapScaffold>
                   onTap: widget.onBack ?? () => context.pop(),
                 ),
               ),
+              if (widget.topRight != null)
+                Positioned(
+                  top: MediaQuery.of(context).padding.top + SgSpace.s2,
+                  right: SgSpace.s4,
+                  child: widget.topRight!,
+                ),
               Align(
                 alignment: Alignment.bottomCenter,
                 child: Semantics(

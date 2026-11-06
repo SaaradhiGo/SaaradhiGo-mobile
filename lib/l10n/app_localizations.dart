@@ -441,6 +441,156 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Cancel request'**
   String get cancelRequest;
+
+  /// A number of minutes, e.g. the pickup ETA.
+  ///
+  /// In en, this message translates to:
+  /// **'{n} min'**
+  String minutesShort(int n);
+
+  /// Arriving: under the ETA, or alone without one.
+  ///
+  /// In en, this message translates to:
+  /// **'{name} is on the way'**
+  String driverOnWay(String name);
+
+  /// Arriving: the driver is at the pickup.
+  ///
+  /// In en, this message translates to:
+  /// **'{name} has arrived'**
+  String driverArrived(String name);
+
+  /// Stand-in when the driver's name is unknown.
+  ///
+  /// In en, this message translates to:
+  /// **'Your driver'**
+  String get yourDriver;
+
+  /// Arriving: label on the PIN panel.
+  ///
+  /// In en, this message translates to:
+  /// **'Ride PIN'**
+  String get ridePin;
+
+  /// Arriving: under the PIN label.
+  ///
+  /// In en, this message translates to:
+  /// **'Tell it to your driver in the car'**
+  String get ridePinHint;
+
+  /// Call the driver.
+  ///
+  /// In en, this message translates to:
+  /// **'Call'**
+  String get call;
+
+  /// Message the driver.
+  ///
+  /// In en, this message translates to:
+  /// **'Message'**
+  String get message;
+
+  /// Open the safety sheet.
+  ///
+  /// In en, this message translates to:
+  /// **'Safety'**
+  String get safety;
+
+  /// Arriving: cancel link.
+  ///
+  /// In en, this message translates to:
+  /// **'Cancel ride'**
+  String get cancelRide;
+
+  /// On trip: arrival estimate; the word about is required.
+  ///
+  /// In en, this message translates to:
+  /// **'Arriving about {time}'**
+  String arrivingAbout(String time);
+
+  /// On trip: past the estimate.
+  ///
+  /// In en, this message translates to:
+  /// **'Arriving soon'**
+  String get arrivingSoon;
+
+  /// On trip: minutes left.
+  ///
+  /// In en, this message translates to:
+  /// **'{n} min left'**
+  String minutesLeft(int n);
+
+  /// On trip: when no estimate exists.
+  ///
+  /// In en, this message translates to:
+  /// **'On the way to {place}'**
+  String onTheWayTo(String place);
+
+  /// On trip: the fare is locked.
+  ///
+  /// In en, this message translates to:
+  /// **'Locked'**
+  String get locked;
+
+  /// On trip: after the trip ends.
+  ///
+  /// In en, this message translates to:
+  /// **'View summary'**
+  String get viewSummary;
+
+  /// Receipt: left tile.
+  ///
+  /// In en, this message translates to:
+  /// **'Your ticket said'**
+  String get ticketSaid;
+
+  /// Receipt: right tile.
+  ///
+  /// In en, this message translates to:
+  /// **'Trip cost'**
+  String get tripCost;
+
+  /// Receipt: when the two match.
+  ///
+  /// In en, this message translates to:
+  /// **'Exactly what you were quoted'**
+  String get exactlyQuoted;
+
+  /// Receipt: promo difference line.
+  ///
+  /// In en, this message translates to:
+  /// **'Promotion'**
+  String get promotion;
+
+  /// Receipt: a difference the API does not explain.
+  ///
+  /// In en, this message translates to:
+  /// **'Difference {amount}: the reason is not available yet'**
+  String differenceUnexplained(String amount);
+
+  /// Receipt: expandable breakdown.
+  ///
+  /// In en, this message translates to:
+  /// **'How it adds up'**
+  String get howItAddsUp;
+
+  /// Receipt: primary button.
+  ///
+  /// In en, this message translates to:
+  /// **'Pay {amount} by {method}'**
+  String payBy(String amount, String method);
+
+  /// Receipt: cash note.
+  ///
+  /// In en, this message translates to:
+  /// **'Paying cash? Give {amount} to {name}'**
+  String payingCash(String amount, String name);
+
+  /// Rating heading.
+  ///
+  /// In en, this message translates to:
+  /// **'Rate {name}'**
+  String rateDriver(String name);
 }
 
 class _AppLocalizationsDelegate
