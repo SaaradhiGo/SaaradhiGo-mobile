@@ -7,7 +7,7 @@ class NotificationHelper {
 
   static Future<void> initialize(String channelId, String channelName) async {
     const AndroidInitializationSettings initializationSettingsAndroid =
-        AndroidInitializationSettings('@mipmap/ic_launcher');
+        AndroidInitializationSettings('@drawable/ic_stat_notify');
     const DarwinInitializationSettings initializationSettingsDarwin =
         DarwinInitializationSettings(
           requestAlertPermission: true,
@@ -51,7 +51,7 @@ class NotificationHelper {
           ongoing: true,
           importance: Importance.max,
           priority: Priority.high,
-          icon: '@mipmap/ic_launcher',
+          icon: '@drawable/ic_stat_notify',
         ),
       ),
     );

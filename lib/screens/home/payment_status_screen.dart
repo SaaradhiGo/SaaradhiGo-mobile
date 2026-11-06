@@ -2,6 +2,8 @@ import '../../core/market/market_config_store.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../ui/sg_tokens.dart';
+
 class PaymentStatusScreen extends StatelessWidget {
   final String status;
   final double? amount;
@@ -23,7 +25,7 @@ class PaymentStatusScreen extends StatelessWidget {
     final isSuccess = status == 'success';
 
     return Scaffold(
-      backgroundColor: const Color(0xFF0e0e0e),
+      backgroundColor: SgColors.bg000,
       body: SafeArea(
         child: Padding(
           padding: const EdgeInsets.all(24.0),
@@ -64,17 +66,17 @@ class PaymentStatusScreen extends StatelessWidget {
       decoration: BoxDecoration(
         shape: BoxShape.circle,
         color: isSuccess
-            ? const Color(0xFFEEBD2B).withValues(alpha: 0.2)
-            : Colors.red.withValues(alpha: 0.2),
+            ? SgColors.gold500.withValues(alpha: 0.2)
+            : SgColors.danger.withValues(alpha: 0.2),
         border: Border.all(
-          color: isSuccess ? const Color(0xFFEEBD2B) : Colors.red,
+          color: isSuccess ? SgColors.goldText : SgColors.danger,
           width: 3,
         ),
       ),
       child: Icon(
         isSuccess ? Icons.check : Icons.close,
         size: 64,
-        color: isSuccess ? const Color(0xFFEEBD2B) : Colors.red,
+        color: isSuccess ? SgColors.goldText : SgColors.danger,
       ),
     );
   }
@@ -82,10 +84,10 @@ class PaymentStatusScreen extends StatelessWidget {
   Widget _buildTitle(bool isSuccess) {
     return Text(
       isSuccess ? 'Payment Successful' : 'Payment Failed',
-      style: const TextStyle(
+      style: TextStyle(
         fontSize: 28,
         fontWeight: FontWeight.bold,
-        color: Colors.white,
+        color: SgColors.ink,
       ),
     );
   }
@@ -93,10 +95,10 @@ class PaymentStatusScreen extends StatelessWidget {
   Widget _buildAmount() {
     return Text(
       '${MarketConfigStore.instance.current.currencySymbol}${amount?.toStringAsFixed(2) ?? '0.00'}',
-      style: const TextStyle(
+      style: TextStyle(
         fontSize: 36,
         fontWeight: FontWeight.bold,
-        color: Color(0xFFEEBD2B),
+        color: SgColors.goldText,
       ),
     );
   }
@@ -104,20 +106,14 @@ class PaymentStatusScreen extends StatelessWidget {
   Widget _buildTransactionId() {
     return Text(
       'Transaction ID: ${transactionId ?? "N/A"}',
-      style: TextStyle(
-        fontSize: 14,
-        color: Colors.white.withValues(alpha: 0.7),
-      ),
+      style: TextStyle(fontSize: 14, color: SgColors.inkMuted),
     );
   }
 
   Widget _buildNewBalance() {
     return Text(
       'New Balance: ${MarketConfigStore.instance.current.currencySymbol}${newBalance?.toStringAsFixed(2) ?? "0.00"}',
-      style: TextStyle(
-        fontSize: 16,
-        color: Colors.white.withValues(alpha: 0.9),
-      ),
+      style: TextStyle(fontSize: 16, color: SgColors.ink),
     );
   }
 
@@ -127,10 +123,7 @@ class PaymentStatusScreen extends StatelessWidget {
       child: Text(
         message,
         textAlign: TextAlign.center,
-        style: TextStyle(
-          fontSize: 16,
-          color: Colors.white.withValues(alpha: 0.7),
-        ),
+        style: TextStyle(fontSize: 16, color: SgColors.inkMuted),
       ),
     );
   }
@@ -141,8 +134,8 @@ class PaymentStatusScreen extends StatelessWidget {
       child: ElevatedButton(
         onPressed: () => context.go('/home'),
         style: ElevatedButton.styleFrom(
-          backgroundColor: const Color(0xFFEEBD2B),
-          foregroundColor: const Color(0xFF554100),
+          backgroundColor: SgColors.gold500,
+          foregroundColor: SgColors.onGold,
           padding: const EdgeInsets.symmetric(vertical: 16),
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(12),
@@ -164,8 +157,8 @@ class PaymentStatusScreen extends StatelessWidget {
           child: ElevatedButton(
             onPressed: () => context.pop(),
             style: ElevatedButton.styleFrom(
-              backgroundColor: const Color(0xFFEEBD2B),
-              foregroundColor: const Color(0xFF554100),
+              backgroundColor: SgColors.gold500,
+              foregroundColor: SgColors.onGold,
               padding: const EdgeInsets.symmetric(vertical: 16),
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(12),
@@ -185,8 +178,8 @@ class PaymentStatusScreen extends StatelessWidget {
               context.go('/home');
             },
             style: OutlinedButton.styleFrom(
-              foregroundColor: Colors.white,
-              side: const BorderSide(color: Colors.white),
+              foregroundColor: SgColors.ink,
+              side: BorderSide(color: SgColors.lineStrong),
               padding: const EdgeInsets.symmetric(vertical: 16),
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(12),

@@ -85,7 +85,7 @@ void main() {
       tripFrame(
         sheetHeight: 470,
         markers: const [_pickup, _car],
-        polylines: const [
+        polylines: [
           SgPolyline(id: 'to', points: [_carAt, tripPickup], color: SgColors.inkMuted, width: 3, dotted: true),
         ],
         sheet: ArrivingSheet(

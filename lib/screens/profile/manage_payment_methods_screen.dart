@@ -1,10 +1,11 @@
 import '../components/market_overlays.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
-import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
 import 'package:intl/intl.dart';
 import '../../providers/wallet_provider.dart';
+
+import '../../ui/sg_tokens.dart';
 
 class ManagePaymentMethodsScreen extends StatelessWidget {
   const ManagePaymentMethodsScreen({super.key});
@@ -12,27 +13,27 @@ class ManagePaymentMethodsScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFF1A1814),
+      backgroundColor: SgColors.bg200,
       appBar: AppBar(
-        backgroundColor: const Color(0xFF1A1814).withValues(alpha: 0.8),
+        backgroundColor: SgColors.bg100.withValues(alpha: 0.80),
         elevation: 0,
         leading: Padding(
           padding: const EdgeInsets.all(8.0),
           child: Container(
             decoration: BoxDecoration(
-              color: Colors.white.withValues(alpha: 0.05),
+              color: SgColors.bg200,
               shape: BoxShape.circle,
             ),
             child: IconButton(
-              icon: const Icon(Icons.arrow_back, color: Colors.white, size: 20),
+              icon: Icon(Icons.arrow_back, color: SgColors.ink, size: 20),
               onPressed: () => context.pop(),
             ),
           ),
         ),
         title: Text(
           'Payment Methods',
-          style: GoogleFonts.inter(
-            color: Colors.white,
+          style: TextStyle(
+            color: SgColors.ink,
             fontSize: 18,
             fontWeight: FontWeight.w600,
             letterSpacing: 0.5,
@@ -52,8 +53,8 @@ class ManagePaymentMethodsScreen extends StatelessWidget {
             children: [
               Text(
                 'SAVED METHODS',
-                style: GoogleFonts.inter(
-                  color: const Color(0xFF94A3B8),
+                style: TextStyle(
+                  color: SgColors.inkMuted,
                   fontSize: 12,
                   fontWeight: FontWeight.w500,
                   letterSpacing: 1.5,
@@ -76,9 +77,9 @@ class ManagePaymentMethodsScreen extends StatelessWidget {
                 label: const Text('Add New Payment Method'),
                 style: OutlinedButton.styleFrom(
                   padding: const EdgeInsets.symmetric(vertical: 20),
-                  foregroundColor: const Color(0xFFEEBD2B),
+                  foregroundColor: SgColors.goldText,
                   side: BorderSide(
-                    color: const Color(0xFF8B6508).withValues(alpha: 0.4),
+                    color: SgColors.goldText.withValues(alpha: 0.4),
                   ),
                   backgroundColor: const Color(
                     0xFF8B6508,
@@ -86,7 +87,7 @@ class ManagePaymentMethodsScreen extends StatelessWidget {
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(16),
                   ),
-                  textStyle: GoogleFonts.inter(
+                  textStyle: TextStyle(
                     fontWeight: FontWeight.w600,
                     letterSpacing: 0.5,
                   ),
@@ -122,26 +123,16 @@ class _PaymentTile extends StatelessWidget {
       child: Container(
         padding: const EdgeInsets.all(20),
         decoration: BoxDecoration(
-          gradient: isWallet
-              ? LinearGradient(
-                  colors: [
-                    const Color(0xFF8B6508).withValues(alpha: 0.2),
-                    const Color(0xFF8B6508).withValues(alpha: 0.05),
-                  ],
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
-                )
-              : null,
-          color: isWallet ? null : const Color(0xFF22201C),
+          color: isWallet ? SgColors.goldSoft : SgColors.bg300,
           borderRadius: BorderRadius.circular(16),
           border: Border.all(
             color: isWallet
-                ? const Color(0xFF8B6508).withValues(alpha: 0.3)
+                ? SgColors.goldText.withValues(alpha: 0.3)
                 : Colors.transparent,
           ),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withValues(alpha: 0.04),
+              color: SgColors.shadow.withValues(alpha: 0.04),
               blurRadius: 30,
               offset: const Offset(0, 8),
             ),
@@ -153,16 +144,12 @@ class _PaymentTile extends StatelessWidget {
               width: 40,
               height: 40,
               decoration: BoxDecoration(
-                color: isWallet
-                    ? const Color(0xFF8B6508).withValues(alpha: 0.3)
-                    : Colors.white.withValues(alpha: 0.05),
+                color: isWallet ? SgColors.goldSoft : SgColors.bg200,
                 shape: BoxShape.circle,
               ),
               child: Icon(
                 icon,
-                color: isWallet
-                    ? const Color(0xFFEEBD2B)
-                    : const Color(0xFF94A3B8),
+                color: isWallet ? SgColors.goldText : SgColors.inkMuted,
                 size: 20,
               ),
             ),
@@ -173,8 +160,8 @@ class _PaymentTile extends StatelessWidget {
                 children: [
                   Text(
                     title,
-                    style: GoogleFonts.inter(
-                      color: Colors.white,
+                    style: TextStyle(
+                      color: SgColors.ink,
                       fontSize: 16,
                       fontWeight: FontWeight.w700,
                       letterSpacing: -0.2,
@@ -183,17 +170,14 @@ class _PaymentTile extends StatelessWidget {
                   const SizedBox(height: 2),
                   RichText(
                     text: TextSpan(
-                      style: GoogleFonts.inter(
-                        color: const Color(0xFF94A3B8),
-                        fontSize: 13,
-                      ),
+                      style: TextStyle(color: SgColors.inkMuted, fontSize: 13),
                       children: [
                         if (isWallet) const TextSpan(text: 'Balance: '),
                         if (isWallet)
                           TextSpan(
                             text: subtitle.split(': ').last,
-                            style: const TextStyle(
-                              color: Color(0xFFEEBD2B),
+                            style: TextStyle(
+                              color: SgColors.goldText,
                               fontWeight: FontWeight.w500,
                             ),
                           )
@@ -205,7 +189,7 @@ class _PaymentTile extends StatelessWidget {
                 ],
               ),
             ),
-            const Icon(Icons.chevron_right, color: Color(0xFFEEBD2B), size: 20),
+            Icon(Icons.chevron_right, color: SgColors.goldText, size: 20),
           ],
         ),
       ),

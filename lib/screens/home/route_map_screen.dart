@@ -1,10 +1,8 @@
-
 import 'package:flutter/material.dart';
 import 'package:latlong2/latlong.dart';
 import '../../core/maps/sg_map.dart';
 import 'package:provider/provider.dart';
 import 'package:go_router/go_router.dart';
-import 'package:google_fonts/google_fonts.dart';
 import '../../providers/map_provider.dart';
 import '../components/coming_soon_overlay.dart';
 import '../components/market_overlays.dart';
@@ -32,10 +30,12 @@ class _RouteMapScreenState extends State<RouteMapScreen> {
   bool _isValidCoordinate(LatLng? coordinate) {
     if (coordinate == null) return false;
     // Explicitly check for NaN or infinite values which cause FlutterMap crashes
-    if (coordinate.latitude.isNaN || coordinate.latitude.isInfinite)
+    if (coordinate.latitude.isNaN || coordinate.latitude.isInfinite) {
       return false;
-    if (coordinate.longitude.isNaN || coordinate.longitude.isInfinite)
+    }
+    if (coordinate.longitude.isNaN || coordinate.longitude.isInfinite) {
       return false;
+    }
 
     // Check for valid latitude (-90 to 90) and longitude (-180 to 180)
     if (coordinate.latitude < -90 || coordinate.latitude > 90) return false;
@@ -55,7 +55,13 @@ class _RouteMapScreenState extends State<RouteMapScreen> {
     String? label,
   }) {
     if (point == null || !_isValidCoordinate(point)) return null;
-    return SgMarker(id: id, point: point, icon: icon, anchor: anchor, label: label);
+    return SgMarker(
+      id: id,
+      point: point,
+      icon: icon,
+      anchor: anchor,
+      label: label,
+    );
   }
 
   /// The route, without any invalid coordinate, or null if too little is left.
@@ -159,7 +165,8 @@ class _RouteMapScreenState extends State<RouteMapScreen> {
           .where((point) => _isValidCoordinate(point))
           .toList();
 
-      final points = (dropoff != null &&
+      final points =
+          (dropoff != null &&
               _isValidCoordinate(dropoff) &&
               validPolyline.isNotEmpty)
           ? validPolyline
@@ -244,9 +251,9 @@ class _RouteMapScreenState extends State<RouteMapScreen> {
                 final driverMarker = _buildSafeMarker(
                   id: 'nearby-${nearby++}',
                   point: point,
-                  icon: const SgIconMarker(
+                  icon: SgIconMarker(
                     Icons.directions_car,
-                    Color(0xFFEEBD2B),
+                    SgColors.goldText,
                     size: 24,
                   ),
                   anchor: const Offset(0.5, 0.5),
@@ -291,9 +298,9 @@ class _RouteMapScreenState extends State<RouteMapScreen> {
 
           if (mapProvider.isLoadingRoute) {
             return Scaffold(
-              backgroundColor: const Color(0xFF12110E),
+              backgroundColor: SgColors.bg000,
               body: const Center(
-                child: CircularProgressIndicator(color: Color(0xFFEEBD2B)),
+                child: CircularProgressIndicator(color: SgColors.gold500),
               ),
             );
           }
@@ -319,117 +326,119 @@ class _RouteMapScreenState extends State<RouteMapScreen> {
                 SizedBox(
                   height: MediaQuery.of(context).size.height * 0.40,
                   child: Stack(
-              children: [
-                // Ensure FlutterMap has explicit constraints to prevent "render box with no size" errors
-                Positioned.fill(
-                  child: LayoutBuilder(
-                    builder: (context, constraints) {
-                      // Provide fallback if constraints are zero (shouldn't happen but defensive)
-                      if (constraints.maxWidth <= 0 ||
-                          constraints.maxHeight <= 0) {
-                        return Container(
-                          color: const Color(0xFF12110E),
-                          child: const Center(
-                            child: CircularProgressIndicator(
-                              color: Color(0xFFEEBD2B),
-                            ),
-                          ),
-                        );
-                      }
+                    children: [
+                      // Ensure FlutterMap has explicit constraints to prevent "render box with no size" errors
+                      Positioned.fill(
+                        child: LayoutBuilder(
+                          builder: (context, constraints) {
+                            // Provide fallback if constraints are zero (shouldn't happen but defensive)
+                            if (constraints.maxWidth <= 0 ||
+                                constraints.maxHeight <= 0) {
+                              return Container(
+                                color: SgColors.bg000,
+                                child: const Center(
+                                  child: CircularProgressIndicator(
+                                    color: SgColors.gold500,
+                                  ),
+                                ),
+                              );
+                            }
 
-                      try {
-                        return SgMap(
-                          initialCenter: initialCenter,
-                          initialZoom: initialZoom,
-                          markers: markers,
-                          polylines: polylines,
-                                                    fitPadding: EdgeInsets.fromLTRB(
-                            32,
-                            MediaQuery.of(context).padding.top + 72,
-                            32,
-                            32,
-                          ),
-                          onMapCreated: (c) {
-                            _mapController = c;
-                            _fitBoundsIfNeeded(mapProvider);
+                            try {
+                              return SgMap(
+                                initialCenter: initialCenter,
+                                initialZoom: initialZoom,
+                                markers: markers,
+                                polylines: polylines,
+                                fitPadding: EdgeInsets.fromLTRB(
+                                  32,
+                                  MediaQuery.of(context).padding.top + 72,
+                                  32,
+                                  32,
+                                ),
+                                onMapCreated: (c) {
+                                  _mapController = c;
+                                  _fitBoundsIfNeeded(mapProvider);
+                                },
+                              );
+                            } catch (e, stackTrace) {
+                              debugPrint('FlutterMap rendering error: $e');
+                              debugPrint('Stack trace: $stackTrace');
+                              // Fallback UI when map fails to render
+                              return Container(
+                                color: SgColors.bg000,
+                                child: Center(
+                                  child: Column(
+                                    mainAxisAlignment: MainAxisAlignment.center,
+                                    children: [
+                                      Icon(
+                                        Icons.error_outline,
+                                        color: SgColors.goldText,
+                                        size: 64,
+                                      ),
+                                      const SizedBox(height: 16),
+                                      Text(
+                                        'Map unavailable',
+                                        style: TextStyle(
+                                          color: SgColors.ink,
+                                          fontSize: 18,
+                                          fontWeight: FontWeight.w600,
+                                        ),
+                                      ),
+                                      const SizedBox(height: 8),
+                                      Text(
+                                        'Please check your connection',
+                                        style: TextStyle(
+                                          color: SgColors.inkMuted,
+                                          fontSize: 14,
+                                        ),
+                                      ),
+                                      const SizedBox(height: 24),
+                                      ElevatedButton(
+                                        onPressed: () {
+                                          // Try to reload the map
+                                          if (mounted) {
+                                            setState(() {});
+                                          }
+                                        },
+                                        style: ElevatedButton.styleFrom(
+                                          backgroundColor: SgColors.gold500,
+                                          foregroundColor: SgColors.onGold,
+                                          padding: const EdgeInsets.symmetric(
+                                            horizontal: 24,
+                                            vertical: 12,
+                                          ),
+                                        ),
+                                        child: const Text('Retry'),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              );
+                            }
                           },
-                        );
-                      } catch (e, stackTrace) {
-                        debugPrint('FlutterMap rendering error: $e');
-                        debugPrint('Stack trace: $stackTrace');
-                        // Fallback UI when map fails to render
-                        return Container(
-                          color: const Color(0xFF12110E),
-                          child: Center(
-                            child: Column(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              children: [
-                                const Icon(
-                                  Icons.error_outline,
-                                  color: Color(0xFFEEBD2B),
-                                  size: 64,
-                                ),
-                                const SizedBox(height: 16),
-                                Text(
-                                  'Map unavailable',
-                                  style: GoogleFonts.inter(
-                                    color: Colors.white,
-                                    fontSize: 18,
-                                    fontWeight: FontWeight.w600,
-                                  ),
-                                ),
-                                const SizedBox(height: 8),
-                                Text(
-                                  'Please check your connection',
-                                  style: GoogleFonts.inter(
-                                    color: Colors.white70,
-                                    fontSize: 14,
-                                  ),
-                                ),
-                                const SizedBox(height: 24),
-                                ElevatedButton(
-                                  onPressed: () {
-                                    // Try to reload the map
-                                    if (mounted) {
-                                      setState(() {});
-                                    }
-                                  },
-                                  style: ElevatedButton.styleFrom(
-                                    backgroundColor: const Color(0xFFEEBD2B),
-                                    foregroundColor: Colors.black,
-                                    padding: const EdgeInsets.symmetric(
-                                      horizontal: 24,
-                                      vertical: 12,
-                                    ),
-                                  ),
-                                  child: const Text('Retry'),
-                                ),
-                              ],
-                            ),
-                          ),
-                        );
-                      }
-                    },
+                        ),
+                      ),
+                      Positioned(
+                        top: MediaQuery.of(context).padding.top + SgSpace.s2,
+                        left: SgSpace.s4,
+                        child: SgMapButton(
+                          icon: SgIcons.back,
+                          label: 'Back',
+                          onTap: () async {
+                            if (hasTripDetails) {
+                              final shouldPop = await _showCancelConfirmation(
+                                context,
+                              );
+                              if (shouldPop && context.mounted) context.pop();
+                            } else {
+                              context.pop();
+                            }
+                          },
+                        ),
+                      ),
+                    ],
                   ),
-                ),
-                Positioned(
-                  top: MediaQuery.of(context).padding.top + SgSpace.s2,
-                  left: SgSpace.s4,
-                  child: SgMapButton(
-                    icon: SgIcons.back,
-                    label: 'Back',
-                    onTap: () async {
-                      if (hasTripDetails) {
-                        final shouldPop = await _showCancelConfirmation(context);
-                        if (shouldPop && context.mounted) context.pop();
-                      } else {
-                        context.pop();
-                      }
-                    },
-                  ),
-                ),
-              ],
-            ),
                 ),
                 Expanded(child: _buildSheet(mapProvider)),
               ],
@@ -445,7 +454,9 @@ class _RouteMapScreenState extends State<RouteMapScreen> {
       return const SgSheetSurface(
         child: Padding(
           padding: EdgeInsets.all(SgSpace.s5),
-          child: Center(child: CircularProgressIndicator(color: SgColors.gold500)),
+          child: Center(
+            child: CircularProgressIndicator(color: SgColors.gold500),
+          ),
         ),
       );
     }
@@ -457,12 +468,16 @@ class _RouteMapScreenState extends State<RouteMapScreen> {
           children: [
             Text('Unable to load fare estimates', style: SgText.title),
             const SizedBox(height: SgSpace.s2),
-            Text('Please check your connection and try again', style: SgText.caption),
+            Text(
+              'Please check your connection and try again',
+              style: SgText.caption,
+            ),
             const SizedBox(height: SgSpace.s4),
             SgPrimaryButton(
               label: 'Retry',
               onPressed: () {
-                if (provider.pickupLocation != null && provider.dropLocation != null) {
+                if (provider.pickupLocation != null &&
+                    provider.dropLocation != null) {
                   provider.fetchFareEstimates();
                 }
               },
@@ -507,12 +522,14 @@ class _RouteMapScreenState extends State<RouteMapScreen> {
             market: marketOf(context),
             fareData: provider.fareEstimates[chosen],
             vehicleType: chosen,
-            pickupLat: (provider.precisePickupLocation ??
-                    provider.pickupLocation?.latLng)
-                ?.latitude,
-            pickupLong: (provider.precisePickupLocation ??
-                    provider.pickupLocation?.latLng)
-                ?.longitude,
+            pickupLat:
+                (provider.precisePickupLocation ??
+                        provider.pickupLocation?.latLng)
+                    ?.latitude,
+            pickupLong:
+                (provider.precisePickupLocation ??
+                        provider.pickupLocation?.latLng)
+                    ?.longitude,
           ),
         ],
       ),
@@ -537,15 +554,15 @@ class _RouteMapScreenState extends State<RouteMapScreen> {
       alignment: Alignment.centerLeft,
       child: TextButton.icon(
         onPressed: () => showFareBreakdownSheet(context, fareData),
-        icon: const Icon(
+        icon: Icon(
           Icons.receipt_long_outlined,
           size: 18,
-          color: Color(0xFFEEBD2B),
+          color: SgColors.goldText,
         ),
-        label: const Text(
+        label: Text(
           'How is this fare calculated?',
           style: TextStyle(
-            color: Color(0xFFEEBD2B),
+            color: SgColors.goldText,
             fontSize: 14,
             fontWeight: FontWeight.w600,
           ),
@@ -563,33 +580,30 @@ class _RouteMapScreenState extends State<RouteMapScreen> {
     return await showDialog<bool>(
           context: context,
           builder: (context) => AlertDialog(
-            backgroundColor: const Color(0xFF1E1C18),
+            backgroundColor: SgColors.bg200,
             title: Text(
               'Cancel Trip?',
-              style: GoogleFonts.inter(
+              style: TextStyle(
                 fontSize: 18,
-                color: Colors.white,
+                color: SgColors.ink,
                 fontWeight: FontWeight.bold,
               ),
             ),
             content: Text(
               'Are you sure you want to cancel and go back?',
-              style: GoogleFonts.inter(color: Colors.white70),
+              style: TextStyle(color: SgColors.inkMuted),
             ),
             actions: [
               TextButton(
                 onPressed: () => Navigator.pop(context, false),
                 child: Text(
                   'Keep Going',
-                  style: GoogleFonts.inter(color: const Color(0xFFEEBD2B)),
+                  style: TextStyle(color: SgColors.goldText),
                 ),
               ),
               TextButton(
                 onPressed: () => Navigator.pop(context, true),
-                child: Text(
-                  'Cancel',
-                  style: GoogleFonts.inter(color: Colors.redAccent),
-                ),
+                child: Text('Cancel', style: TextStyle(color: SgColors.danger)),
               ),
             ],
           ),

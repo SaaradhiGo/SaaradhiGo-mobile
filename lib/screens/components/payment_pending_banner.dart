@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import '../../ui/sg_tokens.dart';
+
 /// Shown after a trip completes while its payment is still outstanding.
 ///
 /// It sits above the app's navigator (MaterialApp.router builder), so it
@@ -16,7 +18,7 @@ class PaymentPendingBanner extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Material(
-      color: const Color(0xFFEEBD2B),
+      color: SgColors.gold500,
       child: InkWell(
         onTap: onOpen,
         child: Padding(
@@ -28,13 +30,13 @@ class PaymentPendingBanner extends StatelessWidget {
           ),
           child: Row(
             children: [
-              const Icon(Icons.payment, color: Color(0xFF12110E)),
+              const Icon(Icons.payment, color: SgColors.onGold),
               const SizedBox(width: 12),
               const Expanded(
                 child: Text(
                   'Your last ride is waiting for payment',
                   style: TextStyle(
-                    color: Color(0xFF12110E),
+                    color: SgColors.onGold,
                     fontWeight: FontWeight.w700,
                     fontSize: 14,
                   ),
@@ -43,7 +45,7 @@ class PaymentPendingBanner extends StatelessWidget {
               TextButton(
                 onPressed: onOpen,
                 style: TextButton.styleFrom(
-                  foregroundColor: const Color(0xFF12110E),
+                  foregroundColor: SgColors.onGold,
                   minimumSize: const Size(48, 48),
                 ),
                 child: const Text(

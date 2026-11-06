@@ -14,6 +14,8 @@ import 'package:flutter/material.dart';
 
 import '../services/rating_service.dart';
 
+import '../ui/sg_tokens.dart';
+
 /// Shows the sheet and returns true when the trip ends up rated (including
 /// when it was already rated), so the caller can stop prompting for it.
 Future<bool> showRateTripSheet(
@@ -115,8 +117,8 @@ class _RateTripSheetState extends State<RateTripSheet> {
         bottom: MediaQuery.of(context).viewInsets.bottom,
       ),
       child: Container(
-        decoration: const BoxDecoration(
-          color: Color(0xFF1C1C1E),
+        decoration: BoxDecoration(
+          color: SgColors.bg200,
           borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
         ),
         padding: const EdgeInsets.all(20),
@@ -129,7 +131,7 @@ class _RateTripSheetState extends State<RateTripSheet> {
                 width: 40,
                 height: 4,
                 decoration: BoxDecoration(
-                  color: Colors.white24,
+                  color: SgColors.bg300,
                   borderRadius: BorderRadius.circular(2),
                 ),
               ),
@@ -139,8 +141,8 @@ class _RateTripSheetState extends State<RateTripSheet> {
               who != null && who.isNotEmpty
                   ? 'How was your trip with $who?'
                   : 'How was your trip?',
-              style: const TextStyle(
-                color: Colors.white,
+              style: TextStyle(
+                color: SgColors.ink,
                 fontSize: 18,
                 fontWeight: FontWeight.w600,
               ),
@@ -165,7 +167,7 @@ class _RateTripSheetState extends State<RateTripSheet> {
                           }),
                     icon: Icon(
                       star <= _score ? Icons.star : Icons.star_border,
-                      color: const Color(0xFFEEBD2B),
+                      color: SgColors.goldText,
                     ),
                   ),
               ],
@@ -176,19 +178,19 @@ class _RateTripSheetState extends State<RateTripSheet> {
               enabled: !_submitting,
               maxLines: 3,
               maxLength: 500,
-              style: const TextStyle(color: Colors.white),
-              decoration: const InputDecoration(
+              style: TextStyle(color: SgColors.ink),
+              decoration: InputDecoration(
                 hintText: 'Anything you want us to know? (optional)',
-                hintStyle: TextStyle(color: Colors.white38),
+                hintStyle: TextStyle(color: SgColors.inkSubtle),
                 border: OutlineInputBorder(),
-                counterStyle: TextStyle(color: Colors.white38),
+                counterStyle: TextStyle(color: SgColors.inkSubtle),
               ),
             ),
             if (_error != null) ...[
               const SizedBox(height: 12),
               Text(
                 _error!,
-                style: const TextStyle(color: Color(0xFFFF8A80)),
+                style: TextStyle(color: SgColors.danger),
                 textAlign: TextAlign.center,
               ),
             ],
@@ -196,17 +198,17 @@ class _RateTripSheetState extends State<RateTripSheet> {
             ElevatedButton(
               onPressed: _submitting ? null : _submit,
               style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFFEEBD2B),
-                foregroundColor: Colors.black,
+                backgroundColor: SgColors.gold500,
+                foregroundColor: SgColors.onGold,
                 padding: const EdgeInsets.symmetric(vertical: 14),
               ),
               child: _submitting
-                  ? const SizedBox(
+                  ? SizedBox(
                       height: 20,
                       width: 20,
                       child: CircularProgressIndicator(
                         strokeWidth: 2,
-                        color: Colors.black,
+                        color: SgColors.bg000,
                       ),
                     )
                   : const Text('Submit rating'),
@@ -215,9 +217,9 @@ class _RateTripSheetState extends State<RateTripSheet> {
               // Skippable on purpose. A prompt a rider cannot dismiss is one
               // they learn to tap through without reading.
               onPressed: _submitting ? null : () => _done(false),
-              child: const Text(
+              child: Text(
                 'Not now',
-                style: TextStyle(color: Colors.white54),
+                style: TextStyle(color: SgColors.inkMuted),
               ),
             ),
           ],

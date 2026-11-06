@@ -3,11 +3,12 @@ import 'package:cached_network_image_ce/cached_network_image.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'dart:io';
-import 'package:google_fonts/google_fonts.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:provider/provider.dart';
 import 'package:go_router/go_router.dart';
 import '../../providers/auth_provider.dart';
+
+import '../../ui/sg_tokens.dart';
 
 class EditPersonalInformationScreen extends StatefulWidget {
   const EditPersonalInformationScreen({super.key});
@@ -19,10 +20,10 @@ class EditPersonalInformationScreen extends StatefulWidget {
 
 class _EditPersonalInformationScreenState
     extends State<EditPersonalInformationScreen> {
-  static const Color _screenBackground = Color(0xFF1A1814);
-  static const Color _fieldBackground = Color(0xFF24211C);
-  static const Color _borderColor = Color(0x4D8B6508);
-  static const Color _primaryColor = Color(0xFFEEBD2B);
+  static Color get _screenBackground => SgColors.bg000;
+  static Color get _fieldBackground => SgColors.bg300;
+  static Color get _borderColor => SgColors.goldLine;
+  static Color get _primaryColor => SgColors.goldText;
   static const String _fallbackFullName = 'John Doe';
   static const String _fallbackEmail = 'johndoe@example.com';
   String get _fallbackCountryCode =>
@@ -125,7 +126,7 @@ class _EditPersonalInformationScreenState
     ScaffoldMessenger.of(context)
       ..hideCurrentSnackBar()
       ..showSnackBar(
-        SnackBar(content: Text(text), backgroundColor: const Color(0xFF2B2722)),
+        SnackBar(content: Text(text), backgroundColor: SgColors.bg300),
       );
   }
 
@@ -145,15 +146,15 @@ class _EditPersonalInformationScreenState
               width: 40,
               height: 4,
               decoration: BoxDecoration(
-                color: Colors.white10,
+                color: SgColors.bg200,
                 borderRadius: BorderRadius.circular(2),
               ),
             ),
             const SizedBox(height: 20),
             Text(
               'SET PROFILE PHOTO',
-              style: GoogleFonts.inter(
-                color: Colors.white54,
+              style: TextStyle(
+                color: SgColors.inkMuted,
                 fontSize: 12,
                 fontWeight: FontWeight.bold,
                 letterSpacing: 1.5,
@@ -201,7 +202,7 @@ class _EditPersonalInformationScreenState
             width: 64,
             height: 64,
             decoration: BoxDecoration(
-              color: const Color(0xFF2A2620),
+              color: SgColors.bg300,
               shape: BoxShape.circle,
               border: Border.all(color: _borderColor),
             ),
@@ -210,8 +211,8 @@ class _EditPersonalInformationScreenState
           const SizedBox(height: 10),
           Text(
             label,
-            style: GoogleFonts.inter(
-              color: Colors.white,
+            style: TextStyle(
+              color: SgColors.ink,
               fontSize: 13,
               fontWeight: FontWeight.w500,
             ),
@@ -317,8 +318,8 @@ class _EditPersonalInformationScreenState
       padding: const EdgeInsets.only(left: 2, bottom: 8),
       child: Text(
         text.toUpperCase(),
-        style: GoogleFonts.inter(
-          color: const Color(0xFF94A3B8),
+        style: TextStyle(
+          color: SgColors.inkMuted,
           fontSize: 11,
           fontWeight: FontWeight.w700,
           letterSpacing: 1.3,
@@ -362,13 +363,13 @@ class _EditPersonalInformationScreenState
                     child: Container(
                       width: 40,
                       height: 40,
-                      decoration: const BoxDecoration(
-                        color: Color(0x1AFFFFFF),
+                      decoration: BoxDecoration(
+                        color: SgColors.bg300,
                         shape: BoxShape.circle,
                       ),
-                      child: const Icon(
+                      child: Icon(
                         Icons.arrow_back,
-                        color: Color(0xFFE2E8F0),
+                        color: SgColors.ink,
                         size: 20,
                       ),
                     ),
@@ -377,8 +378,8 @@ class _EditPersonalInformationScreenState
                     child: Text(
                       'Personal Information',
                       textAlign: TextAlign.center,
-                      style: GoogleFonts.inter(
-                        color: Colors.white,
+                      style: TextStyle(
+                        color: SgColors.ink,
                         fontSize: 24,
                         fontWeight: FontWeight.w600,
                         letterSpacing: -0.4,
@@ -408,13 +409,6 @@ class _EditPersonalInformationScreenState
                               border: Border.all(
                                 color: _primaryColor.withValues(alpha: 0.5),
                               ),
-                              boxShadow: const [
-                                BoxShadow(
-                                  color: Color(0x66EEBD2B),
-                                  blurRadius: 18,
-                                  spreadRadius: 0.5,
-                                ),
-                              ],
                             ),
                             child: ClipOval(
                               child: Image(
@@ -424,9 +418,9 @@ class _EditPersonalInformationScreenState
                                   return Container(
                                     color: _fieldBackground,
                                     alignment: Alignment.center,
-                                    child: const Icon(
+                                    child: Icon(
                                       Icons.person,
-                                      color: Color(0xFFCBD5E1),
+                                      color: SgColors.inkMuted,
                                       size: 52,
                                     ),
                                   );
@@ -448,7 +442,7 @@ class _EditPersonalInformationScreenState
                                   borderRadius: BorderRadius.circular(17),
                                   border: Border.all(color: _borderColor),
                                 ),
-                                child: const Icon(
+                                child: Icon(
                                   Icons.photo_camera_rounded,
                                   color: _primaryColor,
                                   size: 17,
@@ -464,8 +458,8 @@ class _EditPersonalInformationScreenState
                     _fieldContainer(
                       child: TextField(
                         controller: _fullNameController,
-                        style: GoogleFonts.inter(
-                          color: const Color(0xFFF8FAFC),
+                        style: TextStyle(
+                          color: SgColors.ink,
                           fontSize: 19,
                           fontWeight: FontWeight.w500,
                         ),
@@ -476,8 +470,8 @@ class _EditPersonalInformationScreenState
                             vertical: 16,
                           ),
                           hintText: _fallbackFullName,
-                          hintStyle: GoogleFonts.inter(
-                            color: const Color(0xFF64748B),
+                          hintStyle: TextStyle(
+                            color: SgColors.inkSubtle,
                             fontSize: 19,
                           ),
                         ),
@@ -489,8 +483,8 @@ class _EditPersonalInformationScreenState
                       child: TextField(
                         controller: _emailController,
                         keyboardType: TextInputType.emailAddress,
-                        style: GoogleFonts.inter(
-                          color: const Color(0xFFF8FAFC),
+                        style: TextStyle(
+                          color: SgColors.ink,
                           fontSize: 19,
                           fontWeight: FontWeight.w500,
                         ),
@@ -501,8 +495,8 @@ class _EditPersonalInformationScreenState
                             vertical: 16,
                           ),
                           hintText: _fallbackEmail,
-                          hintStyle: GoogleFonts.inter(
-                            color: const Color(0xFF64748B),
+                          hintStyle: TextStyle(
+                            color: SgColors.inkSubtle,
                             fontSize: 19,
                           ),
                         ),
@@ -517,8 +511,8 @@ class _EditPersonalInformationScreenState
                             width: 74,
                             height: double.infinity,
                             alignment: Alignment.center,
-                            decoration: const BoxDecoration(
-                              color: Color(0xFF2A2620),
+                            decoration: BoxDecoration(
+                              color: SgColors.bg300,
                               border: Border(
                                 right: BorderSide(color: _borderColor),
                               ),
@@ -528,8 +522,8 @@ class _EditPersonalInformationScreenState
                             ),
                             child: Text(
                               displayCountryCode,
-                              style: GoogleFonts.inter(
-                                color: const Color(0xFFF8FAFC),
+                              style: TextStyle(
+                                color: SgColors.ink,
                                 fontSize: 19,
                                 fontWeight: FontWeight.w600,
                               ),
@@ -543,7 +537,7 @@ class _EditPersonalInformationScreenState
                               child: Text(
                                 displayPhoneNumber,
                                 key: const Key('personal-phone-display'),
-                                style: GoogleFonts.inter(
+                                style: TextStyle(
                                   color: const Color(
                                     0xFFF8FAFC,
                                   ).withValues(alpha: 0.5),
@@ -564,17 +558,17 @@ class _EditPersonalInformationScreenState
                           value: _selectedGender,
                           dropdownColor: _fieldBackground,
                           borderRadius: BorderRadius.circular(16),
-                          icon: const Padding(
+                          icon: Padding(
                             padding: EdgeInsets.only(right: 12),
                             child: Icon(
                               Icons.keyboard_arrow_down_rounded,
-                              color: Color(0xFF64748B),
+                              color: SgColors.inkSubtle,
                               size: 30,
                             ),
                           ),
                           isExpanded: true,
-                          style: GoogleFonts.inter(
-                            color: const Color(0xFFF8FAFC),
+                          style: TextStyle(
+                            color: SgColors.ink,
                             fontSize: 19,
                             fontWeight: FontWeight.w500,
                           ),
@@ -612,8 +606,8 @@ class _EditPersonalInformationScreenState
                           }
                         },
                         readOnly: true,
-                        style: GoogleFonts.inter(
-                          color: const Color(0xFFF8FAFC),
+                        style: TextStyle(
+                          color: SgColors.ink,
                           fontSize: 19,
                           fontWeight: FontWeight.w500,
                         ),
@@ -624,11 +618,11 @@ class _EditPersonalInformationScreenState
                             vertical: 16,
                           ),
                           hintText: 'YYYY-MM-DD',
-                          hintStyle: GoogleFonts.inter(
-                            color: const Color(0xFF64748B),
+                          hintStyle: TextStyle(
+                            color: SgColors.inkSubtle,
                             fontSize: 19,
                           ),
-                          suffixIcon: const Icon(
+                          suffixIcon: Icon(
                             Icons.calendar_today,
                             color: _primaryColor,
                             size: 20,
@@ -642,8 +636,8 @@ class _EditPersonalInformationScreenState
                       child: TextField(
                         controller: _emergencyContactController,
                         keyboardType: TextInputType.phone,
-                        style: GoogleFonts.inter(
-                          color: const Color(0xFFF8FAFC),
+                        style: TextStyle(
+                          color: SgColors.ink,
                           fontSize: 19,
                           fontWeight: FontWeight.w500,
                         ),
@@ -654,8 +648,8 @@ class _EditPersonalInformationScreenState
                             vertical: 16,
                           ),
                           hintText: 'Emergency phone number',
-                          hintStyle: GoogleFonts.inter(
-                            color: const Color(0xFF64748B),
+                          hintStyle: TextStyle(
+                            color: SgColors.inkSubtle,
                             fontSize: 19,
                           ),
                         ),
@@ -664,12 +658,12 @@ class _EditPersonalInformationScreenState
                     const SizedBox(height: 32),
                     Row(
                       children: [
-                        const Icon(Icons.home, color: _primaryColor, size: 24),
+                        Icon(Icons.home, color: _primaryColor, size: 24),
                         const SizedBox(width: 8),
                         Text(
                           'RESIDENTIAL ADDRESS',
-                          style: GoogleFonts.inter(
-                            color: Colors.white,
+                          style: TextStyle(
+                            color: SgColors.ink,
                             fontSize: 18,
                             fontWeight: FontWeight.w600,
                           ),
@@ -687,8 +681,8 @@ class _EditPersonalInformationScreenState
                               _fieldContainer(
                                 child: TextField(
                                   controller: _houseNoController,
-                                  style: GoogleFonts.inter(
-                                    color: const Color(0xFFF8FAFC),
+                                  style: TextStyle(
+                                    color: SgColors.ink,
                                     fontSize: 16,
                                   ),
                                   decoration: const InputDecoration(
@@ -714,8 +708,8 @@ class _EditPersonalInformationScreenState
                               _fieldContainer(
                                 child: TextField(
                                   controller: _streetController,
-                                  style: GoogleFonts.inter(
-                                    color: const Color(0xFFF8FAFC),
+                                  style: TextStyle(
+                                    color: SgColors.ink,
                                     fontSize: 16,
                                   ),
                                   decoration: InputDecoration(
@@ -748,8 +742,8 @@ class _EditPersonalInformationScreenState
                               _fieldContainer(
                                 child: TextField(
                                   controller: _cityController,
-                                  style: GoogleFonts.inter(
-                                    color: const Color(0xFFF8FAFC),
+                                  style: TextStyle(
+                                    color: SgColors.ink,
                                     fontSize: 16,
                                   ),
                                   decoration: InputDecoration(
@@ -780,8 +774,8 @@ class _EditPersonalInformationScreenState
                                 child: TextField(
                                   controller: _zipCodeController,
                                   keyboardType: TextInputType.number,
-                                  style: GoogleFonts.inter(
-                                    color: const Color(0xFFF8FAFC),
+                                  style: TextStyle(
+                                    color: SgColors.ink,
                                     fontSize: 16,
                                   ),
                                   decoration: InputDecoration(
@@ -813,9 +807,7 @@ class _EditPersonalInformationScreenState
         padding: const EdgeInsets.all(20),
         decoration: BoxDecoration(
           color: _screenBackground,
-          border: Border(
-            top: BorderSide(color: Colors.white.withValues(alpha: 0.05)),
-          ),
+          border: Border(top: BorderSide(color: SgColors.line)),
         ),
         child: SafeArea(
           child: SizedBox(
@@ -825,20 +817,20 @@ class _EditPersonalInformationScreenState
               key: const Key('personal-save'),
               onPressed: _isSubmitting ? null : _saveChanges,
               style: ElevatedButton.styleFrom(
-                backgroundColor: _primaryColor,
-                foregroundColor: Colors.black,
+                backgroundColor: SgColors.gold500,
+                foregroundColor: SgColors.onGold,
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(16),
                 ),
                 elevation: 0,
               ),
               child: _isSubmitting
-                  ? const SizedBox(
+                  ? SizedBox(
                       width: 24,
                       height: 24,
                       child: CircularProgressIndicator(
                         strokeWidth: 2,
-                        color: Colors.black,
+                        color: SgColors.bg000,
                       ),
                     )
                   : const Text(

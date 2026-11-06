@@ -26,6 +26,7 @@ import 'dart:async';
 import 'package:flutter/foundation.dart';
 import 'package:razorpay_flutter/razorpay_flutter.dart';
 
+import '../ui/sg_tokens.dart';
 import 'ride_service.dart';
 
 /// The wording of the generic "could not start an online payment" message, as
@@ -227,7 +228,9 @@ class RazorpaySdkLauncher implements RazorpayLauncher {
       if (r.code == Razorpay.PAYMENT_CANCELLED) {
         finish(const CheckoutCancelled());
       } else {
-        finish(CheckoutFailed(r.message ?? 'The payment could not be completed.'));
+        finish(
+          CheckoutFailed(r.message ?? 'The payment could not be completed.'),
+        );
       }
     });
     razorpay.on(Razorpay.EVENT_EXTERNAL_WALLET, (ExternalWalletResponse r) {
@@ -258,7 +261,7 @@ Map<String, dynamic> razorpayOptions(RazorpayOrder order) => {
       if (order.prefill['contact'] != null) 'contact': order.prefill['contact'],
       if (order.prefill['email'] != null) 'email': order.prefill['email'],
     },
-  'theme': {'color': '#EEBD2B'},
+  'theme': {'color': sgHex(SgColors.gold500)},
 };
 
 /// Runs the Cashfree checkout and returns its order id on success.

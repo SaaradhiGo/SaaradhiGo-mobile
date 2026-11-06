@@ -3,6 +3,7 @@ import 'package:go_router/go_router.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:geolocator/geolocator.dart';
+import '../../ui/sg_brand.dart';
 
 class SplashScreen extends StatefulWidget {
   const SplashScreen({super.key});
@@ -89,51 +90,7 @@ class _SplashScreenState extends State<SplashScreen> {
       mainAxisAlignment: MainAxisAlignment.center,
       children: [
         const Spacer(),
-        Container(
-          height: 96,
-          width: 96,
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(16),
-            gradient: LinearGradient(
-              colors: [
-                colorScheme.primary,
-                colorScheme.primary.withValues(alpha: 0.4),
-              ],
-            ),
-            boxShadow: [
-              BoxShadow(
-                color: colorScheme.primary.withValues(alpha: 0.2),
-                blurRadius: 24,
-                offset: const Offset(0, 8),
-              ),
-            ],
-          ),
-          padding: const EdgeInsets.all(2),
-          child: Container(
-            decoration: BoxDecoration(
-              color: colorScheme.surface,
-              borderRadius: BorderRadius.circular(14),
-            ),
-            child: Icon(Icons.navigation, size: 60, color: colorScheme.primary),
-          ),
-        ),
-        const SizedBox(height: 24),
-        RichText(
-          text: TextSpan(
-            style: TextStyle(
-              fontSize: 36,
-              fontWeight: FontWeight.bold,
-              color: colorScheme.onSurface,
-            ),
-            children: [
-              const TextSpan(text: 'Saaradhi'),
-              TextSpan(
-                text: 'Go',
-                style: TextStyle(color: colorScheme.primary),
-              ),
-            ],
-          ),
-        ),
+        const SgFullLogo(height: 200),
         const Spacer(),
         Padding(
           padding: const EdgeInsets.symmetric(horizontal: 48, vertical: 48),

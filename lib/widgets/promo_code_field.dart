@@ -1,10 +1,11 @@
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../core/promo/promo_messages.dart';
 import '../services/promo_service.dart';
 import '../utils/money.dart';
+
+import '../ui/sg_tokens.dart';
 
 /// Inline promo-code entry for the fare screen.
 ///
@@ -152,9 +153,9 @@ class _PromoCodeFieldState extends State<PromoCodeField> {
       key: const Key('promo_applied'),
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: const Color(0xFF24211C),
+        color: SgColors.bg300,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: const Color(0xFF10B981).withValues(alpha: 0.5)),
+        border: Border.all(color: SgColors.success.withValues(alpha: 0.5)),
       ),
       child: Row(
         children: [
@@ -164,8 +165,8 @@ class _PromoCodeFieldState extends State<PromoCodeField> {
               children: [
                 Text(
                   '${a.code} applied',
-                  style: GoogleFonts.inter(
-                    color: const Color(0xFF10B981),
+                  style: TextStyle(
+                    color: SgColors.success,
                     fontWeight: FontWeight.w700,
                     fontSize: 13,
                   ),
@@ -174,13 +175,13 @@ class _PromoCodeFieldState extends State<PromoCodeField> {
                 Text(
                   'Discount -$saved',
                   key: const Key('promo_discount_text'),
-                  style: GoogleFonts.inter(color: Colors.white, fontSize: 13),
+                  style: TextStyle(color: SgColors.ink, fontSize: 13),
                 ),
                 Text(
                   'You pay $pay',
                   key: const Key('promo_payable_text'),
-                  style: GoogleFonts.inter(
-                    color: Colors.white,
+                  style: TextStyle(
+                    color: SgColors.ink,
                     fontSize: 14,
                     fontWeight: FontWeight.w700,
                   ),
@@ -191,10 +192,7 @@ class _PromoCodeFieldState extends State<PromoCodeField> {
           TextButton(
             key: const Key('promo_remove'),
             onPressed: widget.onRemoved,
-            child: Text(
-              'Remove',
-              style: GoogleFonts.inter(color: const Color(0xFFEEBD2B)),
-            ),
+            child: Text('Remove', style: TextStyle(color: SgColors.goldText)),
           ),
         ],
       ),
@@ -215,12 +213,12 @@ class _PromoCodeFieldState extends State<PromoCodeField> {
                 key: const Key('promo_input'),
                 controller: _ctrl,
                 textCapitalization: TextCapitalization.characters,
-                style: const TextStyle(color: Colors.white),
+                style: TextStyle(color: SgColors.ink),
                 decoration: InputDecoration(
                   hintText: 'Promo code',
-                  hintStyle: const TextStyle(color: Color(0xFF94A3B8)),
+                  hintStyle: TextStyle(color: SgColors.inkMuted),
                   filled: true,
-                  fillColor: const Color(0xFF24211C),
+                  fillColor: SgColors.bg300,
                   border: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(12),
                     borderSide: BorderSide.none,
@@ -237,8 +235,8 @@ class _PromoCodeFieldState extends State<PromoCodeField> {
               key: const Key('promo_apply'),
               onPressed: _busy ? null : _apply,
               style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFFEEBD2B),
-                foregroundColor: Colors.black,
+                backgroundColor: SgColors.gold500,
+                foregroundColor: SgColors.onGold,
                 padding: const EdgeInsets.symmetric(
                   horizontal: 18,
                   vertical: 12,
@@ -248,12 +246,12 @@ class _PromoCodeFieldState extends State<PromoCodeField> {
                 ),
               ),
               child: _busy
-                  ? const SizedBox(
+                  ? SizedBox(
                       width: 16,
                       height: 16,
                       child: CircularProgressIndicator(
                         strokeWidth: 2,
-                        color: Colors.black,
+                        color: SgColors.bg000,
                       ),
                     )
                   : const Text(
@@ -268,8 +266,8 @@ class _PromoCodeFieldState extends State<PromoCodeField> {
           Text(
             _refusal!,
             key: const Key('promo_refusal'),
-            style: GoogleFonts.inter(
-              color: const Color(0xFFEF4444),
+            style: TextStyle(
+              color: SgColors.danger,
               fontSize: 12,
               fontWeight: FontWeight.w500,
             ),

@@ -4,7 +4,6 @@ import '../../ui/account_widgets.dart';
 import '../../ui/sg_text.dart';
 import '../../ui/sg_tokens.dart';
 import '../../ui/sg_widgets.dart';
-import 'package:google_fonts/google_fonts.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 import 'package:intl/intl.dart';
@@ -115,9 +114,7 @@ class _WalletScreenState extends State<WalletScreen> {
                   const Center(
                     child: Padding(
                       padding: EdgeInsets.all(40.0),
-                      child: CircularProgressIndicator(
-                        color: SgColors.gold500,
-                      ),
+                      child: CircularProgressIndicator(color: SgColors.gold500),
                     ),
                   )
                 else if (provider.errorMessage != null &&
@@ -279,7 +276,7 @@ class _WalletBalanceCard extends StatelessWidget {
                 creditsOnly ? 'SaaradhiGo credits' : 'Balance',
                 style: SgText.body.copyWith(color: SgColors.inkMuted),
               ),
-              const SgIcon(SgIcons.wallet, size: 20, color: SgColors.inkMuted),
+              SgIcon(SgIcons.wallet, size: 20, color: SgColors.inkMuted),
             ],
           ),
           const SizedBox(height: 8),
@@ -355,11 +352,10 @@ class _WalletTxnCard extends StatelessWidget {
 
     Color getStatusColor() {
       final s = transaction.status.toLowerCase();
-      if (s == 'success' || s == 'completed')
-        return const Color(0xFF10B981); // Green
-      if (s == 'failed') return const Color(0xFFEF4444); // Red
-      if (s == 'pending') return const Color(0xFFF59E0B); // Orange
-      return const Color(0xFF94A3B8); // Default
+      if (s == 'success' || s == 'completed') return SgColors.success;
+      if (s == 'failed') return SgColors.danger;
+      if (s == 'pending') return SgColors.goldText;
+      return SgColors.inkMuted;
     }
 
     return Row(
@@ -374,22 +370,12 @@ class _WalletTxnCard extends StatelessWidget {
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
                 color: transaction.isCredit
-                    ? const Color(0xFF10B981)
-                    : const Color(0xFFEEBD2B),
-                boxShadow: [
-                  BoxShadow(
-                    color:
-                        (transaction.isCredit
-                                ? const Color(0xFF10B981)
-                                : const Color(0xFFEEBD2B))
-                            .withValues(alpha: 0.4),
-                    blurRadius: 8,
-                  ),
-                ],
+                    ? SgColors.success
+                    : SgColors.gold500,
               ),
             ),
             if (showTimelineTail)
-              Container(width: 2, height: 48, color: const Color(0x1AFFFFFF)),
+              Container(width: 2, height: 48, color: SgColors.bg300),
           ],
         ),
         const SizedBox(width: 16),
@@ -397,9 +383,9 @@ class _WalletTxnCard extends StatelessWidget {
           child: Container(
             padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(
-              color: const Color(0xFF24211C),
+              color: SgColors.bg300,
               borderRadius: BorderRadius.circular(16),
-              border: Border.all(color: const Color(0x0DFFFFFF)),
+              border: Border.all(color: SgColors.line),
             ),
             child: Row(
               crossAxisAlignment: CrossAxisAlignment.center,
@@ -415,8 +401,8 @@ class _WalletTxnCard extends StatelessWidget {
                               transaction.title,
                               maxLines: 1,
                               overflow: TextOverflow.ellipsis,
-                              style: GoogleFonts.inter(
-                                color: const Color(0xFFF8FAFC),
+                              style: TextStyle(
+                                color: SgColors.ink,
                                 fontSize: 15,
                                 fontWeight: FontWeight.w600,
                               ),
@@ -436,7 +422,7 @@ class _WalletTxnCard extends StatelessWidget {
                             ),
                             child: Text(
                               transaction.status.toUpperCase(),
-                              style: GoogleFonts.inter(
+                              style: TextStyle(
                                 color: getStatusColor(),
                                 fontSize: 9,
                                 fontWeight: FontWeight.w700,
@@ -449,8 +435,8 @@ class _WalletTxnCard extends StatelessWidget {
                       const SizedBox(height: 4),
                       Text(
                         dateStr,
-                        style: GoogleFonts.inter(
-                          color: const Color(0xFF94A3B8),
+                        style: TextStyle(
+                          color: SgColors.inkMuted,
                           fontSize: 12,
                           fontWeight: FontWeight.w500,
                         ),
@@ -461,10 +447,10 @@ class _WalletTxnCard extends StatelessWidget {
                 const SizedBox(width: 16),
                 Text(
                   transaction.formattedAmount,
-                  style: GoogleFonts.inter(
+                  style: TextStyle(
                     color: transaction.isCredit
-                        ? const Color(0xFF10B981)
-                        : const Color(0xFFF8FAFC),
+                        ? SgColors.success
+                        : SgColors.ink,
                     fontSize: 16,
                     fontWeight: FontWeight.w700,
                   ),
@@ -486,16 +472,12 @@ class _EmptyTransactionsState extends StatelessWidget {
     return Column(
       children: [
         const SizedBox(height: 40),
-        Icon(
-          Icons.history_rounded,
-          size: 64,
-          color: Colors.white.withValues(alpha: 0.1),
-        ),
+        Icon(Icons.history_rounded, size: 64, color: SgColors.inkSubtle),
         const SizedBox(height: 16),
         Text(
           'No transactions yet',
-          style: GoogleFonts.inter(
-            color: const Color(0xFF94A3B8),
+          style: TextStyle(
+            color: SgColors.inkMuted,
             fontSize: 16,
             fontWeight: FontWeight.w500,
           ),
@@ -514,19 +496,15 @@ class _ErrorState extends StatelessWidget {
     return Column(
       children: [
         const SizedBox(height: 40),
-        const Icon(
-          Icons.error_outline_rounded,
-          size: 64,
-          color: Color(0xFFF87171),
-        ),
+        Icon(Icons.error_outline_rounded, size: 64, color: SgColors.danger),
         const SizedBox(height: 16),
         Padding(
           padding: const EdgeInsets.symmetric(horizontal: 40),
           child: Text(
             message,
             textAlign: TextAlign.center,
-            style: GoogleFonts.inter(
-              color: const Color(0xFFF87171),
+            style: TextStyle(
+              color: SgColors.danger,
               fontSize: 14,
               fontWeight: FontWeight.w500,
             ),
@@ -535,10 +513,7 @@ class _ErrorState extends StatelessWidget {
         const SizedBox(height: 16),
         TextButton(
           onPressed: () => context.read<WalletProvider>().refreshWallet(),
-          child: const Text(
-            'Retry',
-            style: TextStyle(color: Color(0xFFEEBD2B)),
-          ),
+          child: Text('Retry', style: TextStyle(color: SgColors.goldText)),
         ),
       ],
     );
@@ -601,21 +576,19 @@ class _WalletActionButton extends StatelessWidget {
       child: Container(
         padding: const EdgeInsets.symmetric(vertical: 12),
         decoration: BoxDecoration(
-          color: const Color(0xFF1E1C18),
+          color: SgColors.bg200,
           borderRadius: BorderRadius.circular(12),
-          border: Border.all(
-            color: const Color(0xFFEEBD2B).withOpacity(0.3),
-          ),
+          border: Border.all(color: SgColors.goldText.withOpacity(0.3)),
         ),
         child: Row(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(icon, color: const Color(0xFFEEBD2B), size: 20),
+            Icon(icon, color: SgColors.goldText, size: 20),
             const SizedBox(width: 8),
             Text(
               label,
-              style: GoogleFonts.inter(
-                color: const Color(0xFFEEBD2B),
+              style: TextStyle(
+                color: SgColors.goldText,
                 fontSize: 14,
                 fontWeight: FontWeight.w600,
               ),

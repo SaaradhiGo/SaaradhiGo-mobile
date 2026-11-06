@@ -26,18 +26,24 @@ class SgPageTitle extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Padding(
-        padding: const EdgeInsets.only(top: SgSpace.s2, bottom: SgSpace.s5),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(title, style: SgText.heading.copyWith(fontSize: 32, height: 38 / 32)),
-            if (subtitle != null) ...[
-              const SizedBox(height: SgSpace.s1),
-              Text(subtitle!, style: SgText.body.copyWith(color: SgColors.inkMuted)),
-            ],
-          ],
+    padding: const EdgeInsets.only(top: SgSpace.s2, bottom: SgSpace.s5),
+    child: Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          title,
+          style: SgText.heading.copyWith(fontSize: 32, height: 38 / 32),
         ),
-      );
+        if (subtitle != null) ...[
+          const SizedBox(height: SgSpace.s1),
+          Text(
+            subtitle!,
+            style: SgText.body.copyWith(color: SgColors.inkMuted),
+          ),
+        ],
+      ],
+    ),
+  );
 }
 
 /// A photo when the rider has one, their initials otherwise. Never a stock face.
@@ -80,7 +86,13 @@ class SgAvatar extends StatelessWidget {
 
 /// Name with rating under it; the rating line is left out when there is none.
 class SgPersonHeader extends StatelessWidget {
-  const SgPersonHeader({super.key, required this.name, this.rating, this.avatarUrl, this.onTap});
+  const SgPersonHeader({
+    super.key,
+    required this.name,
+    this.rating,
+    this.avatarUrl,
+    this.onTap,
+  });
 
   final String? name;
   final String? rating;
@@ -115,7 +127,11 @@ class SgPersonHeader extends StatelessWidget {
                       children: [
                         const SgStar(size: 14, color: SgColors.gold500),
                         const SizedBox(width: SgSpace.s1),
-                        Text(r.toStringAsFixed(2), key: const Key('person_rating'), style: SgText.caption),
+                        Text(
+                          r.toStringAsFixed(2),
+                          key: const Key('person_rating'),
+                          style: SgText.caption,
+                        ),
                       ],
                     ),
                 ],
@@ -138,6 +154,7 @@ class SgListRow extends StatelessWidget {
     this.count = 0,
     this.chevron = false,
     this.danger = false,
+    this.value,
   });
 
   final String icon;
@@ -147,41 +164,64 @@ class SgListRow extends StatelessWidget {
   final bool chevron;
   final bool danger;
 
+  /// The current setting, shown before the chevron ("Dark", "English").
+  final String? value;
+
   @override
   Widget build(BuildContext context) => Semantics(
-        button: true,
-        label: count > 0 ? '$label, $count unread' : label,
-        excludeSemantics: true,
-        child: InkWell(
-          onTap: onTap,
-          borderRadius: BorderRadius.circular(SgRadius.md),
-          child: ConstrainedBox(
-            constraints: const BoxConstraints(minHeight: 52),
-            child: Row(
-              children: [
-                SgIcon(icon, size: 22, color: danger ? SgColors.danger : SgColors.inkMuted),
-                const SizedBox(width: SgSpace.s4),
-                Expanded(
-                  child: Text(
-                    label,
-                    style: SgText.bodyLg.copyWith(color: danger ? SgColors.danger : SgColors.ink),
-                  ),
-                ),
-                if (count > 0)
-                  Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                    decoration: BoxDecoration(
-                      color: SgColors.bg300,
-                      borderRadius: BorderRadius.circular(SgRadius.pill),
-                    ),
-                    child: Text('$count', style: SgText.caption.copyWith(color: SgColors.ink)),
-                  ),
-                if (chevron) const SgIcon(kChevronIcon, size: 18, color: SgColors.inkSubtle),
-              ],
+    button: true,
+    label: count > 0
+        ? '$label, $count unread'
+        : (value != null ? '$label, $value' : label),
+    excludeSemantics: true,
+    child: InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(SgRadius.md),
+      child: ConstrainedBox(
+        constraints: const BoxConstraints(minHeight: 52),
+        child: Row(
+          children: [
+            SgIcon(
+              icon,
+              size: 22,
+              color: danger ? SgColors.danger : SgColors.inkMuted,
             ),
-          ),
+            const SizedBox(width: SgSpace.s4),
+            Expanded(
+              child: Text(
+                label,
+                style: SgText.body.copyWith(
+                  color: danger ? SgColors.danger : SgColors.ink,
+                ),
+              ),
+            ),
+            if (count > 0)
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                decoration: BoxDecoration(
+                  color: SgColors.bg300,
+                  borderRadius: BorderRadius.circular(SgRadius.pill),
+                ),
+                child: Text(
+                  '$count',
+                  style: SgText.caption.copyWith(color: SgColors.ink),
+                ),
+              ),
+            if (value != null)
+              Padding(
+                padding: const EdgeInsets.only(
+                  left: SgSpace.s2,
+                  right: SgSpace.s1,
+                ),
+                child: Text(value!, style: SgText.caption),
+              ),
+            if (chevron)
+              SgIcon(kChevronIcon, size: 18, color: SgColors.inkSubtle),
+          ],
         ),
-      );
+      ),
+    ),
+  );
 }
 
 /// Rows grouped on one panel with hairlines between them.
@@ -192,19 +232,19 @@ class SgListGroup extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Container(
-        padding: const EdgeInsets.symmetric(horizontal: SgSpace.s4),
-        decoration: BoxDecoration(
-          color: SgColors.bg100,
-          borderRadius: BorderRadius.circular(SgRadius.lg),
-          border: Border.all(color: SgColors.line),
-        ),
-        child: Column(
-          children: [
-            for (var i = 0; i < rows.length; i++) ...[
-              if (i > 0) const Divider(height: 1, color: SgColors.line),
-              rows[i],
-            ],
-          ],
-        ),
-      );
+    padding: const EdgeInsets.symmetric(horizontal: SgSpace.s4),
+    decoration: BoxDecoration(
+      color: SgColors.bg100,
+      borderRadius: BorderRadius.circular(SgRadius.lg),
+      border: Border.all(color: SgColors.line),
+    ),
+    child: Column(
+      children: [
+        for (var i = 0; i < rows.length; i++) ...[
+          if (i > 0) Divider(height: 1, color: SgColors.line),
+          rows[i],
+        ],
+      ],
+    ),
+  );
 }

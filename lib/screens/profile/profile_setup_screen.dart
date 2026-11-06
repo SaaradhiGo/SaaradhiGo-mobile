@@ -7,7 +7,6 @@ import 'dart:io';
 
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:geolocator/geolocator.dart';
-import 'package:google_fonts/google_fonts.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:latlong2/latlong.dart';
 
@@ -16,6 +15,8 @@ import '../../core/market/market_config_store.dart';
 import '../../providers/auth_provider.dart';
 import '../../services/referral_service.dart';
 import '../../services/token_store.dart';
+
+import '../../ui/sg_tokens.dart';
 
 /// The profile update body: only what the rider filled in.
 ///
@@ -85,8 +86,9 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen> {
       if (auth.fullName != null) _nameController.text = auth.fullName!;
       if (auth.email != null) _emailController.text = auth.email!;
       if (auth.dob != null) _dobController.text = auth.dob!;
-      if (auth.emergencyContact != null)
+      if (auth.emergencyContact != null) {
         _emergencyContactController.text = auth.emergencyContact!;
+      }
       if (auth.houseNo != null) _houseNoController.text = auth.houseNo!;
       if (auth.street != null) _streetNameController.text = auth.street!;
       if (auth.city != null) _cityController.text = auth.city!;
@@ -166,11 +168,9 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen> {
       builder: (context, child) {
         return Theme(
           data: Theme.of(context).copyWith(
-            colorScheme: ColorScheme.dark(
-              primary: Theme.of(context).colorScheme.primary,
-              onPrimary: Colors.black,
-              surface: const Color(0xFF1E1C18),
-              onSurface: Colors.white,
+            colorScheme: Theme.of(context).colorScheme.copyWith(
+              surface: SgColors.bg200,
+              onSurface: SgColors.ink,
             ),
           ),
           child: child!,
@@ -188,7 +188,7 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen> {
   Future<void> _showImageSourceActionSheet(BuildContext context) async {
     showModalBottomSheet(
       context: context,
-      backgroundColor: const Color(0xFF1E1C18),
+      backgroundColor: SgColors.bg200,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
@@ -201,15 +201,15 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen> {
               width: 40,
               height: 4,
               decoration: BoxDecoration(
-                color: Colors.white24,
+                color: SgColors.bg300,
                 borderRadius: BorderRadius.circular(2),
               ),
             ),
             const SizedBox(height: 16),
             Text(
               'CHOOSE IMAGE FROM',
-              style: GoogleFonts.inter(
-                color: Colors.white54,
+              style: TextStyle(
+                color: SgColors.inkMuted,
                 fontSize: 11,
                 fontWeight: FontWeight.bold,
                 letterSpacing: 1.2,
@@ -217,14 +217,11 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen> {
             ),
             const SizedBox(height: 16),
             ListTile(
-              leading: const Icon(
-                Icons.camera_alt_rounded,
-                color: Color(0xFFEEBD2B),
-              ),
+              leading: Icon(Icons.camera_alt_rounded, color: SgColors.goldText),
               title: Text(
                 'Camera',
-                style: GoogleFonts.inter(
-                  color: Colors.white,
+                style: TextStyle(
+                  color: SgColors.ink,
                   fontWeight: FontWeight.w500,
                 ),
               ),
@@ -234,14 +231,14 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen> {
               },
             ),
             ListTile(
-              leading: const Icon(
+              leading: Icon(
                 Icons.photo_library_rounded,
-                color: Color(0xFFEEBD2B),
+                color: SgColors.goldText,
               ),
               title: Text(
                 'Gallery',
-                style: GoogleFonts.inter(
-                  color: Colors.white,
+                style: TextStyle(
+                  color: SgColors.ink,
                   fontWeight: FontWeight.w500,
                 ),
               ),
@@ -319,9 +316,9 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen> {
           SnackBar(
             content: Text(
               authProvider.error ?? 'Failed to update profile',
-              style: const TextStyle(color: Colors.white),
+              style: TextStyle(color: SgColors.onDanger),
             ),
-            backgroundColor: Colors.red,
+            backgroundColor: SgColors.danger,
           ),
         );
       }
@@ -820,7 +817,7 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen> {
                         ),
                       ),
                       child: auth.isLoading
-                          ? const CircularProgressIndicator(color: Colors.white)
+                          ? CircularProgressIndicator(color: SgColors.onGold)
                           : Row(
                               mainAxisAlignment: MainAxisAlignment.center,
                               children: [

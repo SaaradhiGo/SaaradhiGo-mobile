@@ -1,0 +1,21 @@
+{
+  "@@locale": "te",
+  "appearance": "రూపం",
+  "@appearance": {"description": "needs native review"},
+  "themeDark": "డార్క్",
+  "@themeDark": {"description": "needs native review"},
+  "themeLight": "లైట్",
+  "@themeLight": {"description": "needs native review"},
+  "themeAutomatic": "ఆటోమేటిక్",
+  "@themeAutomatic": {"description": "needs native review"},
+  "themeAutomaticHint": "మీ ఫోన్ సెట్టింగ్ ప్రకారం",
+  "@themeAutomaticHint": {"description": "needs native review"},
+  "language": "భాష",
+  "@language": {"description": "needs native review"},
+  "languageEnglish": "English",
+  "@languageEnglish": {"description": "needs native review"},
+  "languageTelugu": "తెలుగు",
+  "@languageTelugu": {"description": "needs native review"},
+  "languageHindi": "हिन्दी",
+  "@languageHindi": {"description": "needs native review"}
+}

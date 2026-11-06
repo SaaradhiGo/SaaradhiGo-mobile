@@ -7,8 +7,11 @@ import '../../core/market/booking_refusal.dart';
 import '../../core/market/market_config.dart';
 import '../../core/market/market_config_store.dart';
 
-const Color _gold = Color(0xFFEEBD2B);
-const Color _ink = Color(0xFF12110E);
+import '../../ui/sg_tokens.dart';
+
+Color get _gold => SgColors.goldText;
+Color get _goldFill => SgColors.gold500;
+Color get _ink => SgColors.onGold;
 
 /// Blocking screen for 426 APP_UPDATE_REQUIRED. Shown instead of the app;
 /// the only way forward is the store link from the response body.
@@ -22,7 +25,7 @@ class UpdateRequiredScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     final url = info.storeUrl;
     return Material(
-      color: const Color(0xFF221D10),
+      color: SgColors.bg200,
       child: SafeArea(
         child: Center(
           child: Padding(
@@ -30,13 +33,13 @@ class UpdateRequiredScreen extends StatelessWidget {
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                const Icon(Icons.system_update, color: _gold, size: 56),
+                Icon(Icons.system_update, color: _gold, size: 56),
                 const SizedBox(height: 24),
-                const Text(
+                Text(
                   'Update required',
                   key: Key('update_required_title'),
                   style: TextStyle(
-                    color: Colors.white,
+                    color: SgColors.ink,
                     fontSize: 24,
                     fontWeight: FontWeight.bold,
                   ),
@@ -46,10 +49,7 @@ class UpdateRequiredScreen extends StatelessWidget {
                   info.message ?? 'Please update the app to continue.',
                   key: const Key('update_required_message'),
                   textAlign: TextAlign.center,
-                  style: const TextStyle(
-                    color: Color(0xFFadaaaa),
-                    fontSize: 16,
-                  ),
+                  style: TextStyle(color: SgColors.inkMuted, fontSize: 16),
                 ),
                 if (url != null) ...[
                   const SizedBox(height: 28),
@@ -58,7 +58,7 @@ class UpdateRequiredScreen extends StatelessWidget {
                     child: ElevatedButton(
                       key: const Key('update_required_button'),
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: _gold,
+                        backgroundColor: _goldFill,
                         foregroundColor: _ink,
                         padding: const EdgeInsets.symmetric(vertical: 16),
                       ),
@@ -115,9 +115,7 @@ class _NoticeBannerState extends State<NoticeBanner> {
         for (final n in visible)
           Material(
             key: Key('notice_${n.id}'),
-            color: n.severity == 'warning'
-                ? const Color(0xFFB45309)
-                : const Color(0xFF334155),
+            color: n.severity == 'warning' ? SgColors.gold500 : SgColors.bg300,
             child: Padding(
               padding: EdgeInsets.fromLTRB(
                 16,
@@ -131,22 +129,31 @@ class _NoticeBannerState extends State<NoticeBanner> {
                     n.severity == 'warning'
                         ? Icons.warning_amber_rounded
                         : Icons.info_outline,
-                    color: Colors.white,
+                    color: n.severity == 'warning'
+                        ? SgColors.onGold
+                        : SgColors.ink,
                     size: 20,
                   ),
                   const SizedBox(width: 10),
                   Expanded(
                     child: Text(
                       n.message,
-                      style: const TextStyle(color: Colors.white, fontSize: 13),
+                      style: TextStyle(
+                        color: n.severity == 'warning'
+                            ? SgColors.onGold
+                            : SgColors.ink,
+                        fontSize: 13,
+                      ),
                     ),
                   ),
                   if (!n.blocking)
                     IconButton(
                       key: Key('notice_dismiss_${n.id}'),
-                      icon: const Icon(
+                      icon: Icon(
                         Icons.close,
-                        color: Colors.white,
+                        color: n.severity == 'warning'
+                            ? SgColors.onGold
+                            : SgColors.ink,
                         size: 18,
                       ),
                       onPressed: () => setState(() => _dismissed.add(n.id)),
@@ -176,25 +183,25 @@ class BookingRefusalCard extends StatelessWidget {
         margin: const EdgeInsets.all(16),
         padding: const EdgeInsets.fromLTRB(16, 12, 8, 12),
         decoration: BoxDecoration(
-          color: const Color(0xFF2B2517),
+          color: SgColors.bg300,
           borderRadius: BorderRadius.circular(14),
           border: Border.all(color: _gold.withValues(alpha: 0.5)),
         ),
         child: Row(
           children: [
-            const Icon(Icons.info_outline, color: _gold),
+            Icon(Icons.info_outline, color: _gold),
             const SizedBox(width: 12),
             Expanded(
               child: Text(
                 refusal.message,
                 key: const Key('booking_refusal_message'),
-                style: const TextStyle(color: Colors.white, fontSize: 14),
+                style: TextStyle(color: SgColors.ink, fontSize: 14),
               ),
             ),
             TextButton(
               key: const Key('booking_refusal_ok'),
               onPressed: onDismiss,
-              child: const Text('OK', style: TextStyle(color: _gold)),
+              child: Text('OK', style: TextStyle(color: _gold)),
             ),
           ],
         ),

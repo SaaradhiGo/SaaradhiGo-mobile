@@ -1,11 +1,12 @@
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
 
 import '../services/trip_charge.dart';
 import '../utils/money.dart';
 
-const Color _gold = Color(0xFFEEBD2B);
-const Color _muted = Color(0xFF94A3B8);
+import '../ui/sg_tokens.dart';
+
+Color get _gold => SgColors.goldText;
+Color get _muted => SgColors.inkMuted;
 
 /// The fare card at the top of the trip's payment summary.
 ///
@@ -55,9 +56,9 @@ class TripChargeCard extends StatelessWidget {
       key: const Key('trip_charge_card'),
       padding: const EdgeInsets.all(24),
       decoration: BoxDecoration(
-        color: const Color(0xFF24211C),
+        color: SgColors.bg300,
         borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: const Color(0x1AFFFFFF)),
+        border: Border.all(color: SgColors.line),
       ),
       child: Column(
         children: [
@@ -66,7 +67,7 @@ class TripChargeCard extends StatelessWidget {
               'Ride ended by SaaradhiGo support',
               key: const Key('ops_ended_notice'),
               textAlign: TextAlign.center,
-              style: GoogleFonts.inter(
+              style: TextStyle(
                 color: _gold,
                 fontSize: 14,
                 fontWeight: FontWeight.w700,
@@ -77,14 +78,14 @@ class TripChargeCard extends StatelessWidget {
               Text(
                 'Distance driven: $distanceDriven',
                 key: const Key('ops_ended_distance'),
-                style: GoogleFonts.inter(color: _muted, fontSize: 13),
+                style: TextStyle(color: _muted, fontSize: 13),
               ),
             ],
             const SizedBox(height: 14),
           ],
           Text(
             charge.notCharged ? 'Your ride' : fareTitle,
-            style: GoogleFonts.inter(
+            style: TextStyle(
               color: _muted,
               fontSize: 11,
               fontWeight: FontWeight.w700,
@@ -96,8 +97,8 @@ class TripChargeCard extends StatelessWidget {
             Text(
               kNotChargedLabel,
               key: const Key('not_charged_label'),
-              style: GoogleFonts.inter(
-                color: Colors.white,
+              style: TextStyle(
+                color: SgColors.ink,
                 fontSize: 40,
                 fontWeight: FontWeight.w800,
               ),
@@ -106,8 +107,8 @@ class TripChargeCard extends StatelessWidget {
             Text(
               fareText,
               key: const Key('fare_amount'),
-              style: GoogleFonts.inter(
-                color: Colors.white,
+              style: TextStyle(
+                color: SgColors.ink,
                 fontSize: charge.hasPromo ? 22 : 40,
                 fontWeight: FontWeight.w800,
                 decoration: charge.hasPromo ? TextDecoration.lineThrough : null,
@@ -121,23 +122,20 @@ class TripChargeCard extends StatelessWidget {
                     ? 'Promo discount  -$discountText'
                     : 'Promo ${charge.promoCode}  -$discountText',
                 key: const Key('promo_discount_line'),
-                style: GoogleFonts.inter(
-                  color: const Color(0xFF10B981),
+                style: TextStyle(
+                  color: SgColors.success,
                   fontSize: 14,
                   fontWeight: FontWeight.w600,
                 ),
               ),
               if (payableText != null) ...[
                 const SizedBox(height: 6),
-                Text(
-                  'You pay',
-                  style: GoogleFonts.inter(color: _muted, fontSize: 13),
-                ),
+                Text('You pay', style: TextStyle(color: _muted, fontSize: 13)),
                 Text(
                   payableText,
                   key: const Key('you_pay_amount'),
-                  style: GoogleFonts.inter(
-                    color: Colors.white,
+                  style: TextStyle(
+                    color: SgColors.ink,
                     fontSize: 40,
                     fontWeight: FontWeight.w800,
                   ),
@@ -149,7 +147,7 @@ class TripChargeCard extends StatelessWidget {
             const SizedBox(height: 8),
             Text(
               'Covered by your promo',
-              style: GoogleFonts.inter(color: _muted, fontSize: 13),
+              style: TextStyle(color: _muted, fontSize: 13),
             ),
           ],
         ],
@@ -176,7 +174,7 @@ class NotChargedPanel extends StatelessWidget {
         Text(
           message,
           textAlign: TextAlign.center,
-          style: GoogleFonts.inter(color: Colors.white70, fontSize: 14),
+          style: TextStyle(color: SgColors.inkMuted, fontSize: 14),
         ),
         const SizedBox(height: 24),
         SizedBox(
@@ -185,8 +183,8 @@ class NotChargedPanel extends StatelessWidget {
             key: const Key('not_charged_continue'),
             onPressed: onContinue,
             style: ElevatedButton.styleFrom(
-              backgroundColor: _gold,
-              foregroundColor: Colors.black,
+              backgroundColor: SgColors.gold500,
+              foregroundColor: SgColors.onGold,
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(16),
               ),
@@ -194,10 +192,7 @@ class NotChargedPanel extends StatelessWidget {
             ),
             child: Text(
               'Continue',
-              style: GoogleFonts.inter(
-                fontSize: 16,
-                fontWeight: FontWeight.w700,
-              ),
+              style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700),
             ),
           ),
         ),

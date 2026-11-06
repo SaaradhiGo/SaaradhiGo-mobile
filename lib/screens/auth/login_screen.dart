@@ -6,6 +6,9 @@ import 'package:provider/provider.dart';
 import '../../providers/auth_provider.dart';
 import '../components/market_overlays.dart';
 
+import '../../ui/sg_tokens.dart';
+import '../../ui/sg_brand.dart';
+
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
 
@@ -48,15 +51,15 @@ class _LoginScreenState extends State<LoginScreen> {
     final password = _passwordController.text;
 
     if (email.isEmpty || !email.contains('@')) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Enter your email address')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('Enter your email address')));
       return;
     }
     if (password.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Enter your password')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('Enter your password')));
       return;
     }
 
@@ -78,9 +81,9 @@ class _LoginScreenState extends State<LoginScreen> {
     if (code == 'AUTH_MFA_REQUIRED' || code == 'AUTH_MFA_INVALID') {
       setState(() => _needsMfa = true);
     }
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(auth.error ?? 'Could not sign in')),
-    );
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(SnackBar(content: Text(auth.error ?? 'Could not sign in')));
   }
 
   Future<void> _forgotPassword() async {
@@ -122,7 +125,8 @@ class _LoginScreenState extends State<LoginScreen> {
     final authProvider = Provider.of<AuthProvider>(context, listen: false);
     // India still builds +91XXXXXXXXXX exactly as before; another market uses its own
     // dialling code from app-config.
-    final formattedPhone = '${marketOf(context, listen: false).dialPrefix}$phone';
+    final formattedPhone =
+        '${marketOf(context, listen: false).dialPrefix}$phone';
     final response = await authProvider.requestOtp(formattedPhone);
 
     if (!mounted) return;
@@ -158,11 +162,11 @@ class _LoginScreenState extends State<LoginScreen> {
     final auth = context.watch<AuthProvider>();
 
     return Scaffold(
-      backgroundColor: const Color(0xFF12110D),
+      backgroundColor: SgColors.bg000,
       resizeToAvoidBottomInset: true,
       body: Stack(
         children: [
-          Container(color: const Color(0xFF12110D)),
+          Container(color: SgColors.bg000),
           Positioned.fill(
             child: Opacity(
               opacity: 0.15,
@@ -171,11 +175,14 @@ class _LoginScreenState extends State<LoginScreen> {
           ),
           Positioned.fill(
             child: Container(
-              decoration: const BoxDecoration(
+              decoration: BoxDecoration(
                 gradient: LinearGradient(
                   begin: Alignment.topCenter,
                   end: Alignment.bottomCenter,
-                  colors: [Color(0x1A000000), Color(0xAA000000)],
+                  colors: [
+                    SgColors.bg000.withValues(alpha: 0.10),
+                    SgColors.bg000.withValues(alpha: 0.67),
+                  ],
                 ),
               ),
             ),
@@ -189,22 +196,13 @@ class _LoginScreenState extends State<LoginScreen> {
                     children: [
                       _CircleIconButton(icon: Icons.close, onTap: () {}),
                       const Spacer(),
-                      const Text(
-                        'SAARADHIGO',
-                        style: TextStyle(
-                          letterSpacing: 2,
-                          color: Color(0xFFEEBD2B),
-                          fontWeight: FontWeight.w700,
-                        ),
-                      ),
-                      const Spacer(),
-                      const SizedBox(
+                      SizedBox(
                         width: 40,
                         child: Text(
                           'Help',
                           textAlign: TextAlign.right,
                           style: TextStyle(
-                            color: Color(0xCCEEBD2B),
+                            color: SgColors.goldText,
                             fontWeight: FontWeight.w600,
                           ),
                         ),
@@ -218,20 +216,22 @@ class _LoginScreenState extends State<LoginScreen> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        const Text(
+                        const Center(child: SgFullLogo(height: 120)),
+                        const SizedBox(height: 24),
+                        Text(
                           'Welcome to SaaradhiGo',
                           style: TextStyle(
-                            color: Colors.white,
+                            color: SgColors.ink,
                             fontSize: 38,
                             height: 1.05,
                             fontWeight: FontWeight.w700,
                           ),
                         ),
                         const SizedBox(height: 12),
-                        const Text(
+                        Text(
                           'Enter your mobile number to start your premium journey.',
                           style: TextStyle(
-                            color: Color(0xFF94A3B8),
+                            color: SgColors.inkMuted,
                             fontSize: 18,
                           ),
                         ),
@@ -269,8 +269,8 @@ class _LoginScreenState extends State<LoginScreen> {
 
                         Text(
                           _mode == LoginMode.mobile ? 'PHONE NUMBER' : 'EMAIL',
-                          style: const TextStyle(
-                            color: Color(0xFFEEBD2B),
+                          style: TextStyle(
+                            color: SgColors.goldText,
                             letterSpacing: 1.8,
                             fontWeight: FontWeight.w700,
                           ),
@@ -287,8 +287,8 @@ class _LoginScreenState extends State<LoginScreen> {
                             key: const Key('login_password_field'),
                             controller: _passwordController,
                             obscure: !_showPassword,
-                            onToggle: () => setState(
-                                () => _showPassword = !_showPassword),
+                            onToggle: () =>
+                                setState(() => _showPassword = !_showPassword),
                           ),
                           if (_needsMfa) ...[
                             const SizedBox(height: 12),
@@ -305,78 +305,82 @@ class _LoginScreenState extends State<LoginScreen> {
                             alignment: Alignment.centerRight,
                             child: TextButton(
                               key: const Key('login_forgot_password'),
-                              onPressed:
-                                  auth.isLoading ? null : _forgotPassword,
-                              child: const Text(
+                              onPressed: auth.isLoading
+                                  ? null
+                                  : _forgotPassword,
+                              child: Text(
                                 'Forgot password?',
-                                style: TextStyle(color: Color(0xFFEEBD2B)),
+                                style: TextStyle(color: SgColors.goldText),
                               ),
                             ),
                           ),
                         ],
 
                         if (_mode == LoginMode.mobile)
-                        Container(
-                          height: 64,
-                          decoration: BoxDecoration(
-                            color: Colors.white.withValues(alpha: 0.06),
-                            border: Border.all(color: Colors.white10),
-                            borderRadius: BorderRadius.circular(14),
-                          ),
-                          child: Row(
-                            children: [
-                              Padding(
-                                padding: const EdgeInsets.symmetric(
-                                  horizontal: 14,
+                          Container(
+                            height: 64,
+                            decoration: BoxDecoration(
+                              color: SgColors.bg200,
+                              border: Border.all(color: SgColors.line),
+                              borderRadius: BorderRadius.circular(14),
+                            ),
+                            child: Row(
+                              children: [
+                                Padding(
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 14,
+                                  ),
+                                  child: Row(
+                                    children: [
+                                      Text(
+                                        marketOf(
+                                          context,
+                                          listen: false,
+                                        ).dialPrefix,
+                                        style: TextStyle(
+                                          color: SgColors.ink,
+                                          fontSize: 18,
+                                          fontWeight: FontWeight.w600,
+                                        ),
+                                      ),
+                                      const SizedBox(width: 4),
+                                      Icon(
+                                        Icons.keyboard_arrow_down,
+                                        color: SgColors.inkSubtle,
+                                      ),
+                                    ],
+                                  ),
                                 ),
-                                child: Row(
-                                  children: [
-                                    Text(
-                                      marketOf(context, listen: false).dialPrefix,
-                                      style: const TextStyle(
-                                        color: Colors.white,
-                                        fontSize: 18,
-                                        fontWeight: FontWeight.w600,
+                                Container(
+                                  width: 1,
+                                  height: 30,
+                                  color: SgColors.bg200,
+                                ),
+                                Expanded(
+                                  child: TextField(
+                                    controller: _phoneController,
+                                    keyboardType: TextInputType.phone,
+                                    style: TextStyle(
+                                      color: SgColors.ink,
+                                      fontSize: 22,
+                                      fontWeight: FontWeight.w500,
+                                    ),
+                                    decoration: InputDecoration(
+                                      border: InputBorder.none,
+                                      hintText: '555 000-0000',
+                                      hintStyle: TextStyle(
+                                        color: SgColors.inkSubtle,
+                                        fontSize: 30,
+                                      ),
+                                      contentPadding: EdgeInsets.symmetric(
+                                        horizontal: 12,
                                       ),
                                     ),
-                                    const SizedBox(width: 4),
-                                    const Icon(
-                                      Icons.keyboard_arrow_down,
-                                      color: Color(0xFF64748B),
-                                    ),
-                                  ],
-                                ),
-                              ),
-                              Container(
-                                width: 1,
-                                height: 30,
-                                color: Colors.white10,
-                              ),
-                              Expanded(
-                                child: TextField(
-                                  controller: _phoneController,
-                                  keyboardType: TextInputType.phone,
-                                  style: const TextStyle(
-                                    color: Colors.white,
-                                    fontSize: 22,
-                                    fontWeight: FontWeight.w500,
-                                  ),
-                                  decoration: const InputDecoration(
-                                    border: InputBorder.none,
-                                    hintText: '555 000-0000',
-                                    hintStyle: TextStyle(
-                                      color: Color(0xFF475569),
-                                      fontSize: 30,
-                                    ),
-                                    contentPadding: EdgeInsets.symmetric(
-                                      horizontal: 12,
-                                    ),
                                   ),
                                 ),
-                              ),
-                            ],
+                              ],
+                            ),
                           ),
-                        ),
                         const SizedBox(height: 22),
                         SizedBox(
                           width: double.infinity,
@@ -386,11 +390,11 @@ class _LoginScreenState extends State<LoginScreen> {
                             onPressed: auth.isLoading
                                 ? null
                                 : (_mode == LoginMode.mobile
-                                    ? _requestOtp
-                                    : _signInWithEmail),
+                                      ? _requestOtp
+                                      : _signInWithEmail),
                             style: ElevatedButton.styleFrom(
-                              backgroundColor: const Color(0xFFEEBD2B),
-                              foregroundColor: const Color(0xFF12110D),
+                              backgroundColor: SgColors.gold500,
+                              foregroundColor: SgColors.onGold,
                               shape: RoundedRectangleBorder(
                                 borderRadius: BorderRadius.circular(14),
                               ),
@@ -416,19 +420,19 @@ class _LoginScreenState extends State<LoginScreen> {
                         ),
                         const SizedBox(height: 36),
                         Row(
-                          children: const [
-                            Expanded(child: Divider(color: Colors.white10)),
+                          children: [
+                            Expanded(child: Divider(color: SgColors.line)),
                             Padding(
                               padding: EdgeInsets.symmetric(horizontal: 12),
                               child: Text(
                                 'OR CONTINUE WITH',
                                 style: TextStyle(
-                                  color: Color(0xFF64748B),
+                                  color: SgColors.inkSubtle,
                                   letterSpacing: 1.4,
                                 ),
                               ),
                             ),
-                            Expanded(child: Divider(color: Colors.white10)),
+                            Expanded(child: Divider(color: SgColors.line)),
                           ],
                         ),
                         const SizedBox(height: 22),
@@ -460,15 +464,15 @@ class _LoginScreenState extends State<LoginScreen> {
                       Text.rich(
                         TextSpan(
                           text: 'By continuing, you agree to SaaradhiGo\'s ',
-                          style: const TextStyle(
-                            color: Color(0xFF64748B),
+                          style: TextStyle(
+                            color: SgColors.inkSubtle,
                             fontSize: 12,
                           ),
-                          children: const [
+                          children: [
                             TextSpan(
                               text: 'Terms of Service',
                               style: TextStyle(
-                                color: Color(0xCCEEBD2B),
+                                color: SgColors.goldText,
                                 decoration: TextDecoration.underline,
                               ),
                             ),
@@ -476,7 +480,7 @@ class _LoginScreenState extends State<LoginScreen> {
                             TextSpan(
                               text: 'Privacy Policy',
                               style: TextStyle(
-                                color: Color(0xCCEEBD2B),
+                                color: SgColors.goldText,
                                 decoration: TextDecoration.underline,
                               ),
                             ),
@@ -511,10 +515,10 @@ class _CircleIconButton extends StatelessWidget {
         height: 36,
         width: 36,
         decoration: BoxDecoration(
-          color: Colors.white.withValues(alpha: 0.14),
+          color: SgColors.bg300,
           shape: BoxShape.circle,
         ),
-        child: Icon(icon, color: Colors.white),
+        child: Icon(icon, color: SgColors.ink),
       ),
     );
   }
@@ -532,20 +536,17 @@ class _SocialChip extends StatelessWidget {
       height: 56,
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: Colors.white10),
-        color: Colors.white.withValues(alpha: 0.06),
+        border: Border.all(color: SgColors.line),
+        color: SgColors.bg200,
       ),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Icon(icon, color: Colors.white70),
+          Icon(icon, color: SgColors.inkMuted),
           const SizedBox(width: 8),
           Text(
             label,
-            style: const TextStyle(
-              color: Colors.white,
-              fontWeight: FontWeight.w600,
-            ),
+            style: TextStyle(color: SgColors.ink, fontWeight: FontWeight.w600),
           ),
         ],
       ),
@@ -557,7 +558,7 @@ class _MapGridPainter extends CustomPainter {
   @override
   void paint(Canvas canvas, Size size) {
     final paint = Paint()
-      ..color = Colors.white
+      ..color = SgColors.ink
       ..strokeWidth = 1;
     const gap = 36.0;
 
@@ -594,11 +595,9 @@ class _ModeTab extends StatelessWidget {
         child: Container(
           padding: const EdgeInsets.symmetric(vertical: 13),
           decoration: BoxDecoration(
-            color: selected
-                ? const Color(0xFFEEBD2B)
-                : Colors.white.withValues(alpha: 0.06),
+            color: selected ? SgColors.gold500 : SgColors.bg200,
             border: Border.all(
-              color: selected ? const Color(0xFFEEBD2B) : Colors.white10,
+              color: selected ? SgColors.goldText : SgColors.line,
             ),
             borderRadius: BorderRadius.circular(12),
           ),
@@ -606,7 +605,7 @@ class _ModeTab extends StatelessWidget {
           child: Text(
             label,
             style: TextStyle(
-              color: selected ? const Color(0xFF12110D) : Colors.white70,
+              color: selected ? SgColors.onGold : SgColors.inkMuted,
               fontSize: 15,
               fontWeight: FontWeight.w700,
             ),
@@ -635,8 +634,8 @@ class _EmailField extends StatelessWidget {
     return Container(
       height: 64,
       decoration: BoxDecoration(
-        color: Colors.white.withValues(alpha: 0.06),
-        border: Border.all(color: Colors.white10),
+        color: SgColors.bg200,
+        border: Border.all(color: SgColors.line),
         borderRadius: BorderRadius.circular(14),
       ),
       padding: const EdgeInsets.symmetric(horizontal: 16),
@@ -648,11 +647,11 @@ class _EmailField extends StatelessWidget {
         // shared phone.
         autocorrect: false,
         enableSuggestions: false,
-        style: const TextStyle(color: Colors.white, fontSize: 17),
+        style: TextStyle(color: SgColors.ink, fontSize: 17),
         decoration: InputDecoration(
           border: InputBorder.none,
           hintText: hint,
-          hintStyle: const TextStyle(color: Color(0xFF475569), fontSize: 16),
+          hintStyle: TextStyle(color: SgColors.inkSubtle, fontSize: 16),
         ),
       ),
     );
@@ -676,8 +675,8 @@ class _PasswordField extends StatelessWidget {
     return Container(
       height: 64,
       decoration: BoxDecoration(
-        color: Colors.white.withValues(alpha: 0.06),
-        border: Border.all(color: Colors.white10),
+        color: SgColors.bg200,
+        border: Border.all(color: SgColors.line),
         borderRadius: BorderRadius.circular(14),
       ),
       padding: const EdgeInsets.only(left: 16, right: 4),
@@ -689,11 +688,11 @@ class _PasswordField extends StatelessWidget {
               obscureText: obscure,
               autocorrect: false,
               enableSuggestions: false,
-              style: const TextStyle(color: Colors.white, fontSize: 17),
-              decoration: const InputDecoration(
+              style: TextStyle(color: SgColors.ink, fontSize: 17),
+              decoration: InputDecoration(
                 border: InputBorder.none,
                 hintText: 'Password',
-                hintStyle: TextStyle(color: Color(0xFF475569), fontSize: 16),
+                hintStyle: TextStyle(color: SgColors.inkSubtle, fontSize: 16),
               ),
             ),
           ),
@@ -704,7 +703,7 @@ class _PasswordField extends StatelessWidget {
               obscure
                   ? Icons.visibility_outlined
                   : Icons.visibility_off_outlined,
-              color: const Color(0xFF94A3B8),
+              color: SgColors.inkMuted,
               size: 20,
             ),
           ),

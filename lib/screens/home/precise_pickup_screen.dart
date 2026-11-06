@@ -85,7 +85,9 @@ class _PrecisePickupScreenState extends State<PrecisePickupScreen> {
     if (at == null || provider == null) return;
     final ticket = ++_lookup;
     final found = await provider.addressFor(at);
-    if (mounted && ticket == _lookup && found != null) setState(() => _address = found);
+    if (mounted && ticket == _lookup && found != null) {
+      setState(() => _address = found);
+    }
   }
 
   @override
@@ -99,7 +101,8 @@ class _PrecisePickupScreenState extends State<PrecisePickupScreen> {
           for (final o in options) {
             if (o.type == mapProvider.selectedVehicleType) chosen = o;
           }
-          final address = _address ??
+          final address =
+              _address ??
               mapProvider.pickupAddress ??
               mapProvider.pickupLocation?.name ??
               'Your pickup point';
@@ -112,7 +115,8 @@ class _PrecisePickupScreenState extends State<PrecisePickupScreen> {
                     Positioned.fill(
                       child: SgMap(
                         initialCenter:
-                            mapProvider.pickupLocation?.latLng ?? const LatLng(17.385044, 78.4867),
+                            mapProvider.pickupLocation?.latLng ??
+                            const LatLng(17.385044, 78.4867),
                         initialZoom: 17,
                         onCameraMove: (camera) {
                           if (camera.byGesture) _updateSnapping(camera.center);
@@ -131,7 +135,10 @@ class _PrecisePickupScreenState extends State<PrecisePickupScreen> {
                     // The pin never moves; the map slides under it.
                     Align(
                       alignment: Alignment.center,
-                      child: Transform.translate(offset: const Offset(0, -44), child: const FixedPickupPin()),
+                      child: Transform.translate(
+                        offset: const Offset(0, -44),
+                        child: const FixedPickupPin(),
+                      ),
                     ),
                     if (eta != null)
                       Align(
@@ -144,7 +151,11 @@ class _PrecisePickupScreenState extends State<PrecisePickupScreen> {
                     Positioned(
                       top: MediaQuery.of(context).padding.top + SgSpace.s2,
                       left: SgSpace.s4,
-                      child: SgMapButton(icon: SgIcons.back, label: 'Back', onTap: () => context.pop()),
+                      child: SgMapButton(
+                        icon: SgIcons.back,
+                        label: 'Back',
+                        onTap: () => context.pop(),
+                      ),
                     ),
                   ],
                 ),
@@ -154,7 +165,9 @@ class _PrecisePickupScreenState extends State<PrecisePickupScreen> {
                 lockText: chosen == null
                     ? 'Drivers see your fare before they accept.'
                     : 'Fare locked at ${chosen.fareText}. Drivers see it before they accept.',
-                buttonLabel: chosen == null ? 'Request ride' : 'Request ${chosen.shortName}',
+                buttonLabel: chosen == null
+                    ? 'Request ride'
+                    : 'Request ${chosen.shortName}',
                 onConfirm: _snappedLocation == null
                     ? null
                     : () {

@@ -19,6 +19,8 @@ import 'package:flutter/material.dart';
 
 import '../utils/money.dart';
 
+import '../ui/sg_tokens.dart';
+
 /// Formats a money value that may arrive as a String, an int or a double.
 ///
 /// DRF serialises Decimal as a String by default, so a breakdown field is
@@ -44,14 +46,15 @@ class FareLine extends StatelessWidget {
     this.label,
     this.value, {
     super.key,
-    this.color = Colors.white,
+    Color? color,
     this.bold = false,
     this.note,
-  });
+  }) : _color = color;
 
   final String label;
   final String value;
-  final Color color;
+  final Color? _color;
+  Color get color => _color ?? SgColors.ink;
   final bool bold;
 
   /// Optional smaller line under the label, for explaining a charge rather
@@ -80,8 +83,8 @@ class FareLine extends StatelessWidget {
                     padding: const EdgeInsets.only(top: 2),
                     child: Text(
                       note!,
-                      style: const TextStyle(
-                        color: Colors.white60,
+                      style: TextStyle(
+                        color: SgColors.inkMuted,
                         fontSize: 12,
                         fontWeight: FontWeight.w400,
                       ),
@@ -108,11 +111,7 @@ class FareLine extends StatelessWidget {
 /// charge. `waiting_fare` and `taxes` are not in the quote response today; they
 /// will render the day it includes them, with no change here.
 class FareBreakdown extends StatelessWidget {
-  const FareBreakdown({
-    super.key,
-    this.fareData,
-    this.showHeading = true,
-  });
+  const FareBreakdown({super.key, this.fareData, this.showHeading = true});
 
   final Map<String, dynamic>? fareData;
   final bool showHeading;
@@ -133,19 +132,24 @@ class FareBreakdown extends StatelessWidget {
     void add(String label, dynamic raw, {String? note, Color? color}) {
       final formatted = _money(raw, currencyCode: currencyCode);
       if (formatted == null) return;
-      lines.add(FareLine(label, formatted, note: note,
-          color: color ?? Colors.white));
+      lines.add(
+        FareLine(label, formatted, note: note, color: color ?? SgColors.ink),
+      );
     }
 
     if (breakdown != null) {
-      add('Base fare', breakdown['base_fare'],
-          note: 'Charged on every trip');
-      add('Distance', breakdown['distance_fare'],
-          note: 'For the distance travelled');
-      add('Time', breakdown['time_fare'],
-          note: 'For the time the trip takes');
-      add('Waiting', breakdown['waiting_fare'],
-          note: 'If your driver waits at pickup');
+      add('Base fare', breakdown['base_fare'], note: 'Charged on every trip');
+      add(
+        'Distance',
+        breakdown['distance_fare'],
+        note: 'For the distance travelled',
+      );
+      add('Time', breakdown['time_fare'], note: 'For the time the trip takes');
+      add(
+        'Waiting',
+        breakdown['waiting_fare'],
+        note: 'If your driver waits at pickup',
+      );
       add('Taxes and fees', breakdown['taxes']);
 
       // Surge is disclosed, not hidden. A rider paying a multiplier is entitled
@@ -162,7 +166,7 @@ class FareBreakdown extends StatelessWidget {
             'Busy-time surcharge',
             '${surgeValue.toStringAsFixed(1)}x',
             note: 'Demand is high right now, so fares are raised',
-            color: const Color(0xFFEEBD2B),
+            color: SgColors.goldText,
           ),
         );
       }
@@ -173,7 +177,8 @@ class FareBreakdown extends StatelessWidget {
       // that line is strictly better than this valueless flag, so this one stands
       // down rather than showing the same fact twice.
       final adjustmentCodes = <String>{
-        for (final a in (fareData?['fare_adjustments'] is List
+        for (final a
+            in (fareData?['fare_adjustments'] is List
                 ? fareData!['fare_adjustments'] as List
                 : const []))
           if (a is Map && a['code'] != null) a['code'].toString(),
@@ -205,7 +210,8 @@ class FareBreakdown extends StatelessWidget {
           if (raw is! Map) continue;
           final amount = _money(raw['amount'], currencyCode: currencyCode);
           if (amount == null) continue;
-          final label = (raw['label'] ?? raw['code'] ?? 'Adjustment').toString();
+          final label = (raw['label'] ?? raw['code'] ?? 'Adjustment')
+              .toString();
           final code = (raw['code'] ?? '').toString();
           lines.add(
             FareLine(
@@ -214,11 +220,9 @@ class FareBreakdown extends StatelessWidget {
               note: code == 'rounding'
                   ? 'Rounded to the nearest paisa'
                   : (code == 'minimum_fare'
-                      ? 'Short trips are charged a minimum'
-                      : null),
-              color: code == 'surge'
-                  ? const Color(0xFFEEBD2B)
-                  : Colors.white,
+                        ? 'Short trips are charged a minimum'
+                        : null),
+              color: code == 'surge' ? SgColors.goldText : SgColors.ink,
             ),
           );
         }
@@ -232,7 +236,7 @@ class FareBreakdown extends StatelessWidget {
           FareLine(
             'Promo discount',
             '-${_money(breakdown['discount'], currencyCode: currencyCode)}',
-            color: const Color(0xFFEEBD2B),
+            color: SgColors.goldText,
           ),
         );
       }
@@ -244,8 +248,8 @@ class FareBreakdown extends StatelessWidget {
       if (breakdown['tax_mode']?.toString() == 'additive') {
         const note = 'Collected and remitted by SaaradhiGo';
         if (_isPositive(breakdown['tax_amount'])) {
-          final label = (breakdown['tax_label']?.toString().trim().isNotEmpty ??
-                  false)
+          final label =
+              (breakdown['tax_label']?.toString().trim().isNotEmpty ?? false)
               ? breakdown['tax_label'].toString()
               : 'Sales tax';
           final pct = breakdown['tax_percent']?.toString();
@@ -266,27 +270,27 @@ class FareBreakdown extends StatelessWidget {
       mainAxisSize: MainAxisSize.min,
       children: [
         if (showHeading)
-          const Padding(
+          Padding(
             padding: EdgeInsets.only(bottom: 4),
             child: Text(
               'Fare details',
               style: TextStyle(
-                color: Colors.white,
+                color: SgColors.ink,
                 fontSize: 16,
                 fontWeight: FontWeight.w700,
               ),
             ),
           ),
         ...lines,
-        if (lines.isNotEmpty) const Divider(color: Colors.white24, height: 20),
+        if (lines.isNotEmpty) Divider(color: SgColors.lineStrong, height: 20),
         FareLine('Estimated total', total ?? '—', bold: true),
-        const Padding(
+        Padding(
           padding: EdgeInsets.only(top: 6),
           child: Text(
             'An estimate. The final fare can change if the route or '
             'waiting time does.',
             style: TextStyle(
-              color: Colors.white60,
+              color: SgColors.inkMuted,
               fontSize: 12,
               fontWeight: FontWeight.w400,
             ),
@@ -304,7 +308,7 @@ Future<void> showFareBreakdownSheet(
 ) {
   return showModalBottomSheet<void>(
     context: context,
-    backgroundColor: const Color(0xFF1A1814),
+    backgroundColor: SgColors.bg200,
     isScrollControlled: true,
     shape: const RoundedRectangleBorder(
       borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
@@ -312,9 +316,7 @@ Future<void> showFareBreakdownSheet(
     builder: (context) => SafeArea(
       child: Padding(
         padding: const EdgeInsets.fromLTRB(20, 16, 20, 20),
-        child: SingleChildScrollView(
-          child: FareBreakdown(fareData: fareData),
-        ),
+        child: SingleChildScrollView(child: FareBreakdown(fareData: fareData)),
       ),
     ),
   );

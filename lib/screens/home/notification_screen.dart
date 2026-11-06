@@ -1,9 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
 import '../../providers/notification_provider.dart';
 import '../../services/models/notification_model.dart';
+
+import '../../ui/sg_tokens.dart';
 
 class NotificationScreen extends StatefulWidget {
   const NotificationScreen({super.key});
@@ -44,19 +45,16 @@ class _NotificationScreenState extends State<NotificationScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFF12110E),
+      backgroundColor: SgColors.bg000,
       appBar: AppBar(
         backgroundColor: Colors.transparent,
         elevation: 0,
         title: Text(
           'Notifications',
-          style: GoogleFonts.inter(
-            color: Colors.white,
-            fontWeight: FontWeight.bold,
-          ),
+          style: TextStyle(color: SgColors.ink, fontWeight: FontWeight.bold),
         ),
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: Colors.white),
+          icon: Icon(Icons.arrow_back, color: SgColors.ink),
           onPressed: () => Navigator.pop(context),
         ),
         actions: [
@@ -64,9 +62,9 @@ class _NotificationScreenState extends State<NotificationScreen> {
             onPressed: () {
               context.read<NotificationProvider>().markAllAsRead();
             },
-            child: const Text(
+            child: Text(
               'Mark all as read',
-              style: TextStyle(color: Color(0xFFEEBD2B)),
+              style: TextStyle(color: SgColors.goldText),
             ),
           ),
         ],
@@ -75,7 +73,7 @@ class _NotificationScreenState extends State<NotificationScreen> {
         builder: (context, provider, child) {
           if (provider.isLoading && provider.notifications.isEmpty) {
             return const Center(
-              child: CircularProgressIndicator(color: Color(0xFFEEBD2B)),
+              child: CircularProgressIndicator(color: SgColors.gold500),
             );
           }
 
@@ -93,7 +91,7 @@ class _NotificationScreenState extends State<NotificationScreen> {
 
           return RefreshIndicator(
             onRefresh: provider.fetchNotifications,
-            color: const Color(0xFFEEBD2B),
+            color: SgColors.gold500,
             child: ListView.builder(
               controller: _scrollController,
               padding: const EdgeInsets.all(16),
@@ -106,7 +104,7 @@ class _NotificationScreenState extends State<NotificationScreen> {
                     padding: EdgeInsets.symmetric(vertical: 16),
                     child: Center(
                       child: CircularProgressIndicator(
-                        color: Color(0xFFEEBD2B),
+                        color: SgColors.gold500,
                         strokeWidth: 2,
                       ),
                     ),
@@ -137,12 +135,12 @@ class _NotificationScreenState extends State<NotificationScreen> {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            const Icon(Icons.cloud_off, size: 56, color: Colors.white38),
+            Icon(Icons.cloud_off, size: 56, color: SgColors.inkSubtle),
             const SizedBox(height: 16),
-            const Text(
+            Text(
               'Could not load notifications',
               style: TextStyle(
-                color: Colors.white,
+                color: SgColors.ink,
                 fontSize: 18,
                 fontWeight: FontWeight.w600,
               ),
@@ -151,7 +149,7 @@ class _NotificationScreenState extends State<NotificationScreen> {
             const SizedBox(height: 8),
             Text(
               provider.error!,
-              style: const TextStyle(color: Colors.white54),
+              style: TextStyle(color: SgColors.inkMuted),
               textAlign: TextAlign.center,
             ),
             const SizedBox(height: 20),
@@ -160,8 +158,8 @@ class _NotificationScreenState extends State<NotificationScreen> {
               icon: const Icon(Icons.refresh),
               label: const Text('Try again'),
               style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFFEEBD2B),
-                foregroundColor: Colors.black,
+                backgroundColor: SgColors.gold500,
+                foregroundColor: SgColors.onGold,
               ),
             ),
           ],
@@ -175,15 +173,11 @@ class _NotificationScreenState extends State<NotificationScreen> {
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Icon(
-            Icons.notifications_none,
-            size: 80,
-            color: Colors.white.withValues(alpha: 0.1),
-          ),
+          Icon(Icons.notifications_none, size: 80, color: SgColors.inkSubtle),
           const SizedBox(height: 16),
           Text(
             'No notifications yet',
-            style: GoogleFonts.inter(color: Colors.white54, fontSize: 16),
+            style: TextStyle(color: SgColors.inkMuted, fontSize: 16),
           ),
         ],
       ),
@@ -202,14 +196,12 @@ class _NotificationTile extends StatelessWidget {
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
       decoration: BoxDecoration(
-        color: notification.isRead
-            ? Colors.white.withValues(alpha: 0.05)
-            : Colors.white.withValues(alpha: 0.08),
+        color: notification.isRead ? SgColors.bg200 : SgColors.bg200,
         borderRadius: BorderRadius.circular(16),
         border: Border.all(
           color: notification.isRead
               ? Colors.transparent
-              : const Color(0xFFEEBD2B).withValues(alpha: 0.3),
+              : SgColors.goldText.withValues(alpha: 0.3),
           width: 1,
         ),
       ),
@@ -225,8 +217,8 @@ class _NotificationTile extends StatelessWidget {
                 padding: const EdgeInsets.all(10),
                 decoration: BoxDecoration(
                   color: notification.isRead
-                      ? Colors.white.withValues(alpha: 0.05)
-                      : const Color(0xFFEEBD2B).withValues(alpha: 0.1),
+                      ? SgColors.bg200
+                      : SgColors.gold500.withValues(alpha: 0.1),
                   shape: BoxShape.circle,
                 ),
                 child: Icon(
@@ -234,8 +226,8 @@ class _NotificationTile extends StatelessWidget {
                       ? Icons.notifications_none
                       : Icons.notifications_active,
                   color: notification.isRead
-                      ? Colors.white38
-                      : const Color(0xFFEEBD2B),
+                      ? SgColors.inkSubtle
+                      : SgColors.goldText,
                   size: 20,
                 ),
               ),
@@ -250,8 +242,8 @@ class _NotificationTile extends StatelessWidget {
                         Expanded(
                           child: Text(
                             notification.title,
-                            style: GoogleFonts.inter(
-                              color: Colors.white,
+                            style: TextStyle(
+                              color: SgColors.ink,
                               fontWeight: notification.isRead
                                   ? FontWeight.w500
                                   : FontWeight.bold,
@@ -261,8 +253,8 @@ class _NotificationTile extends StatelessWidget {
                         ),
                         Text(
                           DateFormat('hh:mm a').format(notification.createdAt),
-                          style: GoogleFonts.inter(
-                            color: Colors.white38,
+                          style: TextStyle(
+                            color: SgColors.inkSubtle,
                             fontSize: 12,
                           ),
                         ),
@@ -271,10 +263,10 @@ class _NotificationTile extends StatelessWidget {
                     const SizedBox(height: 4),
                     Text(
                       notification.message,
-                      style: GoogleFonts.inter(
+                      style: TextStyle(
                         color: notification.isRead
-                            ? Colors.white38
-                            : Colors.white70,
+                            ? SgColors.inkSubtle
+                            : SgColors.inkMuted,
                         fontSize: 14,
                         height: 1.4,
                       ),
@@ -282,10 +274,7 @@ class _NotificationTile extends StatelessWidget {
                     const SizedBox(height: 8),
                     Text(
                       DateFormat('MMM dd, yyyy').format(notification.createdAt),
-                      style: GoogleFonts.inter(
-                        color: Colors.white24,
-                        fontSize: 11,
-                      ),
+                      style: TextStyle(color: SgColors.inkSubtle, fontSize: 11),
                     ),
                   ],
                 ),

@@ -2,7 +2,11 @@ import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:go_router/go_router.dart';
+import 'package:flutter_localizations/flutter_localizations.dart';
+import 'l10n/app_localizations.dart';
+import 'ui/sg_appearance.dart';
 import 'ui/sg_text.dart';
+import 'ui/sg_tokens.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import 'package:flutter_dotenv/flutter_dotenv.dart';
@@ -93,8 +97,10 @@ Future<void> _main() async {
   try {
     await dotenv.load(fileName: 'assets/.env');
   } on Object catch (e) {
-    debugPrint('No assets/.env loaded (${e.runtimeType}); '
-        'using --dart-define configuration.');
+    debugPrint(
+      'No assets/.env loaded (${e.runtimeType}); '
+      'using --dart-define configuration.',
+    );
   }
 
   // Refuse to run a release build that was compiled without its environment, or
@@ -111,6 +117,8 @@ Future<void> _main() async {
   await MarketConfigStore.instance.restoreCached();
   unawaited(MarketConfigStore.instance.refresh());
   final prefs = await SharedPreferences.getInstance();
+  // Theme and language before the first frame, so nothing flashes.
+  await SgAppearance.instance.restore(prefs);
   final isFirstLaunch = prefs.getBool('isFirstLaunch') ?? true;
   final token = prefs.getString('access_token');
   final isLoggedIn = token != null && token.isNotEmpty;
@@ -120,37 +128,40 @@ Future<void> _main() async {
     EnvironmentBadge(
       child: riverpod.UncontrolledProviderScope(
         container: container,
-      child: MultiProvider(
-        providers: [
-          ChangeNotifierProvider<MarketConfigStore>.value(
-            value: MarketConfigStore.instance,
+        child: MultiProvider(
+          providers: [
+            ChangeNotifierProvider<MarketConfigStore>.value(
+              value: MarketConfigStore.instance,
+            ),
+            ChangeNotifierProvider(
+              create: (_) => AuthProvider(market: MarketConfigStore.instance),
+            ),
+            ChangeNotifierProvider(
+              create: (_) => MapProvider(container: container),
+            ),
+            ChangeNotifierProvider(create: (_) => HistoryProvider()),
+            ChangeNotifierProvider(create: (_) => WalletProvider()),
+            ChangeNotifierProvider(create: (_) => NotificationProvider()),
+            // Pulls server-controlled feature flags (e.g. whether wallet
+            // top-ups are enabled). Fires off the fetch immediately so
+            // the wallet screen has the right posture by the time the
+            // user navigates to it; safe defaults are used until the
+            // response lands.
+            ChangeNotifierProvider(
+              create: (_) => RemoteConfigProvider()..fetch(),
+            ),
+          ],
+          child: SaaradhiGoApp(
+            isFirstLaunch: isFirstLaunch,
+            isLoggedIn: isLoggedIn,
           ),
-          ChangeNotifierProvider(
-            create: (_) => AuthProvider(market: MarketConfigStore.instance),
-          ),
-          ChangeNotifierProvider(
-            create: (_) => MapProvider(container: container),
-          ),
-          ChangeNotifierProvider(create: (_) => HistoryProvider()),
-          ChangeNotifierProvider(create: (_) => WalletProvider()),
-          ChangeNotifierProvider(create: (_) => NotificationProvider()),
-          // Pulls server-controlled feature flags (e.g. whether wallet
-          // top-ups are enabled). Fires off the fetch immediately so
-          // the wallet screen has the right posture by the time the
-          // user navigates to it; safe defaults are used until the
-          // response lands.
-          ChangeNotifierProvider(
-            create: (_) => RemoteConfigProvider()..fetch(),
-          ),
-        ],
-          child: SaaradhiGoApp(isFirstLaunch: isFirstLaunch, isLoggedIn: isLoggedIn),
         ),
       ),
     ),
   );
 }
 
-class SaaradhiGoApp extends StatelessWidget {
+class SaaradhiGoApp extends StatefulWidget {
   final bool isFirstLaunch;
   final bool isLoggedIn;
 
@@ -161,8 +172,19 @@ class SaaradhiGoApp extends StatelessWidget {
   });
 
   @override
-  Widget build(BuildContext context) {
-    final GoRouter router = GoRouter(
+  State<SaaradhiGoApp> createState() => _SaaradhiGoAppState();
+}
+
+class _SaaradhiGoAppState extends State<SaaradhiGoApp> {
+  // Built once: a theme or language change rebuilds the app and must not
+  // reset where the rider is.
+  late final GoRouter router = _buildRouter();
+
+  bool get isFirstLaunch => widget.isFirstLaunch;
+  bool get isLoggedIn => widget.isLoggedIn;
+
+  GoRouter _buildRouter() {
+    return GoRouter(
       initialLocation: isFirstLaunch
           ? '/splash'
           : (isLoggedIn ? '/home' : '/login'),
@@ -328,66 +350,71 @@ class SaaradhiGoApp extends StatelessWidget {
         ),
       ],
     );
+  }
 
-    return RideNavigationHandler(
-      child: LifecycleObserver(
-        child: MaterialApp.router(
-          // The name shown in the Android task switcher. Was 'VahanGo'
-          // while the launcher label said SaaradhiGo.
-          title: 'SaaradhiGo',
-          debugShowCheckedModeBanner: false,
-          builder: (context, child) {
-            return MarketOverlays(child: riverpod.Consumer(
-              builder: (context, ref, _) {
-                // Wire the foreground-service notification into ride
-                // lifecycle. Listener is attached once per Consumer
-                // build and persists for the app's lifetime — without
-                // it the rider's app gets killed mid-trip on Xiaomi /
-                // Vivo / Oppo / Realme.
-                wireRideForegroundService(ref);
+  @override
+  Widget build(BuildContext context) {
+    return SgAppearanceScope(
+      builder: (context, appearance) => RideNavigationHandler(
+        child: LifecycleObserver(
+          child: MaterialApp.router(
+            // The name shown in the Android task switcher. Was 'VahanGo'
+            // while the launcher label said SaaradhiGo.
+            title: 'SaaradhiGo',
+            debugShowCheckedModeBanner: false,
+            builder: (context, child) {
+              return MarketOverlays(
+                child: riverpod.Consumer(
+                  builder: (context, ref, _) {
+                    // Wire the foreground-service notification into ride
+                    // lifecycle. Listener is attached once per Consumer
+                    // build and persists for the app's lifetime — without
+                    // it the rider's app gets killed mid-trip on Xiaomi /
+                    // Vivo / Oppo / Realme.
+                    wireRideForegroundService(ref);
 
-                final rideState = ref.watch(rideNotifierProvider);
-                return Stack(
-                  children: [
-                    if (child != null) child,
-                    if (rideState.isSyncing) const SyncOverlay(),
-                    if (rideState.showCancelledOverlay)
-                      const CancelledOverlay(),
-                    if (rideState.status == RideStatus.paymentPending)
-                      Positioned(
-                        top: 0,
-                        left: 0,
-                        right: 0,
-                        child: PaymentPendingBanner(
-                          onOpen: () => router.go('/ride-summary'),
-                        ),
-                      ),
-                  ],
-                );
-              },
-            ));
-          },
-          theme: ThemeData(
-            useMaterial3: true,
-            colorScheme: ColorScheme.fromSeed(
-              seedColor: const Color(0xFFEEBD2B),
-              primary: const Color(0xFFEEBD2B),
-              surface: const Color(0xFFF8F7F6),
-              brightness: Brightness.light,
-            ),
-            textTheme: ThemeData(brightness: Brightness.light).textTheme
-                .apply(fontFamily: SgText.sans),
-          ),
-          darkTheme: sgDarkTheme(),
-          themeMode: ThemeMode.dark,
-          routerConfig: router,
-          scrollBehavior: const MaterialScrollBehavior().copyWith(
-            dragDevices: {
-              PointerDeviceKind.mouse,
-              PointerDeviceKind.touch,
-              PointerDeviceKind.stylus,
-              PointerDeviceKind.unknown,
+                    final rideState = ref.watch(rideNotifierProvider);
+                    return Stack(
+                      children: [
+                        if (child != null) child,
+                        if (rideState.isSyncing) const SyncOverlay(),
+                        if (rideState.showCancelledOverlay)
+                          const CancelledOverlay(),
+                        if (rideState.status == RideStatus.paymentPending)
+                          Positioned(
+                            top: 0,
+                            left: 0,
+                            right: 0,
+                            child: PaymentPendingBanner(
+                              onOpen: () => router.go('/ride-summary'),
+                            ),
+                          ),
+                      ],
+                    );
+                  },
+                ),
+              );
             },
+            theme: sgTheme(SgPalette.light),
+            darkTheme: sgTheme(SgPalette.dark),
+            themeMode: appearance.themeMode,
+            locale: appearance.locale,
+            supportedLocales: AppLocalizations.supportedLocales,
+            localizationsDelegates: const [
+              AppLocalizations.delegate,
+              GlobalMaterialLocalizations.delegate,
+              GlobalWidgetsLocalizations.delegate,
+              GlobalCupertinoLocalizations.delegate,
+            ],
+            routerConfig: router,
+            scrollBehavior: const MaterialScrollBehavior().copyWith(
+              dragDevices: {
+                PointerDeviceKind.mouse,
+                PointerDeviceKind.touch,
+                PointerDeviceKind.stylus,
+                PointerDeviceKind.unknown,
+              },
+            ),
           ),
         ),
       ),
