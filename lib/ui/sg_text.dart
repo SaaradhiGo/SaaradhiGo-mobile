@@ -63,8 +63,16 @@ class SgText {
   static TextStyle get caption => _style(14, 20, 500, color: SgColors.inkMuted);
 
   /// Uppercase the string where it is used; a TextStyle cannot.
-  static TextStyle get label =>
-      _style(13, 18, 700, color: SgColors.inkSubtle, spacingEm: 0.14);
+  ///
+  /// Letter-spaced in Latin only: spacing pulls Telugu and Devanagari
+  /// conjuncts apart.
+  static TextStyle get label => _style(
+    13,
+    18,
+    700,
+    color: SgColors.inkSubtle,
+    spacingEm: language == 'en' ? 0.14 : 0,
+  );
   static TextStyle get fareXl => _style(56, 56, 800, figures: true);
   static TextStyle get fare => _style(22, 24, 800, figures: true);
   static TextStyle get driverEarning => _style(96, 92, 800, figures: true);
