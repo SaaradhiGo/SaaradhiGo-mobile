@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../ui/sg_tokens.dart';
+import '../../ui/sg_text.dart';
 
 class PaymentSuccessScreen extends StatelessWidget {
   const PaymentSuccessScreen({super.key});
@@ -35,7 +36,7 @@ class PaymentSuccessScreen extends StatelessWidget {
                 'Payment Successful',
                 style: TextStyle(
                   color: SgColors.ink,
-                  fontSize: 24,
+                  fontSize: SgText.px(24),
                   fontWeight: FontWeight.w700,
                 ),
                 textAlign: TextAlign.center,
@@ -52,7 +53,7 @@ class PaymentSuccessScreen extends StatelessWidget {
                         : 'Your wallet balance has been updated successfully.',
                     style: TextStyle(
                       color: SgColors.inkMuted,
-                      fontSize: 16,
+                      fontSize: SgText.px(16),
                       fontWeight: FontWeight.w400,
                       height: 1.5,
                     ),
@@ -91,7 +92,7 @@ class PaymentSuccessScreen extends StatelessWidget {
                       child: Text(
                         hasReturnRoute ? 'Continue to Payment' : 'Back to Home',
                         style: TextStyle(
-                          fontSize: 16,
+                          fontSize: SgText.px(16),
                           fontWeight: FontWeight.w700,
                         ),
                       ),

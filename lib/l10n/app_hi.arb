@@ -1,8 +1,12 @@
 {
   "@@locale": "hi",
+  "themeSwitchToDark": "डार्क थीम पर जाएँ",
+  "@themeSwitchToDark": {"description": "needs native review"},
+  "themeSwitchToLight": "लाइट थीम पर जाएँ",
+  "@themeSwitchToLight": {"description": "needs native review"},
   "appearance": "रूप",
   "@appearance": {"description": "needs native review"},
-  "themeDark": "डार्क",
+  "themeDark": "डार्क (काला और सुनहरा)",
   "@themeDark": {"description": "needs native review"},
   "themeLight": "लाइट",
   "@themeLight": {"description": "needs native review"},

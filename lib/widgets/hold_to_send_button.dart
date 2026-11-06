@@ -14,6 +14,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 import '../ui/sg_tokens.dart';
+import '../ui/sg_text.dart';
 
 class HoldToSendButton extends StatefulWidget {
   const HoldToSendButton({
@@ -127,7 +128,7 @@ class _HoldToSendButtonState extends State<HoldToSendButton>
                           _hold.value > 0 ? 'Keep holding' : widget.label,
                           style: TextStyle(
                             color: SgColors.ink,
-                            fontSize: 16,
+                            fontSize: SgText.px(16),
                             fontWeight: FontWeight.w700,
                           ),
                         ),

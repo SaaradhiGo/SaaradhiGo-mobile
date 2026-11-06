@@ -17,6 +17,7 @@ import '../../services/referral_service.dart';
 import '../../services/token_store.dart';
 
 import '../../ui/sg_tokens.dart';
+import '../../ui/sg_text.dart';
 
 /// The profile update body: only what the rider filled in.
 ///
@@ -210,9 +211,8 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen> {
               'CHOOSE IMAGE FROM',
               style: TextStyle(
                 color: SgColors.inkMuted,
-                fontSize: 11,
+                fontSize: SgText.px(11),
                 fontWeight: FontWeight.bold,
-                letterSpacing: 1.2,
               ),
             ),
             const SizedBox(height: 16),
@@ -361,7 +361,7 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen> {
         Text(
           label,
           style: TextStyle(
-            fontSize: 14,
+            fontSize: SgText.px(14),
             fontWeight: FontWeight.w500,
             color: colorScheme.onSurface.withValues(alpha: 0.7),
           ),
@@ -381,7 +381,7 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen> {
             keyboardType: keyboardType,
             readOnly: readOnly,
             onTap: onTap,
-            style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w500),
+            style: TextStyle(fontSize: SgText.px(16), fontWeight: FontWeight.w500),
             decoration: InputDecoration(
               hintText: placeholder,
               border: InputBorder.none,
@@ -417,7 +417,7 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen> {
         Text(
           'City',
           style: TextStyle(
-            fontSize: 14,
+            fontSize: SgText.px(14),
             fontWeight: FontWeight.w500,
             color: colorScheme.onSurface.withValues(alpha: 0.7),
           ),
@@ -472,9 +472,9 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen> {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text(
+        title: Text(
           'Complete Profile',
-          style: TextStyle(fontWeight: FontWeight.bold, fontSize: 20),
+          style: TextStyle(fontWeight: FontWeight.bold, fontSize: SgText.px(20)),
         ),
         centerTitle: true,
         backgroundColor: colorScheme.surface,
@@ -594,7 +594,7 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen> {
                 Text(
                   'Gender',
                   style: TextStyle(
-                    fontSize: 14,
+                    fontSize: SgText.px(14),
                     fontWeight: FontWeight.w500,
                     color: colorScheme.onSurface.withValues(alpha: 0.7),
                   ),
@@ -684,7 +684,7 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen> {
                     Text(
                       'Safety First',
                       style: TextStyle(
-                        fontSize: 18,
+                        fontSize: SgText.px(18),
                         fontWeight: FontWeight.bold,
                         color: colorScheme.primary,
                       ),
@@ -702,7 +702,7 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen> {
                 Text(
                   'Used only in case of emergencies during your ride.',
                   style: TextStyle(
-                    fontSize: 12,
+                    fontSize: SgText.px(12),
                     color: colorScheme.onSurface.withValues(alpha: 0.5),
                   ),
                 ),
@@ -715,10 +715,10 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen> {
                       color: colorScheme.onSurface.withValues(alpha: 0.4),
                     ),
                     const SizedBox(width: 8),
-                    const Text(
+                    Text(
                       'Residential Address',
                       style: TextStyle(
-                        fontSize: 18,
+                        fontSize: SgText.px(18),
                         fontWeight: FontWeight.bold,
                       ),
                     ),
@@ -821,10 +821,10 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen> {
                           : Row(
                               mainAxisAlignment: MainAxisAlignment.center,
                               children: [
-                                const Text(
+                                Text(
                                   'Save & Continue',
                                   style: TextStyle(
-                                    fontSize: 18,
+                                    fontSize: SgText.px(18),
                                     fontWeight: FontWeight.bold,
                                   ),
                                 ),

@@ -28,7 +28,7 @@ class SgBrandBadge extends StatelessWidget {
     size >= 96 ? kBadgeFullAsset : kBadgeSmallAsset,
     width: size,
     height: size,
-    colorFilter: ColorFilter.mode(color ?? SgColors.goldText, BlendMode.srcIn),
+    colorFilter: ColorFilter.mode(color ?? SgColors.logo, BlendMode.srcIn),
     semanticsLabel: 'SaaradhiGo',
   );
 }

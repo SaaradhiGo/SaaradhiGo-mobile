@@ -40,6 +40,9 @@ class SgIcons {
       '<rect x="5" y="11" width="14" height="9" rx="2"/><path d="M8 11V8a4 4 0 018 0v3"/>';
   static const theme =
       '<circle cx="12" cy="12" r="4"/><path d="M12 3v2M12 19v2M3 12h2M19 12h2M5.6 5.6l1.4 1.4M17 17l1.4 1.4M5.6 18.4L7 17M17 7l1.4-1.4"/>';
+  /// The home header's theme switch: the sun shows on dark, the moon on light.
+  static const sun = theme;
+  static const moon = '<path d="M20 14.5A8 8 0 019.5 4 8 8 0 1020 14.5z"/>';
   static const language =
       '<circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3c3 3 3 15 0 18M12 3c-3 3-3 15 0 18"/>';
   static const help =
@@ -133,7 +136,6 @@ class SgPrimaryButton extends StatelessWidget {
             overflow: TextOverflow.ellipsis,
             style: SgText.button.copyWith(
               color: on ? SgColors.onGold : SgColors.inkSubtle,
-              letterSpacing: 0.3,
             ),
           ),
         ),

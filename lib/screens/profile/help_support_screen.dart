@@ -6,6 +6,7 @@ import '../../services/support_service.dart';
 import 'report_problem_screen.dart';
 
 import '../../ui/sg_tokens.dart';
+import '../../ui/sg_text.dart';
 
 class HelpSupportScreen extends StatelessWidget {
   const HelpSupportScreen({super.key});
@@ -107,9 +108,8 @@ class HelpSupportScreen extends StatelessWidget {
                     'Help & Support',
                     style: TextStyle(
                       color: SgColors.ink,
-                      fontSize: 20,
+                      fontSize: SgText.px(20),
                       fontWeight: FontWeight.w600,
-                      letterSpacing: -0.3,
                     ),
                   ),
                 ],
@@ -223,7 +223,7 @@ class _HelpNavItem extends StatelessWidget {
               label,
               style: TextStyle(
                 color: color,
-                fontSize: 10,
+                fontSize: SgText.px(10),
                 fontWeight: FontWeight.w500,
                 shadows: shadows,
               ),
@@ -271,7 +271,7 @@ class _HelpSectionLabel extends StatelessWidget {
       text,
       style: TextStyle(
         color: SgColors.ink,
-        fontSize: 18,
+        fontSize: SgText.px(18),
         fontWeight: FontWeight.w700,
       ),
     );
@@ -322,7 +322,7 @@ class _MiniTile extends StatelessWidget {
               label,
               style: TextStyle(
                 color: SgColors.ink,
-                fontSize: 14,
+                fontSize: SgText.px(14),
                 fontWeight: FontWeight.w600,
               ),
             ),
@@ -368,13 +368,13 @@ class _ContactTile extends StatelessWidget {
           title,
           style: TextStyle(
             color: SgColors.ink,
-            fontSize: 16,
+            fontSize: SgText.px(16),
             fontWeight: FontWeight.w600,
           ),
         ),
         subtitle: Text(
           subtitle,
-          style: TextStyle(color: SgColors.inkMuted, fontSize: 13),
+          style: TextStyle(color: SgColors.inkMuted, fontSize: SgText.px(13)),
         ),
         trailing: Icon(
           Icons.chevron_right,

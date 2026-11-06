@@ -61,6 +61,7 @@ import 'screens/components/payment_pending_banner.dart';
 import 'services/push_notification_service.dart';
 import 'services/ongoing_ride_notification_service.dart';
 import 'services/ride_foreground_link.dart';
+import 'core/maps/map_style.dart';
 
 @pragma('vm:entry-point')
 Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
@@ -125,6 +126,13 @@ Future<void> _main() async {
     if (token == null || token.isEmpty) return;
     unawaited(ApiService().patchPreferredLanguage(code));
   };
+  SgAppearance.onThemePicked = (wire) {
+    final token = prefs.getString('access_token');
+    if (token == null || token.isEmpty) return;
+    unawaited(ApiService().patchPreferredTheme(wire));
+  };
+  // The light basemap, before the first map is drawn.
+  await loadLightMapStyle();
   final isFirstLaunch = prefs.getBool('isFirstLaunch') ?? true;
   final token = prefs.getString('access_token');
   final isLoggedIn = token != null && token.isNotEmpty;
@@ -369,35 +377,38 @@ class _SaaradhiGoAppState extends State<SaaradhiGoApp> {
             title: 'SaaradhiGo',
             debugShowCheckedModeBanner: false,
             builder: (context, child) {
-              return MarketOverlays(
-                child: riverpod.Consumer(
-                  builder: (context, ref, _) {
-                    // Wire the foreground-service notification into ride
-                    // lifecycle. Listener is attached once per Consumer
-                    // build and persists for the app's lifetime — without
-                    // it the rider's app gets killed mid-trip on Xiaomi /
-                    // Vivo / Oppo / Realme.
-                    wireRideForegroundService(ref);
+              // The type scale's size class, from the window (Tier 1).
+              return SgSizeScope(
+                child: MarketOverlays(
+                  child: riverpod.Consumer(
+                    builder: (context, ref, _) {
+                      // Wire the foreground-service notification into ride
+                      // lifecycle. Listener is attached once per Consumer
+                      // build and persists for the app's lifetime — without
+                      // it the rider's app gets killed mid-trip on Xiaomi /
+                      // Vivo / Oppo / Realme.
+                      wireRideForegroundService(ref);
 
-                    final rideState = ref.watch(rideNotifierProvider);
-                    return Stack(
-                      children: [
-                        if (child != null) child,
-                        if (rideState.isSyncing) const SyncOverlay(),
-                        if (rideState.showCancelledOverlay)
-                          const CancelledOverlay(),
-                        if (rideState.status == RideStatus.paymentPending)
-                          Positioned(
-                            top: 0,
-                            left: 0,
-                            right: 0,
-                            child: PaymentPendingBanner(
-                              onOpen: () => router.go('/ride-summary'),
+                      final rideState = ref.watch(rideNotifierProvider);
+                      return Stack(
+                        children: [
+                          if (child != null) child,
+                          if (rideState.isSyncing) const SyncOverlay(),
+                          if (rideState.showCancelledOverlay)
+                            const CancelledOverlay(),
+                          if (rideState.status == RideStatus.paymentPending)
+                            Positioned(
+                              top: 0,
+                              left: 0,
+                              right: 0,
+                              child: PaymentPendingBanner(
+                                onOpen: () => router.go('/ride-summary'),
+                              ),
                             ),
-                          ),
-                      ],
-                    );
-                  },
+                        ],
+                      );
+                    },
+                  ),
                 ),
               );
             },

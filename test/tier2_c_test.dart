@@ -95,7 +95,7 @@ void main() {
       ),
     );
     expect(find.byKey(const Key('plate_in')), findsOneWidget);
-    expect(find.text('IND'), findsOneWidget);
+    // The IND strip is drawn without lettering (6px type was under the floor).
     expect(find.text('TS 09 QT 0059'), findsOneWidget);
     expect(find.byKey(const Key('plate_plain')), findsOneWidget);
     expect(find.text('482913'), findsOneWidget);

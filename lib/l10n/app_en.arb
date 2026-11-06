@@ -1,8 +1,12 @@
 {
   "@@locale": "en",
+  "themeSwitchToDark": "Switch to dark theme",
+  "@themeSwitchToDark": {"description": "Home header sun/moon button, shown in the light theme"},
+  "themeSwitchToLight": "Switch to light theme",
+  "@themeSwitchToLight": {"description": "Home header sun/moon button, shown in the dark theme"},
   "appearance": "Appearance",
   "@appearance": {"description": "Account row and sheet title: choose the colour theme."},
-  "themeDark": "Dark",
+  "themeDark": "Dark (black and gold)",
   "@themeDark": {"description": "Theme option: dark."},
   "themeLight": "Light",
   "@themeLight": {"description": "Theme option: light."},

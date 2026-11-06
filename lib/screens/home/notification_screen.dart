@@ -6,6 +6,7 @@ import '../../providers/notification_provider.dart';
 import '../../services/models/notification_model.dart';
 
 import '../../ui/sg_tokens.dart';
+import '../../ui/sg_text.dart';
 
 class NotificationScreen extends StatefulWidget {
   const NotificationScreen({super.key});
@@ -73,7 +74,7 @@ class _NotificationScreenState extends State<NotificationScreen> {
       body: Consumer<NotificationProvider>(
         builder: (context, provider, child) {
           if (provider.isLoading && provider.notifications.isEmpty) {
-            return const Center(
+            return Center(
               child: CircularProgressIndicator(color: SgColors.gold500),
             );
           }
@@ -101,7 +102,7 @@ class _NotificationScreenState extends State<NotificationScreen> {
                   (provider.hasNextPage ? 1 : 0),
               itemBuilder: (context, index) {
                 if (index == provider.notifications.length) {
-                  return const Padding(
+                  return Padding(
                     padding: EdgeInsets.symmetric(vertical: 16),
                     child: Center(
                       child: CircularProgressIndicator(
@@ -142,7 +143,7 @@ class _NotificationScreenState extends State<NotificationScreen> {
               'Could not load notifications',
               style: TextStyle(
                 color: SgColors.ink,
-                fontSize: 18,
+                fontSize: SgText.px(18),
                 fontWeight: FontWeight.w600,
               ),
               textAlign: TextAlign.center,
@@ -178,7 +179,7 @@ class _NotificationScreenState extends State<NotificationScreen> {
           const SizedBox(height: 16),
           Text(
             'No notifications yet',
-            style: TextStyle(color: SgColors.inkMuted, fontSize: 16),
+            style: TextStyle(color: SgColors.inkMuted, fontSize: SgText.px(16)),
           ),
         ],
       ),
@@ -248,7 +249,7 @@ class _NotificationTile extends StatelessWidget {
                               fontWeight: notification.isRead
                                   ? FontWeight.w500
                                   : FontWeight.bold,
-                              fontSize: 15,
+                              fontSize: SgText.px(15),
                             ),
                           ),
                         ),
@@ -256,7 +257,7 @@ class _NotificationTile extends StatelessWidget {
                           DateFormat('hh:mm a').format(notification.createdAt),
                           style: TextStyle(
                             color: SgColors.inkSubtle,
-                            fontSize: 12,
+                            fontSize: SgText.px(12),
                           ),
                         ),
                       ],
@@ -268,14 +269,14 @@ class _NotificationTile extends StatelessWidget {
                         color: notification.isRead
                             ? SgColors.inkSubtle
                             : SgColors.inkMuted,
-                        fontSize: 14,
+                        fontSize: SgText.px(14),
                         height: 1.4,
                       ),
                     ),
                     const SizedBox(height: 8),
                     Text(
                       DateFormat('MMM dd, yyyy').format(notification.createdAt),
-                      style: TextStyle(color: SgColors.inkSubtle, fontSize: 11),
+                      style: TextStyle(color: SgColors.inkSubtle, fontSize: SgText.px(11)),
                     ),
                   ],
                 ),

@@ -442,6 +442,10 @@ class AuthProvider extends ChangeNotifier {
     if (serverLanguage is String) {
       unawaited(SgAppearance.instance.adoptServerLanguage(serverLanguage));
     }
+    // The account's theme, likewise only when this device has none.
+    unawaited(
+      SgAppearance.instance.adoptServerTheme(userPayload['preferred_theme']),
+    );
 
     _avatarUrl =
         _pickFirstString(userPayload, [

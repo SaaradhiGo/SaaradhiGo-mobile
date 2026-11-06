@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../ui/sg_layout.dart';
 import 'package:latlong2/latlong.dart';
 import '../../core/maps/sg_map.dart';
 import 'package:provider/provider.dart';
@@ -212,7 +213,8 @@ class _RouteMapScreenState extends State<RouteMapScreen> {
             final pickupMarker = _buildSafeMarker(
               id: 'pickup',
               point: pickupPoint,
-              icon: const SgSvgMarker('assets/markers/pickup.svg'),
+              icon: sgPickupIcon,
+              anchor: sgJourneyAnchor,
               label: sgStrings(context).pickupLabel,
             );
 
@@ -228,7 +230,8 @@ class _RouteMapScreenState extends State<RouteMapScreen> {
             final dropoffMarker = _buildSafeMarker(
               id: 'drop',
               point: mapProvider.dropLocation!.latLng,
-              icon: const SgSvgMarker('assets/markers/dropoff.svg'),
+              icon: sgDropIcon,
+              anchor: sgJourneyAnchor,
               label: sgStrings(context).dropLabel,
             );
 
@@ -275,8 +278,8 @@ class _RouteMapScreenState extends State<RouteMapScreen> {
           // Use safe polyline creation with coordinate validation
           final safePolyline = _buildSafePolyline(
             points: mapProvider.polylineCoordinates,
-            color: SgColors.gold500,
-            strokeWidth: 4.5,
+            color: SgColors.route,
+            strokeWidth: SgColors.routeWidth,
           );
           if (safePolyline != null) {
             polylines.add(safePolyline);
@@ -300,7 +303,7 @@ class _RouteMapScreenState extends State<RouteMapScreen> {
           if (mapProvider.isLoadingRoute) {
             return Scaffold(
               backgroundColor: SgColors.bg000,
-              body: const Center(
+              body: Center(
                 child: CircularProgressIndicator(color: SgColors.gold500),
               ),
             );
@@ -322,128 +325,129 @@ class _RouteMapScreenState extends State<RouteMapScreen> {
                 context.pop();
               }
             },
-            child: Column(
-              children: [
-                SizedBox(
-                  // A short route strip; the fares are the screen.
-                  height: MediaQuery.of(context).size.height * 0.26,
-                  child: Stack(
-                    children: [
-                      // Ensure FlutterMap has explicit constraints to prevent "render box with no size" errors
-                      Positioned.fill(
-                        child: LayoutBuilder(
-                          builder: (context, constraints) {
-                            // Provide fallback if constraints are zero (shouldn't happen but defensive)
-                            if (constraints.maxWidth <= 0 ||
-                                constraints.maxHeight <= 0) {
-                              return Container(
-                                color: SgColors.bg000,
-                                child: const Center(
-                                  child: CircularProgressIndicator(
-                                    color: SgColors.gold500,
-                                  ),
+            child: _splitOrColumn(
+              context,
+              strip: (tablet) => SizedBox(
+                // A short route strip; the fares are the screen.
+                height: tablet
+                    ? null
+                    : MediaQuery.of(context).size.height * 0.26,
+                child: Stack(
+                  children: [
+                    // Ensure FlutterMap has explicit constraints to prevent "render box with no size" errors
+                    Positioned.fill(
+                      child: LayoutBuilder(
+                        builder: (context, constraints) {
+                          // Provide fallback if constraints are zero (shouldn't happen but defensive)
+                          if (constraints.maxWidth <= 0 ||
+                              constraints.maxHeight <= 0) {
+                            return Container(
+                              color: SgColors.bg000,
+                              child: Center(
+                                child: CircularProgressIndicator(
+                                  color: SgColors.gold500,
                                 ),
-                              );
-                            }
+                              ),
+                            );
+                          }
 
-                            try {
-                              return SgMap(
-                                initialCenter: initialCenter,
-                                initialZoom: initialZoom,
-                                markers: markers,
-                                polylines: polylines,
-                                fitPadding: EdgeInsets.fromLTRB(
-                                  32,
-                                  MediaQuery.of(context).padding.top + 72,
-                                  32,
-                                  32,
+                          try {
+                            return SgMap(
+                              initialCenter: initialCenter,
+                              initialZoom: initialZoom,
+                              markers: markers,
+                              polylines: polylines,
+                              fitPadding: EdgeInsets.fromLTRB(
+                                32,
+                                MediaQuery.of(context).padding.top + 72,
+                                32,
+                                32,
+                              ),
+                              onMapCreated: (c) {
+                                _mapController = c;
+                                _fitBoundsIfNeeded(mapProvider);
+                              },
+                            );
+                          } catch (e, stackTrace) {
+                            debugPrint('FlutterMap rendering error: $e');
+                            debugPrint('Stack trace: $stackTrace');
+                            // Fallback UI when map fails to render
+                            return Container(
+                              color: SgColors.bg000,
+                              child: Center(
+                                child: Column(
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  children: [
+                                    Icon(
+                                      Icons.error_outline,
+                                      color: SgColors.goldText,
+                                      size: 64,
+                                    ),
+                                    const SizedBox(height: 16),
+                                    Text(
+                                      sgStrings(context).mapUnavailable,
+                                      style: TextStyle(
+                                        color: SgColors.ink,
+                                        fontSize: SgText.px(18),
+                                        fontWeight: FontWeight.w600,
+                                      ),
+                                    ),
+                                    const SizedBox(height: 8),
+                                    Text(
+                                      sgStrings(context).checkConnection,
+                                      style: TextStyle(
+                                        color: SgColors.inkMuted,
+                                        fontSize: SgText.px(14),
+                                      ),
+                                    ),
+                                    const SizedBox(height: 24),
+                                    ElevatedButton(
+                                      onPressed: () {
+                                        // Try to reload the map
+                                        if (mounted) {
+                                          setState(() {});
+                                        }
+                                      },
+                                      style: ElevatedButton.styleFrom(
+                                        backgroundColor: SgColors.gold500,
+                                        foregroundColor: SgColors.onGold,
+                                        padding: const EdgeInsets.symmetric(
+                                          horizontal: 24,
+                                          vertical: 12,
+                                        ),
+                                      ),
+                                      child: Text(sgStrings(context).retry),
+                                    ),
+                                  ],
                                 ),
-                                onMapCreated: (c) {
-                                  _mapController = c;
-                                  _fitBoundsIfNeeded(mapProvider);
-                                },
-                              );
-                            } catch (e, stackTrace) {
-                              debugPrint('FlutterMap rendering error: $e');
-                              debugPrint('Stack trace: $stackTrace');
-                              // Fallback UI when map fails to render
-                              return Container(
-                                color: SgColors.bg000,
-                                child: Center(
-                                  child: Column(
-                                    mainAxisAlignment: MainAxisAlignment.center,
-                                    children: [
-                                      Icon(
-                                        Icons.error_outline,
-                                        color: SgColors.goldText,
-                                        size: 64,
-                                      ),
-                                      const SizedBox(height: 16),
-                                      Text(
-                                        sgStrings(context).mapUnavailable,
-                                        style: TextStyle(
-                                          color: SgColors.ink,
-                                          fontSize: 18,
-                                          fontWeight: FontWeight.w600,
-                                        ),
-                                      ),
-                                      const SizedBox(height: 8),
-                                      Text(
-                                        sgStrings(context).checkConnection,
-                                        style: TextStyle(
-                                          color: SgColors.inkMuted,
-                                          fontSize: 14,
-                                        ),
-                                      ),
-                                      const SizedBox(height: 24),
-                                      ElevatedButton(
-                                        onPressed: () {
-                                          // Try to reload the map
-                                          if (mounted) {
-                                            setState(() {});
-                                          }
-                                        },
-                                        style: ElevatedButton.styleFrom(
-                                          backgroundColor: SgColors.gold500,
-                                          foregroundColor: SgColors.onGold,
-                                          padding: const EdgeInsets.symmetric(
-                                            horizontal: 24,
-                                            vertical: 12,
-                                          ),
-                                        ),
-                                        child: Text(sgStrings(context).retry),
-                                      ),
-                                    ],
-                                  ),
-                                ),
-                              );
-                            }
-                          },
-                        ),
+                              ),
+                            );
+                          }
+                        },
                       ),
-                      Positioned(
-                        top: MediaQuery.of(context).padding.top + SgSpace.s2,
-                        left: SgSpace.s4,
-                        child: SgMapButton(
-                          icon: SgIcons.back,
-                          label: sgStrings(context).back,
-                          onTap: () async {
-                            if (hasTripDetails) {
-                              final shouldPop = await _showCancelConfirmation(
-                                context,
-                              );
-                              if (shouldPop && context.mounted) context.pop();
-                            } else {
-                              context.pop();
-                            }
-                          },
-                        ),
+                    ),
+                    Positioned(
+                      top: MediaQuery.of(context).padding.top + SgSpace.s2,
+                      left: SgSpace.s4,
+                      child: SgMapButton(
+                        icon: SgIcons.back,
+                        label: sgStrings(context).back,
+                        onTap: () async {
+                          if (hasTripDetails) {
+                            final shouldPop = await _showCancelConfirmation(
+                              context,
+                            );
+                            if (shouldPop && context.mounted) context.pop();
+                          } else {
+                            context.pop();
+                          }
+                        },
                       ),
-                    ],
-                  ),
+                    ),
+                  ],
                 ),
-                Expanded(child: _buildSheet(mapProvider)),
-              ],
+              ),
+              sheet: _buildSheet(mapProvider),
             ),
           );
         },
@@ -451,9 +455,33 @@ class _RouteMapScreenState extends State<RouteMapScreen> {
     );
   }
 
+  /// Phone: the route strip over the fares. Tablet: the map on the left and
+  /// the fares as a 440 panel on the right.
+  Widget _splitOrColumn(
+    BuildContext context, {
+    required Widget Function(bool tablet) strip,
+    required Widget sheet,
+  }) {
+    if (sgIsTablet(context)) {
+      return Row(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Expanded(child: strip(true)),
+          SizedBox(width: kSgTabletPanel, child: sheet),
+        ],
+      );
+    }
+    return Column(
+      children: [
+        strip(false),
+        Expanded(child: sheet),
+      ],
+    );
+  }
+
   Widget _buildSheet(MapProvider provider) {
     if (provider.isLoadingFares) {
-      return const SgSheetSurface(
+      return SgSheetSurface(
         child: Padding(
           padding: EdgeInsets.all(SgSpace.s5),
           child: Center(
@@ -550,7 +578,7 @@ class _RouteMapScreenState extends State<RouteMapScreen> {
             title: Text(
               'Cancel Trip?',
               style: TextStyle(
-                fontSize: 18,
+                fontSize: SgText.px(18),
                 color: SgColors.ink,
                 fontWeight: FontWeight.bold,
               ),
@@ -569,7 +597,10 @@ class _RouteMapScreenState extends State<RouteMapScreen> {
               ),
               TextButton(
                 onPressed: () => Navigator.pop(context, true),
-                child: Text(sgStrings(context).cancel, style: TextStyle(color: SgColors.danger)),
+                child: Text(
+                  sgStrings(context).cancel,
+                  style: TextStyle(color: SgColors.danger),
+                ),
               ),
             ],
           ),

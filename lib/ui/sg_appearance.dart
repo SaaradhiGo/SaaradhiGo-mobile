@@ -1,7 +1,8 @@
 /// Theme and language, chosen in Account and kept on the device.
 ///
-/// Dark is the default (spec 1.5). Automatic follows the device's light/dark
-/// setting. The language is English, Telugu or Hindi; with no saved choice the
+/// Light (Daylight) is the default (owner, 2026-11-06): a rider who never chose
+/// gets Light, and an explicit earlier choice is kept. Dark is the black and
+/// gold theme. Automatic follows the device's light/dark setting. The language is English, Telugu or Hindi; with no saved choice the
 /// app starts in English.
 library;
 
@@ -12,7 +13,22 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'sg_text.dart';
 import 'sg_tokens.dart';
 
-enum SgThemeChoice { dark, light, automatic }
+/// In the order the Appearance sheet lists them.
+enum SgThemeChoice { light, dark, automatic }
+
+/// The account field `preferred_theme`: light | dark | auto.
+String themeChoiceWire(SgThemeChoice c) => switch (c) {
+  SgThemeChoice.light => 'light',
+  SgThemeChoice.dark => 'dark',
+  SgThemeChoice.automatic => 'auto',
+};
+
+SgThemeChoice? themeChoiceFromWire(Object? v) => switch (v) {
+  'light' => SgThemeChoice.light,
+  'dark' => SgThemeChoice.dark,
+  'auto' => SgThemeChoice.automatic,
+  _ => null,
+};
 
 class SgAppearance extends ChangeNotifier {
   SgAppearance._();
@@ -23,13 +39,21 @@ class SgAppearance extends ChangeNotifier {
   static const localeKey = 'sg_locale';
   static const supportedLanguages = ['en', 'te', 'hi'];
 
-  SgThemeChoice _theme = SgThemeChoice.dark;
+  SgThemeChoice _theme = SgThemeChoice.light;
+  bool _themeSaved = false;
   String _language = 'en';
   bool _languageSaved = false;
 
   /// Called when the rider picks a language, so the account can keep it
   /// (PATCH /auth/profile/ preferred_language). Fire and forget; set in main.
   static void Function(String code)? onLanguagePicked;
+
+  /// Called when the rider picks a theme, so the account keeps it
+  /// (PATCH /auth/update/ preferred_theme). Fire and forget; set in main.
+  static void Function(String wire)? onThemePicked;
+
+  /// True once a theme has been chosen on this device.
+  bool get hasSavedTheme => _themeSaved;
 
   /// True once a language has been chosen on this device. Sign-in shows the
   /// language tiles only while this is false.
@@ -59,10 +83,10 @@ class SgAppearance extends ChangeNotifier {
   /// Reads the saved choices. Called once before the first frame.
   Future<void> restore([SharedPreferences? prefs]) async {
     final p = prefs ?? await SharedPreferences.getInstance();
-    _theme = SgThemeChoice.values.firstWhere(
-      (c) => c.name == p.getString(themeKey),
-      orElse: () => SgThemeChoice.dark,
-    );
+    final saved = p.getString(themeKey);
+    final match = SgThemeChoice.values.where((c) => c.name == saved);
+    _themeSaved = match.isNotEmpty;
+    _theme = _themeSaved ? match.first : SgThemeChoice.light;
     final lang = p.getString(localeKey);
     _languageSaved = supportedLanguages.contains(lang);
     _language = _languageSaved ? lang! : 'en';
@@ -76,13 +100,39 @@ class SgAppearance extends ChangeNotifier {
   }
 
   Future<void> setTheme(SgThemeChoice choice) async {
-    if (choice == _theme) return;
+    final changed = choice != _theme;
+    if (!changed && _themeSaved) return;
     _theme = choice;
+    _themeSaved = true;
     apply();
-    notifyListeners();
+    if (changed) notifyListeners();
+    try {
+      onThemePicked?.call(themeChoiceWire(choice));
+    } catch (_) {}
     final p = await SharedPreferences.getInstance();
     await p.setString(themeKey, choice.name);
   }
+
+  /// The account's saved theme (`preferred_theme`), used only when this
+  /// device has none.
+  Future<void> adoptServerTheme(Object? wire) async {
+    final choice = themeChoiceFromWire(wire);
+    if (_themeSaved || choice == null) return;
+    _theme = choice;
+    _themeSaved = true;
+    apply();
+    notifyListeners();
+    try {
+      final p = await SharedPreferences.getInstance();
+      await p.setString(themeKey, choice.name);
+    } catch (_) {}
+  }
+
+  /// The quick switch in the home header: dark when light shows, and light
+  /// when dark shows (Automatic resolves to what is on screen).
+  Future<void> toggleTheme() => setTheme(
+    SgColors.isDark ? SgThemeChoice.light : SgThemeChoice.dark,
+  );
 
   Future<void> setLanguage(String code) async {
     if (!supportedLanguages.contains(code)) return;

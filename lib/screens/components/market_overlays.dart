@@ -9,6 +9,7 @@ import '../../core/market/market_config.dart';
 import '../../core/market/market_config_store.dart';
 
 import '../../ui/sg_tokens.dart';
+import '../../ui/sg_text.dart';
 
 Color get _gold => SgColors.goldText;
 Color get _goldFill => SgColors.gold500;
@@ -41,7 +42,7 @@ class UpdateRequiredScreen extends StatelessWidget {
                   key: Key('update_required_title'),
                   style: TextStyle(
                     color: SgColors.ink,
-                    fontSize: 24,
+                    fontSize: SgText.px(24),
                     fontWeight: FontWeight.bold,
                   ),
                 ),
@@ -50,7 +51,7 @@ class UpdateRequiredScreen extends StatelessWidget {
                   info.message ?? 'Please update the app to continue.',
                   key: const Key('update_required_message'),
                   textAlign: TextAlign.center,
-                  style: TextStyle(color: SgColors.inkMuted, fontSize: 16),
+                  style: TextStyle(color: SgColors.inkMuted, fontSize: SgText.px(16)),
                 ),
                 if (url != null) ...[
                   const SizedBox(height: 28),
@@ -143,7 +144,7 @@ class _NoticeBannerState extends State<NoticeBanner> {
                         color: n.severity == 'warning'
                             ? SgColors.onGold
                             : SgColors.ink,
-                        fontSize: 13,
+                        fontSize: SgText.px(13),
                       ),
                     ),
                   ),
@@ -196,7 +197,7 @@ class BookingRefusalCard extends StatelessWidget {
               child: Text(
                 refusal.message,
                 key: const Key('booking_refusal_message'),
-                style: TextStyle(color: SgColors.ink, fontSize: 14),
+                style: TextStyle(color: SgColors.ink, fontSize: SgText.px(14)),
               ),
             ),
             TextButton(

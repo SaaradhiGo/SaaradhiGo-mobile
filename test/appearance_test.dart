@@ -17,12 +17,13 @@ void main() {
     await a.restore();
   });
 
-  test('dark and English by default', () async {
+  test('light and English by default (never chose)', () async {
     SharedPreferences.setMockInitialValues({});
     await a.restore();
-    expect(a.theme, SgThemeChoice.dark);
-    expect(a.themeMode, ThemeMode.dark);
-    expect(SgColors.palette, same(SgPalette.dark));
+    expect(a.theme, SgThemeChoice.light);
+    expect(a.hasSavedTheme, isFalse);
+    expect(a.themeMode, ThemeMode.light);
+    expect(SgColors.palette, same(SgPalette.light));
     expect(a.language, 'en');
     expect(SgText.sans, SgText.latin);
   });

@@ -8,6 +8,7 @@ import '../../services/referral_service.dart';
 import '../../services/token_store.dart';
 
 import '../../ui/sg_tokens.dart';
+import '../../ui/sg_text.dart';
 
 /// The text a rider shares. The API supplies the code and the offer (never a
 /// ready-made message), so this is a neutral line built from them.
@@ -169,7 +170,7 @@ class _ReferralScreenState extends State<ReferralScreen> {
                 'Your referral code',
                 style: TextStyle(
                   color: scheme.onSurface.withValues(alpha: 0.7),
-                  fontSize: 14,
+                  fontSize: SgText.px(14),
                 ),
               ),
               const SizedBox(height: 8),
@@ -177,8 +178,8 @@ class _ReferralScreenState extends State<ReferralScreen> {
                 mine.code,
                 key: const Key('referral_code'),
                 style: TextStyle(
-                  fontSize: 32,
-                  fontWeight: FontWeight.w800,
+                  fontSize: SgText.px(32),
+                  fontWeight: FontWeight.w700,
                   letterSpacing: 4,
                   color: scheme.primary,
                 ),
@@ -219,7 +220,7 @@ class _ReferralScreenState extends State<ReferralScreen> {
             key: const Key('referral_offer'),
             style: TextStyle(
               color: scheme.onSurface.withValues(alpha: 0.85),
-              fontSize: 15,
+              fontSize: SgText.px(15),
               height: 1.4,
             ),
           )
@@ -241,7 +242,7 @@ class _ReferralScreenState extends State<ReferralScreen> {
         Text(
           'Your invites',
           style: TextStyle(
-            fontSize: 18,
+            fontSize: SgText.px(18),
             fontWeight: FontWeight.bold,
             color: scheme.onSurface,
           ),
@@ -341,14 +342,14 @@ class _ReferralScreenState extends State<ReferralScreen> {
             Text(
               value,
               key: key,
-              style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
+              style: TextStyle(fontSize: SgText.px(22), fontWeight: FontWeight.bold),
             ),
             const SizedBox(height: 2),
             Text(
               label,
               textAlign: TextAlign.center,
               style: TextStyle(
-                fontSize: 12,
+                fontSize: SgText.px(12),
                 color: scheme.onSurface.withValues(alpha: 0.7),
               ),
             ),
@@ -396,7 +397,7 @@ class _ReferralScreenState extends State<ReferralScreen> {
                 color: r.pendingReview
                     ? SgColors.goldText
                     : scheme.onSurface.withValues(alpha: 0.75),
-                fontSize: 13,
+                fontSize: SgText.px(13),
               ),
             ),
           ],

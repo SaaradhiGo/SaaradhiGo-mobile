@@ -1,5 +1,5 @@
-/// Design-system tokens: the hybrid palette (Direction B layouts, Direction A
-/// colours), dark by default with a light twin.
+/// Design-system tokens: Daylight (light) is the default palette; the
+/// night-one black and gold is the optional dark theme (owner, 2026-11-06).
 ///
 /// THIS IS THE ONLY FILE IN lib/ THAT MAY SPELL A COLOUR AS HEX.
 /// `test/no_raw_colors_test.dart` fails on a `Color(0x...)` or a
@@ -41,6 +41,10 @@ class SgPalette {
     required this.classCar,
     required this.classComfort,
     required this.classSuv,
+    required this.primary,
+    required this.onPrimary,
+    required this.logo,
+    required this.route,
   });
 
   final Brightness brightness;
@@ -86,6 +90,18 @@ class SgPalette {
   final Color classComfort;
   final Color classSuv;
 
+  /// The primary button's fill, the progress bars, the stars.
+  final Color primary;
+
+  /// Text and icons on [primary].
+  final Color onPrimary;
+
+  /// The badge and the full logo.
+  final Color logo;
+
+  /// The trip's route line on the map.
+  final Color route;
+
   static const dark = SgPalette._(
     brightness: Brightness.dark,
     bg000: Color(0xFF000000),
@@ -111,6 +127,10 @@ class SgPalette {
     classCar: Color(0xFFF2A65A),
     classComfort: Color(0xFFB9A3FF),
     classSuv: Color(0xFFAAB6C8),
+    primary: Color(0xFFFFD700),
+    onPrimary: Color(0xFF000000),
+    logo: Color(0xFFFFD700),
+    route: Color(0xFFFFD700),
   );
 
   static const light = SgPalette._(
@@ -124,9 +144,9 @@ class SgPalette {
     ink: Color(0xFF1B1A17),
     inkMuted: Color(0xFF57524A),
     inkSubtle: Color(0xFF6B655B),
-    goldText: Color(0xFF7A6000),
-    goldLine: Color(0x477A6000), // rgba(122,96,0,0.28)
-    goldSoft: Color(0x2EFFD700), // rgba(255,215,0,0.18)
+    goldText: Color(0xFF8A5300), // gold as text, and links
+    goldLine: Color(0x478A5300), // rgba(138,83,0,0.28)
+    goldSoft: Color(0x2EF5A623), // marigold at 18%
     bgGlass: Color(0xCCFFFFFF),
     pickup: Color(0xFF0D7762), // spec #0E7C66 is 4.44:1 on bg-200; matches web
     success: Color(0xFF0B6B57),
@@ -138,6 +158,10 @@ class SgPalette {
     classCar: Color(0xFF8A5300),
     classComfort: Color(0xFF5B3FA8),
     classSuv: Color(0xFF334155),
+    primary: Color(0xFFF5A623), // marigold
+    onPrimary: Color(0xFF1B1A17),
+    logo: Color(0xFF7A6000), // the deep-gold flat logo
+    route: Color(0xFF1B1A17),
   );
 }
 
@@ -146,7 +170,7 @@ class SgColors {
   SgColors._();
 
   /// The palette in use. Only the theme controller sets it.
-  static SgPalette palette = SgPalette.dark;
+  static SgPalette palette = SgPalette.light;
   static SgPalette get _active => palette;
 
   static bool get isDark => _active.brightness == Brightness.dark;
@@ -161,13 +185,27 @@ class SgColors {
   static Color get inkMuted => _active.inkMuted;
   static Color get inkSubtle => _active.inkSubtle;
 
-  /// Fill: the primary button, the drop marker, the route line. Same in both.
-  static const gold500 = Color(0xFFFFD700);
+  /// Fill: the primary button, progress, the stars. Gold #FFD700 on dark,
+  /// marigold #F5A623 on light.
+  static Color get gold500 => _active.primary;
   static const gold300 = Color(0xFFFFE34D);
   static const gold700 = Color(0xFFD4B200);
 
-  /// Text on gold. Same in both.
-  static const onGold = Color(0xFF000000);
+  /// Text on [gold500]: black on dark, ink on light.
+  static Color get onGold => _active.onPrimary;
+
+  /// Gold that never changes with the theme: Saaradhi Black screens and
+  /// badges and the PIN panel are black and gold in both themes.
+  static const brandGold = Color(0xFFFFD700);
+
+  /// The badge and the full logo (#7A6000 on light).
+  static Color get logo => _active.logo;
+
+  /// The trip's route line: ink on light, gold on dark.
+  static Color get route => _active.route;
+
+  /// The route's width in logical pixels (5 on light).
+  static double get routeWidth => isDark ? 4.5 : 5;
   static Color get goldText => _active.goldText;
   static Color get goldSoft => _active.goldSoft;
   static Color get goldLine => _active.goldLine;
@@ -176,7 +214,7 @@ class SgColors {
   static const logoClassic = Color(0xFFD6A83E);
   static Color get bgGlass => _active.bgGlass;
 
-  // The basemap stays dark in both themes (owner decision D2).
+  // The dark basemap (the light one is assets/maps/sg_map_light.json).
   static const mapGround = Color(0xFF0A0A0A);
   static const mapStreet = Color(0xFF18181B);
   static const mapArterial = Color(0xFF27272A);
@@ -184,6 +222,9 @@ class SgColors {
   static const mapWater = Color(0xFF0A1418);
   static const mapPark = Color(0xFF0D140E);
   static const mapLabel = Color(0xFF7D8BA1);
+
+  /// Land in the Daylight basemap (the placeholder's plain surface on light).
+  static const mapLandLight = Color(0xFFEFEAE1);
 
   /// The blue IND strip on an Indian number plate.
   static const plateBlue = Color(0xFF003399);

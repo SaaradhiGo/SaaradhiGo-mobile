@@ -9,10 +9,16 @@ class AppLocalizationsTe extends AppLocalizations {
   AppLocalizationsTe([String locale = 'te']) : super(locale);
 
   @override
+  String get themeSwitchToDark => 'డార్క్ థీమ్‌కు మారండి';
+
+  @override
+  String get themeSwitchToLight => 'లైట్ థీమ్‌కు మారండి';
+
+  @override
   String get appearance => 'రూపం';
 
   @override
-  String get themeDark => 'డార్క్';
+  String get themeDark => 'డార్క్ (నలుపు, బంగారు)';
 
   @override
   String get themeLight => 'లైట్';

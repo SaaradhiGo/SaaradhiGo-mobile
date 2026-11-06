@@ -297,7 +297,7 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen> {
               ),
               child: Consumer<AuthProvider>(
                 builder: (context, auth, child) => auth.isLoading
-                    ? const SizedBox(
+                    ? SizedBox(
                         height: 56,
                         child: Center(
                           child: CircularProgressIndicator(
@@ -392,7 +392,7 @@ class OtpBoxes extends StatelessWidget {
                       ),
                       child: Text(
                         i < code.length ? code[i] : '',
-                        style: SgText.fare.copyWith(fontSize: 26, height: 1),
+                        style: SgText.fare.copyWith(fontSize: SgText.px(26), height: 1),
                       ),
                     ),
                   ),

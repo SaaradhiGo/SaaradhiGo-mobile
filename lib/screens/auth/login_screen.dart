@@ -304,7 +304,7 @@ class _LoginScreenState extends State<LoginScreen> {
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
                   if (auth.isLoading)
-                    const SizedBox(
+                    SizedBox(
                       height: 56,
                       child: Center(
                         child: CircularProgressIndicator(
@@ -322,7 +322,7 @@ class _LoginScreenState extends State<LoginScreen> {
                   Text(
                     l.termsLine,
                     textAlign: TextAlign.center,
-                    style: SgText.caption.copyWith(fontSize: 12, height: 1.4),
+                    style: SgText.caption.copyWith(fontSize: SgText.px(12), height: 1.4),
                   ),
                 ],
               ),
@@ -377,7 +377,7 @@ class LanguageTile extends StatelessWidget {
               Expanded(
                 child: Text(
                   label,
-                  style: SgText.title.copyWith(fontSize: 20, height: 26 / 20),
+                  style: SgText.title.copyWith(fontSize: SgText.px(20), height: 26 / 20),
                 ),
               ),
               SgRadio(selected: selected),
@@ -415,7 +415,7 @@ class _PhoneField extends StatelessWidget {
           padding: const EdgeInsets.symmetric(horizontal: SgSpace.s4),
           child: Text(
             dialPrefix,
-            style: SgText.title.copyWith(fontSize: 20, height: 26 / 20),
+            style: SgText.title.copyWith(fontSize: SgText.px(20), height: 26 / 20),
           ),
         ),
         Container(width: 1, height: 32, color: SgColors.line),
@@ -425,7 +425,7 @@ class _PhoneField extends StatelessWidget {
             keyboardType: TextInputType.phone,
             autofillHints: const [AutofillHints.telephoneNumberNational],
             style: SgText.title.copyWith(
-              fontSize: 20,
+              fontSize: SgText.px(20),
               height: 26 / 20,
               fontFeatures: const [FontFeature.tabularFigures()],
             ),
@@ -475,11 +475,11 @@ class _EmailField extends StatelessWidget {
         // shared phone.
         autocorrect: false,
         enableSuggestions: false,
-        style: TextStyle(color: SgColors.ink, fontSize: 17),
+        style: TextStyle(color: SgColors.ink, fontSize: SgText.px(17)),
         decoration: InputDecoration(
           border: InputBorder.none,
           hintText: hint,
-          hintStyle: TextStyle(color: SgColors.inkSubtle, fontSize: 16),
+          hintStyle: TextStyle(color: SgColors.inkSubtle, fontSize: SgText.px(16)),
         ),
       ),
     );
@@ -516,11 +516,11 @@ class _PasswordField extends StatelessWidget {
               obscureText: obscure,
               autocorrect: false,
               enableSuggestions: false,
-              style: TextStyle(color: SgColors.ink, fontSize: 17),
+              style: TextStyle(color: SgColors.ink, fontSize: SgText.px(17)),
               decoration: InputDecoration(
                 border: InputBorder.none,
                 hintText: sgStrings(context).passwordHint,
-                hintStyle: TextStyle(color: SgColors.inkSubtle, fontSize: 16),
+                hintStyle: TextStyle(color: SgColors.inkSubtle, fontSize: SgText.px(16)),
               ),
             ),
           ),

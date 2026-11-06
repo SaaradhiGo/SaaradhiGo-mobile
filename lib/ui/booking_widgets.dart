@@ -457,7 +457,7 @@ class SgChecklistRow extends StatelessWidget {
                       ),
                     ),
                   )
-                : const Padding(
+                : Padding(
                     padding: EdgeInsets.all(4),
                     child: CircularProgressIndicator(
                       strokeWidth: 2.5,
@@ -470,7 +470,7 @@ class SgChecklistRow extends StatelessWidget {
             child: Text(
               item.text,
               style: SgText.body.copyWith(
-                fontWeight: done ? FontWeight.w600 : FontWeight.w800,
+                fontWeight: done ? FontWeight.w600 : FontWeight.w700,
                 color: done ? SgColors.inkMuted : SgColors.ink,
               ),
             ),

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../ui/sg_tokens.dart';
+import '../../ui/sg_text.dart';
 
 /// Shown after a trip completes while its payment is still outstanding.
 ///
@@ -30,15 +31,15 @@ class PaymentPendingBanner extends StatelessWidget {
           ),
           child: Row(
             children: [
-              const Icon(Icons.payment, color: SgColors.onGold),
+              Icon(Icons.payment, color: SgColors.onGold),
               const SizedBox(width: 12),
-              const Expanded(
+              Expanded(
                 child: Text(
                   'Your last ride is waiting for payment',
                   style: TextStyle(
                     color: SgColors.onGold,
                     fontWeight: FontWeight.w700,
-                    fontSize: 14,
+                    fontSize: SgText.px(14),
                   ),
                 ),
               ),

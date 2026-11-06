@@ -97,7 +97,7 @@ class _SplashScreenState extends State<SplashScreen> {
           const SizedBox(height: SgSpace.s4),
           Text('Saaradhi Go', style: SgText.brandLockup(32)),
           const SizedBox(height: SgSpace.s6),
-          const SizedBox(
+          SizedBox(
             width: 28,
             height: 28,
             child: CircularProgressIndicator(
@@ -155,7 +155,7 @@ class _SplashScreenState extends State<SplashScreen> {
                     Text(
                       'Our Inspiration',
                       style: TextStyle(
-                        fontSize: 32,
+                        fontSize: SgText.px(32),
                         fontWeight: FontWeight.bold,
                         color: colorScheme.onSurface,
                       ),
@@ -165,7 +165,7 @@ class _SplashScreenState extends State<SplashScreen> {
                       "We believe a happy driver provides the best service. That's why we prioritize driver welfare.",
                       textAlign: TextAlign.center,
                       style: TextStyle(
-                        fontSize: 16,
+                        fontSize: SgText.px(16),
                         color: colorScheme.onSurface.withValues(alpha: 0.7),
                       ),
                     ),
@@ -260,7 +260,7 @@ class _SplashScreenState extends State<SplashScreen> {
           Text(
             'Built for You',
             style: TextStyle(
-              fontSize: 32,
+              fontSize: SgText.px(32),
               fontWeight: FontWeight.bold,
               color: colorScheme.onSurface,
             ),
@@ -272,7 +272,7 @@ class _SplashScreenState extends State<SplashScreen> {
               "From seamless bookings to premium rides, every detail is crafted for your comfort and safety.",
               textAlign: TextAlign.center,
               style: TextStyle(
-                fontSize: 16,
+                fontSize: SgText.px(16),
                 color: colorScheme.onSurface.withValues(alpha: 0.7),
               ),
             ),
@@ -302,9 +302,9 @@ class _SplashScreenState extends State<SplashScreen> {
                     borderRadius: BorderRadius.circular(16),
                   ),
                 ),
-                child: const Text(
+                child: Text(
                   'Next',
-                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                  style: TextStyle(fontSize: SgText.px(18), fontWeight: FontWeight.bold),
                 ),
               ),
             ),
@@ -362,7 +362,7 @@ class _SplashScreenState extends State<SplashScreen> {
               Text(
                 'Better Together',
                 style: TextStyle(
-                  fontSize: 32,
+                  fontSize: SgText.px(32),
                   fontWeight: FontWeight.bold,
                   color: colorScheme.onSurface,
                 ),
@@ -374,7 +374,7 @@ class _SplashScreenState extends State<SplashScreen> {
                   "SaaradhiGo is more than an app; it's a commitment to a transparent and fair mobility ecosystem.",
                   textAlign: TextAlign.center,
                   style: TextStyle(
-                    fontSize: 16,
+                    fontSize: SgText.px(16),
                     color: colorScheme.onSurface.withValues(alpha: 0.7),
                   ),
                 ),
@@ -397,10 +397,10 @@ class _SplashScreenState extends State<SplashScreen> {
                         borderRadius: BorderRadius.circular(16),
                       ),
                     ),
-                    child: const Text(
+                    child: Text(
                       'Get Started',
                       style: TextStyle(
-                        fontSize: 18,
+                        fontSize: SgText.px(18),
                         fontWeight: FontWeight.bold,
                       ),
                     ),

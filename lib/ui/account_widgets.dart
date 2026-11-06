@@ -32,7 +32,7 @@ class SgPageTitle extends StatelessWidget {
       children: [
         Text(
           title,
-          style: SgText.heading.copyWith(fontSize: 32, height: 38 / 32),
+          style: SgText.heading,
         ),
         if (subtitle != null) ...[
           const SizedBox(height: SgSpace.s1),
@@ -125,7 +125,7 @@ class SgPersonHeader extends StatelessWidget {
                   if (r != null && r > 0)
                     Row(
                       children: [
-                        const SgStar(size: 14, color: SgColors.gold500),
+                        SgStar(size: 14, color: SgColors.gold500),
                         const SizedBox(width: SgSpace.s1),
                         Text(
                           r.toStringAsFixed(2),
