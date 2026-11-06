@@ -57,13 +57,13 @@ class _LoginScreenState extends State<LoginScreen> {
     if (email.isEmpty || !email.contains('@')) {
       ScaffoldMessenger.of(
         context,
-      ).showSnackBar(const SnackBar(content: Text('Enter your email address')));
+      ).showSnackBar(SnackBar(content: Text(sgStrings(context).enterEmail)));
       return;
     }
     if (password.isEmpty) {
       ScaffoldMessenger.of(
         context,
-      ).showSnackBar(const SnackBar(content: Text('Enter your password')));
+      ).showSnackBar(SnackBar(content: Text(sgStrings(context).enterPassword)));
       return;
     }
 
@@ -94,8 +94,8 @@ class _LoginScreenState extends State<LoginScreen> {
     final email = _emailController.text.trim();
     if (email.isEmpty || !email.contains('@')) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Enter your email address first, then tap again'),
+        SnackBar(
+          content: Text(sgStrings(context).enterEmailFirst),
         ),
       );
       return;
@@ -120,9 +120,9 @@ class _LoginScreenState extends State<LoginScreen> {
   Future<void> _requestOtp() async {
     final phone = _phoneController.text.trim();
     if (phone.length < 10) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Please enter a valid phone number')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(sgStrings(context).validPhone)));
       return;
     }
 
@@ -136,9 +136,9 @@ class _LoginScreenState extends State<LoginScreen> {
     if (!mounted) return;
 
     if (response != null && response['status'] == 'success') {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('OTP sent. Check your messages.')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(sgStrings(context).otpSent)));
       await _safePushToOtp(formattedPhone);
       return;
     }
@@ -246,7 +246,7 @@ class _LoginScreenState extends State<LoginScreen> {
                           key: const Key('login_forgot_password'),
                           onPressed: auth.isLoading ? null : _forgotPassword,
                           child: Text(
-                            'Forgot password?',
+                            sgStrings(context).forgotPassword,
                             style: SgText.body.copyWith(
                               color: SgColors.goldText,
                             ),
@@ -519,7 +519,7 @@ class _PasswordField extends StatelessWidget {
               style: TextStyle(color: SgColors.ink, fontSize: 17),
               decoration: InputDecoration(
                 border: InputBorder.none,
-                hintText: 'Password',
+                hintText: sgStrings(context).passwordHint,
                 hintStyle: TextStyle(color: SgColors.inkSubtle, fontSize: 16),
               ),
             ),

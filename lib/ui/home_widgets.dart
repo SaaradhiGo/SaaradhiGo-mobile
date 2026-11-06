@@ -3,6 +3,7 @@
 /// Pure views: values in, taps out.
 library;
 
+import 'appearance_settings.dart' show sgStrings;
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 
@@ -52,7 +53,7 @@ class HomeHeader extends StatelessWidget {
       const Spacer(),
       Semantics(
         button: true,
-        label: 'Language',
+        label: sgStrings(context).language,
         child: InkWell(
           key: const Key('home_language_chip'),
           onTap: onLanguage,
@@ -81,7 +82,7 @@ class HomeHeader extends StatelessWidget {
       const SizedBox(width: SgSpace.s2),
       Semantics(
         button: true,
-        label: 'Account',
+        label: sgStrings(context).tabAccount,
         child: InkWell(
           key: const Key('home_account_avatar'),
           onTap: onAccount,

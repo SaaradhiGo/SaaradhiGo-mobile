@@ -393,4 +393,279 @@ class AppLocalizationsEn extends AppLocalizations {
     );
     return '$_temp0';
   }
+
+  @override
+  String get yourRides => 'Your rides';
+
+  @override
+  String get paymentMethods => 'Payment methods';
+
+  @override
+  String get notifications => 'Notifications';
+
+  @override
+  String get referFriend => 'Refer a friend';
+
+  @override
+  String get profile => 'Profile';
+
+  @override
+  String get helpSupport => 'Help and support';
+
+  @override
+  String get personalInfo => 'Personal information';
+
+  @override
+  String get privacySecurity => 'Privacy and security';
+
+  @override
+  String get logOut => 'Log out';
+
+  @override
+  String get currentLocation => 'Current Location';
+
+  @override
+  String get useMyLocation => 'Use my location';
+
+  @override
+  String get selectPickupFirst => 'Please select pickup location first';
+
+  @override
+  String get locationServicesOff =>
+      'Location services are disabled. Please enable them in settings.';
+
+  @override
+  String get locationDenied => 'Location permissions are denied.';
+
+  @override
+  String get locationDeniedForever =>
+      'Location permissions are permanently denied, we cannot request permissions.';
+
+  @override
+  String get locationNotFound =>
+      'We couldn\'t find your location. Enter your pickup point.';
+
+  @override
+  String get resumingRide => 'Resuming your active ride...';
+
+  @override
+  String get activeRideTitle => 'Active Ride';
+
+  @override
+  String get activeRideBody =>
+      'You already have an active ride request or trip. Would you like to view it?';
+
+  @override
+  String get dismiss => 'Dismiss';
+
+  @override
+  String get whereTo => 'Where to?';
+
+  @override
+  String get placesAppearHere => 'Places you ride to will appear here.';
+
+  @override
+  String get back => 'Back';
+
+  @override
+  String get findingSaaradhi => 'Finding your Saaradhi';
+
+  @override
+  String get noSaaradhiNearby => 'No Saaradhi nearby right now';
+
+  @override
+  String get cancelSearchTitle => 'Cancel Search?';
+
+  @override
+  String get cancelSearchBody =>
+      'Are you sure you want to cancel your ride request?';
+
+  @override
+  String get wait => 'Wait';
+
+  @override
+  String get cancelAnyway => 'Cancel Anyway';
+
+  @override
+  String get ongoingRideTitle => 'Ongoing Ride';
+
+  @override
+  String get cancelActiveRequestBody =>
+      'You have an active ride request. Are you sure you want to cancel?';
+
+  @override
+  String get cancelOngoingRideBody =>
+      'Are you sure you want to cancel your ongoing ride?';
+
+  @override
+  String get continueRide => 'Continue Ride';
+
+  @override
+  String get driverPhoneUnavailable =>
+      'Driver phone unavailable. Use in-app chat instead.';
+
+  @override
+  String get dialerUnavailable => 'Could not open dialer on this device.';
+
+  @override
+  String get callFailed => 'Could not start a call.';
+
+  @override
+  String get payWithCashTitle => 'Pay with Cash';
+
+  @override
+  String get handToDriver => 'Hand it to your driver';
+
+  @override
+  String get payFromWallet => 'Pay from Wallet';
+
+  @override
+  String get notEnoughBalance => 'Not enough balance';
+
+  @override
+  String get payViaUpiCard => 'Pay via UPI/Card';
+
+  @override
+  String get payCashInstead => 'Pay with Cash instead?';
+
+  @override
+  String get thanksForRating => 'Thanks for rating your trip.';
+
+  @override
+  String get insufficientBalance => 'Insufficient Balance';
+
+  @override
+  String get wouldYouLike => 'Would you like to:';
+
+  @override
+  String get addMoney => 'Add Money';
+
+  @override
+  String get payUpiCard => 'Pay with UPI/Card';
+
+  @override
+  String get cashReceived => 'Cash payment received. Thank you.';
+
+  @override
+  String get signInToPay => 'Please sign in again to pay for this trip.';
+
+  @override
+  String get noActiveTrip =>
+      'No active trip found. Please refresh and try again.';
+
+  @override
+  String get searchForHelp => 'Search for help';
+
+  @override
+  String get howWasRide => 'How was your ride?';
+
+  @override
+  String get done => 'Done';
+
+  @override
+  String get couldNotSaveRating => 'Could not save your rating.';
+
+  @override
+  String get messageDriverHint => 'Message your driver';
+
+  @override
+  String get noRidesYet => 'No rides yet';
+
+  @override
+  String get ridesShowHere => 'Rides you take will show here.';
+
+  @override
+  String get setPickupFirst => 'Set your pickup on the home screen first.';
+
+  @override
+  String get rideHereAgain => 'Ride here again';
+
+  @override
+  String get mapUnavailable => 'Map unavailable';
+
+  @override
+  String get checkConnection => 'Please check your connection';
+
+  @override
+  String get retry => 'Retry';
+
+  @override
+  String get faresUnavailable => 'Unable to load fare estimates';
+
+  @override
+  String get checkConnectionRetry =>
+      'Please check your connection and try again';
+
+  @override
+  String get cancelGoBack => 'Are you sure you want to cancel and go back?';
+
+  @override
+  String get passwordHint => 'Password';
+
+  @override
+  String get forgotPassword => 'Forgot password?';
+
+  @override
+  String get enterEmail => 'Enter your email address';
+
+  @override
+  String get enterPassword => 'Enter your password';
+
+  @override
+  String get validPhone => 'Please enter a valid phone number';
+
+  @override
+  String get otpSent => 'OTP sent. Check your messages.';
+
+  @override
+  String get tryAgain => 'Try again';
+
+  @override
+  String get searchingForDriver => 'Searching for a driver';
+
+  @override
+  String get confirmPickup => 'Confirm pickup';
+
+  @override
+  String get shareOnlyInCar => 'Share only in the car';
+
+  @override
+  String get youHaveArrived => 'You have arrived';
+
+  @override
+  String get filterAll => 'All';
+
+  @override
+  String get filterPayments => 'Payments';
+
+  @override
+  String get tripDetailsCopied => 'Trip details copied — paste to share';
+
+  @override
+  String get holdToSendAlert => 'Hold to send alert';
+
+  @override
+  String get ratingCommentHint => 'Anything you want us to know? (optional)';
+
+  @override
+  String get submitRating => 'Submit rating';
+
+  @override
+  String get remove => 'Remove';
+
+  @override
+  String get promoCodeHint => 'Promo code';
+
+  @override
+  String get youPay => 'You pay';
+
+  @override
+  String get cancel => 'Cancel';
+
+  @override
+  String get enterEmailFirst =>
+      'Enter your email address first, then tap again';
+
+  @override
+  String get update => 'Update';
 }

@@ -1,6 +1,7 @@
 /// "How was your ride with Ravi?" and the one gold Done (design: MobileTrip).
 library;
 
+import 'appearance_settings.dart' show sgStrings;
 import 'package:flutter/material.dart';
 
 import '../services/rating_service.dart';
@@ -50,7 +51,7 @@ class _RideRatingPanelState extends State<RideRatingPanel> {
     if (r.isSettled) return widget.onDone(true);
     setState(() {
       _busy = false;
-      _error = r.message ?? 'Could not save your rating.';
+      _error = r.message ?? sgStrings(context).couldNotSaveRating;
     });
   }
 
@@ -61,7 +62,9 @@ class _RideRatingPanelState extends State<RideRatingPanel> {
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         Text(
-          who.isEmpty ? 'How was your ride?' : 'How was your ride with $who?',
+          who.isEmpty
+              ? sgStrings(context).howWasRide
+              : 'How was your ride with $who?',
           textAlign: TextAlign.center,
           style: SgText.body.copyWith(color: SgColors.inkMuted),
         ),
@@ -80,7 +83,10 @@ class _RideRatingPanelState extends State<RideRatingPanel> {
             ),
           ),
         const SizedBox(height: SgSpace.s4),
-        SgPrimaryButton(label: 'Done', onPressed: _busy ? null : _done),
+        SgPrimaryButton(
+          label: sgStrings(context).done,
+          onPressed: _busy ? null : _done,
+        ),
       ],
     );
   }

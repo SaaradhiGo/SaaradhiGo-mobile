@@ -1,3 +1,4 @@
+import '../../ui/appearance_settings.dart' show sgStrings;
 import 'dart:async';
 
 import 'package:flutter/material.dart';
@@ -165,7 +166,7 @@ class _TripChatScreenState extends State<TripChatScreen> {
                       maxLines: 4,
                       minLines: 1,
                       decoration: InputDecoration(
-                        hintText: 'Message your driver',
+                        hintText: sgStrings(context).messageDriverHint,
                         hintStyle: TextStyle(color: SgColors.inkMuted),
                         filled: true,
                         fillColor: SgColors.bg300,

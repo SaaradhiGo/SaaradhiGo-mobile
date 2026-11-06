@@ -10,6 +10,7 @@
 /// the prompt is broken.
 library;
 
+import '../ui/appearance_settings.dart' show sgStrings;
 import 'package:flutter/material.dart';
 
 import '../services/rating_service.dart';
@@ -180,7 +181,7 @@ class _RateTripSheetState extends State<RateTripSheet> {
               maxLength: 500,
               style: TextStyle(color: SgColors.ink),
               decoration: InputDecoration(
-                hintText: 'Anything you want us to know? (optional)',
+                hintText: sgStrings(context).ratingCommentHint,
                 hintStyle: TextStyle(color: SgColors.inkSubtle),
                 border: OutlineInputBorder(),
                 counterStyle: TextStyle(color: SgColors.inkSubtle),
@@ -211,7 +212,7 @@ class _RateTripSheetState extends State<RateTripSheet> {
                         color: SgColors.bg000,
                       ),
                     )
-                  : const Text('Submit rating'),
+                  : Text(sgStrings(context).submitRating),
             ),
             TextButton(
               // Skippable on purpose. A prompt a rider cannot dismiss is one

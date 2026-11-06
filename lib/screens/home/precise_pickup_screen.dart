@@ -201,7 +201,7 @@ class _PrecisePickupScreenState extends State<PrecisePickupScreen> {
                 left: SgSpace.s4,
                 child: SgMapButton(
                   icon: SgIcons.back,
-                  label: 'Back',
+                  label: l.back,
                   onTap: () => context.pop(),
                 ),
               ),

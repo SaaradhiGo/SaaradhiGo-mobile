@@ -1,3 +1,4 @@
+import '../../ui/appearance_settings.dart' show sgStrings;
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:intl/intl.dart';
@@ -156,7 +157,7 @@ class _NotificationScreenState extends State<NotificationScreen> {
             ElevatedButton.icon(
               onPressed: () => provider.fetchNotifications(),
               icon: const Icon(Icons.refresh),
-              label: const Text('Try again'),
+              label: Text(sgStrings(context).tryAgain),
               style: ElevatedButton.styleFrom(
                 backgroundColor: SgColors.gold500,
                 foregroundColor: SgColors.onGold,

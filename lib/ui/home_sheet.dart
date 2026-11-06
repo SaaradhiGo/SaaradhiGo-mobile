@@ -1,6 +1,7 @@
 /// The "Where to?" sheet on the home screen (design: MobileBooking, Home).
 library;
 
+import 'appearance_settings.dart' show sgStrings;
 import 'package:flutter/material.dart';
 
 import 'sg_text.dart';
@@ -88,7 +89,7 @@ class HomeSheet extends StatelessWidget {
           children: [
             if (!expanded) ...[
               Text(greeting, style: SgText.caption),
-              Text('Where to?', style: SgText.display),
+              Text(sgStrings(context).whereTo, style: SgText.display),
               const SizedBox(height: SgSpace.s3),
             ],
             // Keyed: opening the search removes the lines above it, and an
@@ -136,7 +137,7 @@ class HomeSheet extends StatelessWidget {
                 Padding(
                   padding: const EdgeInsets.symmetric(vertical: SgSpace.s3),
                   child: Text(
-                    'Places you ride to will appear here.',
+                    sgStrings(context).placesAppearHere,
                     style: SgText.caption,
                   ),
                 )
