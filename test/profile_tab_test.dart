@@ -160,7 +160,7 @@ void main() {
       );
       await tester.pumpAndSettle();
 
-      expect(find.text('Personal Information'), findsOneWidget);
+      expect(find.text('Personal information'), findsOneWidget);
       expect(find.text('Rider Jane'), findsOneWidget);
     });
 
@@ -191,10 +191,10 @@ void main() {
 
       expect(find.text('Rider Jane'), findsOneWidget);
       expect(find.text('4.77'), findsOneWidget);
-      expect(find.text('Personal Information'), findsOneWidget);
+      expect(find.text('Personal information'), findsOneWidget);
     });
 
-    // Same tap-to-switch-tab cause as above; 'John Doe' is the fallback shown on the
+    // Same tap-to-switch-tab cause as above; 'Add your name' is what shows on the
     // profile pane that is never reached.
     testWidgets('renders fallback values when profile data is unavailable', skip: true, (
       tester,
@@ -214,8 +214,8 @@ void main() {
       await tester.pumpAndSettle();
       await _openProfileTab(tester);
 
-      expect(find.text('John Doe'), findsOneWidget);
-      expect(find.text('4.98'), findsOneWidget);
+      expect(find.text('Add your name'), findsOneWidget);
+      expect(find.byKey(const Key('person_rating')), findsNothing);
     });
 
     // Same tap-to-switch-tab cause: the tap on 'Personal Information' cannot find it
@@ -240,7 +240,7 @@ void main() {
       await tester.pumpAndSettle();
       await _openProfileTab(tester);
 
-      await tester.tap(find.text('Personal Information'));
+      await tester.tap(find.text('Personal information'));
       await tester.pumpAndSettle();
 
       expect(find.text('Personal Info Screen'), findsOneWidget);

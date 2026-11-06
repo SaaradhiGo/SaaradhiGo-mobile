@@ -1,7 +1,6 @@
 import '../../utils/position.dart';
 import 'dart:ui';
 
-import 'package:cached_network_image_ce/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:flutter_svg/flutter_svg.dart';
@@ -13,6 +12,7 @@ import 'package:geolocator/geolocator.dart';
 
 import '../../core/maps/sg_map.dart';
 import '../../core/market/market_config_store.dart';
+import '../../ui/account_widgets.dart';
 import '../../ui/home_sheet.dart';
 import '../../ui/sg_text.dart';
 import '../../ui/sg_tokens.dart';
@@ -431,7 +431,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
   }
 }
 
-/// The menu: the tabs and the places the old header bell and profile led to.
+/// The menu: who is signed in, then every place the app has.
 class _MenuDrawer extends StatelessWidget {
   const _MenuDrawer({required this.onTab});
 
@@ -439,37 +439,47 @@ class _MenuDrawer extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    Widget item(String icon, String label, VoidCallback onTap, {int badge = 0}) {
-      return ListTile(
-        minTileHeight: kSgTouch,
-        leading: SgIcon(icon, size: 22, color: SgColors.goldText),
-        title: Text(label, style: SgText.body),
-        trailing: badge > 0 ? Text('$badge', style: SgText.caption) : null,
-        onTap: () {
-          Navigator.of(context).pop();
-          onTap();
-        },
-      );
-    }
+    Widget row(String icon, String label, VoidCallback onTap, {int count = 0, Key? key}) =>
+        SgListRow(
+          key: key,
+          icon: icon,
+          label: label,
+          count: count,
+          onTap: () {
+            Navigator.of(context).pop();
+            onTap();
+          },
+        );
 
+    final auth = context.watch<AuthProvider>();
     final unread = context.watch<NotificationProvider>().unreadCount;
     return Drawer(
       backgroundColor: SgColors.bg100,
+      shape: const RoundedRectangleBorder(),
       child: SafeArea(
         child: ListView(
-          padding: const EdgeInsets.symmetric(vertical: SgSpace.s4),
+          padding: const EdgeInsets.fromLTRB(SgSpace.s5, SgSpace.s4, SgSpace.s5, SgSpace.s4),
           children: [
-            Padding(
-              padding: const EdgeInsets.fromLTRB(SgSpace.s5, 0, SgSpace.s5, SgSpace.s4),
-              child: Text('SaaradhiGo', style: SgText.title),
+            SgPersonHeader(
+              name: auth.fullName,
+              rating: auth.rating,
+              avatarUrl: auth.avatarUrl,
+              onTap: () {
+                Navigator.of(context).pop();
+                onTab(3);
+              },
             ),
-            item(SgIcons.home, 'Home', () => onTab(0)),
-            item(SgIcons.history, 'Your rides', () => onTab(1)),
-            item(SgIcons.wallet, 'Wallet', () => onTab(2)),
-            item(SgIcons.bell, 'Notifications', () => context.push('/notifications'),
-                badge: unread),
-            item(SgIcons.user, 'Profile', () => onTab(3)),
-            item(SgIcons.help, 'Help and support', () => context.push('/help-support')),
+            const SizedBox(height: SgSpace.s3),
+            const Divider(height: 1, color: SgColors.line),
+            const SizedBox(height: SgSpace.s2),
+            row(SgIcons.history, 'Your rides', () => onTab(1), key: const Key('menu_rides')),
+            row(SgIcons.wallet, 'Wallet', () => onTab(2), key: const Key('menu_wallet')),
+            row(kCardIcon, 'Payment methods', () => context.push('/payment-methods')),
+            row(SgIcons.bell, 'Notifications', () => context.push('/notifications'), count: unread),
+            if (MarketConfigStore.instance.current.referralsAvailable)
+              row(kGiftIcon, 'Refer a friend', () => context.push('/refer')),
+            row(SgIcons.user, 'Profile', () => onTab(3), key: const Key('menu_profile')),
+            row(SgIcons.help, 'Help and support', () => context.push('/help-support')),
           ],
         ),
       ),
@@ -734,261 +744,71 @@ class _HomeTab extends StatelessWidget {
 class _ProfileTab extends StatelessWidget {
   const _ProfileTab();
 
-  static const String _fallbackName = 'John Doe';
-  static const String _fallbackRating = '4.98';
-  static const String _fallbackAvatarUrl =
-      'https://lh3.googleusercontent.com/aida-public/AB6AXuAPKZPGwmJqpCAihXSwtX1NVoImyBkmHzRpQ-VAOuMNCg1NdDM1Y5z1do2yqtE65Qal8OTMrMZednPquFBXo2pxr8NkTMmVDfafUMbVqlrJyooB_iaOuuthn_amKR15p3JWbeC17NBHKxjjTU4nZ3NU_L4DzcY5k1GbTVLX_ylAcrXRisGB6uoEAnuSpO8BJ-JJGe-Ogqdo_EKr7tMfCMRn22AmRjgpGPqbxrGZX-u_F5Y28uaFp0zNckZKrsJfwfzF_QET1MyTl1c';
-
   @override
   Widget build(BuildContext context) {
     final auth = context.watch<AuthProvider>();
-    final displayName = (auth.fullName?.trim().isNotEmpty ?? false)
-        ? auth.fullName!.trim()
-        : _fallbackName;
-    final displayRating = (auth.rating?.trim().isNotEmpty ?? false)
-        ? auth.rating!.trim()
-        : _fallbackRating;
-    final displayAvatar = (auth.avatarUrl?.trim().isNotEmpty ?? false)
-        ? auth.avatarUrl!.trim()
-        : _fallbackAvatarUrl;
-
-    return ScrollConfiguration(
-      behavior: ScrollConfiguration.of(context).copyWith(scrollbars: false),
-      child: ListView(
-        padding: EdgeInsets.zero,
-        children: [
-          const _ProfileHeader(),
-          const SizedBox(height: 24),
-          const Text(
-            'Profile',
-            style: TextStyle(
-              color: Colors.white,
-              fontSize: 42,
-              fontWeight: FontWeight.w600,
-              height: 1.05,
-            ),
-          ),
-          const SizedBox(height: 24),
-          Center(child: _ProfileAvatar(imageUrl: displayAvatar)),
-          const SizedBox(height: 16),
-          Center(
-            child: Text(
-              displayName,
-              style: GoogleFonts.inter(
-                color: const Color(0xFFF8FAFC),
-                fontSize: 24,
-                fontWeight: FontWeight.w600,
-                letterSpacing: -0.4,
-              ),
-            ),
-          ),
-          const SizedBox(height: 4),
-          Center(
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Text(
-                  displayRating,
-                  style: GoogleFonts.inter(
-                    color: const Color(0xFFEEBD2B),
-                    fontSize: 20,
-                    fontWeight: FontWeight.w600,
-                    letterSpacing: 0.2,
-                  ),
-                ),
-                const SizedBox(width: 4),
-                const Icon(
-                  Icons.star_rounded,
-                  color: Color(0xFFEEBD2B),
-                  size: 18,
-                ),
-              ],
-            ),
-          ),
-          const SizedBox(height: 24),
-          _ProfileMenuTile(
-            icon: Icons.person,
-            title: 'Personal Information',
+    return ListView(
+      padding: EdgeInsets.zero,
+      children: [
+        const SgPageTitle('Profile'),
+        // Only what the account holds: no stock photo, name or rating.
+        SgPersonHeader(
+          name: auth.fullName,
+          rating: auth.rating,
+          avatarUrl: auth.avatarUrl,
+          onTap: () => context.push('/personal-info'),
+        ),
+        const SizedBox(height: SgSpace.s5),
+        SgListGroup([
+          SgListRow(
+            icon: SgIcons.user,
+            label: 'Personal information',
+            chevron: true,
             onTap: () => context.push('/personal-info'),
           ),
-          const SizedBox(height: 8),
-          _ProfileMenuTile(
-            icon: Icons.credit_card,
-            title: 'Payment Methods',
+          SgListRow(
+            icon: kCardIcon,
+            label: 'Payment methods',
+            chevron: true,
             onTap: () => context.push('/payment-methods'),
           ),
-          const SizedBox(height: 8),
-          _ProfileMenuTile(
-            icon: Icons.lock,
-            title: 'Privacy & Security',
+          SgListRow(
+            icon: SgIcons.lock,
+            label: 'Privacy and security',
+            chevron: true,
             onTap: () => context.push('/privacy-security'),
           ),
-          const SizedBox(height: 8),
-          _ProfileMenuTile(
-            icon: Icons.help,
-            title: 'Help & Support',
+          SgListRow(
+            icon: SgIcons.help,
+            label: 'Help and support',
+            chevron: true,
             onTap: () => context.push('/help-support'),
           ),
-          const SizedBox(height: 8),
           // Hidden unless a referral offer is live for riders in this market.
-          ListenableBuilder(
-            listenable: MarketConfigStore.instance,
-            builder: (context, _) =>
-                MarketConfigStore.instance.current.referralsAvailable
-                ? _ProfileMenuTile(
-                    icon: Icons.sell,
-                    title: 'Refer & Earn',
-                    onTap: () => context.push('/refer'),
-                  )
-                : const SizedBox.shrink(),
-          ),
-          const SizedBox(height: 26),
-          OutlinedButton(
-            onPressed: () async {
+          if (MarketConfigStore.instance.current.referralsAvailable)
+            SgListRow(
+              icon: kGiftIcon,
+              label: 'Refer a friend',
+              chevron: true,
+              onTap: () => context.push('/refer'),
+            ),
+        ]),
+        const SizedBox(height: SgSpace.s5),
+        SgListGroup([
+          SgListRow(
+            key: const Key('profile_logout'),
+            icon: kLogoutIcon,
+            label: 'Log out',
+            danger: true,
+            onTap: () async {
               await context.read<AuthProvider>().logout();
               if (!context.mounted) return;
               context.go('/login');
             },
-            style: OutlinedButton.styleFrom(
-              backgroundColor: const Color(0xFF211D18),
-              foregroundColor: const Color(0xFFF87171),
-              side: const BorderSide(color: Color(0x33EF4444)),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(16),
-              ),
-              padding: const EdgeInsets.symmetric(vertical: 18),
-            ),
-            child: Text(
-              'Log Out',
-              style: GoogleFonts.inter(
-                fontSize: 22,
-                fontWeight: FontWeight.w700,
-              ),
-            ),
           ),
-        ],
-      ),
-    );
-  }
-}
-
-class _ProfileHeader extends StatelessWidget {
-  const _ProfileHeader();
-
-  @override
-  Widget build(BuildContext context) {
-    return Row(
-      children: [
-        const Expanded(
-          child: Text(
-            'SaaradhiGo',
-            style: TextStyle(
-              color: Color(0xFFEEBD2B),
-              fontSize: 23,
-              fontWeight: FontWeight.w700,
-              letterSpacing: 2.6,
-            ),
-          ),
-        ),
-        Consumer<NotificationProvider>(
-          builder: (context, provider, child) => GestureDetector(
-            onTap: () => context.push('/notifications'),
-            child: Stack(
-              clipBehavior: Clip.none,
-              children: [
-                Padding(
-                  padding: const EdgeInsets.only(top: 3, right: 3),
-                  child: Container(
-                    width: 40,
-                    height: 40,
-                    decoration: const BoxDecoration(
-                      color: Color(0x14FFFFFF),
-                      shape: BoxShape.circle,
-                    ),
-                    child: const Icon(
-                      Icons.notifications,
-                      color: Color(0xFFE2E8F0),
-                      size: 21,
-                    ),
-                  ),
-                ),
-                if (provider.unreadCount > 0)
-                  Positioned(
-                    top: 0,
-                    right: 0,
-                    child: Container(
-                      padding: const EdgeInsets.all(4),
-                      decoration: const BoxDecoration(
-                        color: Color(0xFFEF4444),
-                        shape: BoxShape.circle,
-                      ),
-                      constraints: const BoxConstraints(
-                        minWidth: 16,
-                        minHeight: 16,
-                      ),
-                      child: Text(
-                        '${provider.unreadCount}',
-                        style: const TextStyle(
-                          color: Colors.white,
-                          fontSize: 8,
-                          fontWeight: FontWeight.bold,
-                        ),
-                        textAlign: TextAlign.center,
-                      ),
-                    ),
-                  ),
-              ],
-            ),
-          ),
-        ),
+        ]),
+        const SizedBox(height: SgSpace.s6),
       ],
-    );
-  }
-}
-
-class _ProfileAvatar extends StatelessWidget {
-  const _ProfileAvatar({required this.imageUrl});
-
-  final String imageUrl;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      width: 116,
-      height: 116,
-      padding: const EdgeInsets.all(3),
-      decoration: const BoxDecoration(
-        shape: BoxShape.circle,
-        color: Color(0xFFEEBD2B),
-        boxShadow: [
-          BoxShadow(color: Color(0x99EEBD2B), blurRadius: 22, spreadRadius: 1),
-        ],
-      ),
-      child: ClipOval(
-        child: CachedNetworkImage(
-          imageUrl: imageUrl,
-          fit: BoxFit.cover,
-          memCacheWidth: 200,
-          memCacheHeight: 200,
-          fadeInDuration: const Duration(milliseconds: 200),
-          placeholder: (context, url) => Container(
-            color: const Color(0xFF24211C),
-            alignment: Alignment.center,
-            child: const SizedBox(
-              width: 22,
-              height: 22,
-              child: CircularProgressIndicator(
-                strokeWidth: 2,
-                color: Color(0xFFEEBD2B),
-              ),
-            ),
-          ),
-          errorWidget: (context, url, error) => Container(
-            color: const Color(0xFF24211C),
-            child: const Icon(Icons.person, size: 56, color: Color(0xFFCBD5E1)),
-          ),
-        ),
-      ),
     );
   }
 }
@@ -1319,58 +1139,6 @@ class _LocationCardState extends State<_LocationCard> {
           ),
           if (_open) _results(),
         ],
-      ),
-    );
-  }
-}
-
-class _ProfileMenuTile extends StatelessWidget {
-  const _ProfileMenuTile({required this.icon, required this.title, this.onTap});
-
-  final IconData icon;
-  final String title;
-  final VoidCallback? onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    return InkWell(
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(20),
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 18),
-        decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(20),
-          gradient: const LinearGradient(
-            begin: Alignment.centerLeft,
-            end: Alignment.centerRight,
-            colors: [Color(0xFF24211C), Color(0xFF221F1A)],
-          ),
-          border: Border.all(color: const Color(0x1AFFFFFF)),
-          boxShadow: const [
-            BoxShadow(
-              color: Color(0x24000000),
-              blurRadius: 20,
-              offset: Offset(0, 8),
-            ),
-          ],
-        ),
-        child: Row(
-          children: [
-            Icon(icon, color: const Color(0xFF94A3B8), size: 22),
-            const SizedBox(width: 14),
-            Expanded(
-              child: Text(
-                title,
-                style: GoogleFonts.inter(
-                  color: const Color(0xFFE2E8F0),
-                  fontSize: 16,
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
-            ),
-            const Icon(Icons.chevron_right, color: Color(0xFF64748B), size: 24),
-          ],
-        ),
       ),
     );
   }

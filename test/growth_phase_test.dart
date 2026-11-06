@@ -546,23 +546,23 @@ void main() {
       await t.pumpAndSettle();
     }
 
-    testWidgets('Refer & Earn is hidden when the flag is false or missing', (
+    testWidgets('Refer a friend is hidden when the flag is false or missing', (
       t,
     ) async {
       for (final m in [_market(), _market(referrals: false)]) {
         await pumpProfile(t, m);
-        expect(find.text('Personal Information'), findsOneWidget);
-        expect(find.text('Refer & Earn'), findsNothing);
+        expect(find.text('Personal information'), findsOneWidget);
+        expect(find.text('Refer a friend'), findsNothing);
       }
     });
 
-    testWidgets('Refer & Earn shows and opens the referral screen when live', (
+    testWidgets('Refer a friend shows and opens the referral screen when live', (
       t,
     ) async {
       await pumpProfile(t, _market(referrals: true));
-      expect(find.text('Refer & Earn'), findsOneWidget);
-      await t.ensureVisible(find.text('Refer & Earn'));
-      await t.tap(find.text('Refer & Earn'));
+      expect(find.text('Refer a friend'), findsOneWidget);
+      await t.ensureVisible(find.text('Refer a friend'));
+      await t.tap(find.text('Refer a friend'));
       await t.pumpAndSettle();
       expect(find.text('REFER SCREEN'), findsOneWidget);
     });
