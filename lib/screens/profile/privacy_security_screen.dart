@@ -2,9 +2,10 @@ import 'package:flutter/material.dart';
 
 import 'dart:ui';
 import 'package:go_router/go_router.dart';
-import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
 import '../../providers/auth_provider.dart';
+
+import '../../ui/sg_tokens.dart';
 
 class PrivacySecurityScreen extends StatefulWidget {
   const PrivacySecurityScreen({super.key});
@@ -35,7 +36,7 @@ class _PrivacySecurityScreenState extends State<PrivacySecurityScreen> {
       ..showSnackBar(
         SnackBar(
           content: Text('$label will be available soon.'),
-          backgroundColor: const Color(0xFF2B2722),
+          backgroundColor: SgColors.bg300,
         ),
       );
   }
@@ -45,7 +46,7 @@ class _PrivacySecurityScreenState extends State<PrivacySecurityScreen> {
     final auth = context.watch<AuthProvider>();
 
     return Scaffold(
-      backgroundColor: const Color(0xFF1A1814),
+      backgroundColor: SgColors.bg200,
       bottomNavigationBar: SafeArea(
         top: false,
         child: ClipRect(
@@ -54,9 +55,9 @@ class _PrivacySecurityScreenState extends State<PrivacySecurityScreen> {
             child: Container(
               height: 84,
               padding: const EdgeInsets.fromLTRB(24, 12, 24, 24),
-              decoration: const BoxDecoration(
-                color: Color(0xE61A1814),
-                border: Border(top: BorderSide(color: Color(0x0DFFFFFF))),
+              decoration: BoxDecoration(
+                color: SgColors.bg100.withValues(alpha: 0.90),
+                border: Border(top: BorderSide(color: SgColors.line)),
               ),
               child: Row(
                 children: [
@@ -109,13 +110,13 @@ class _PrivacySecurityScreenState extends State<PrivacySecurityScreen> {
                     child: Container(
                       width: 40,
                       height: 40,
-                      decoration: const BoxDecoration(
-                        color: Color(0x1AFFFFFF),
+                      decoration: BoxDecoration(
+                        color: SgColors.bg300,
                         shape: BoxShape.circle,
                       ),
-                      child: const Icon(
+                      child: Icon(
                         Icons.arrow_back,
-                        color: Color(0xFFE2E8F0),
+                        color: SgColors.ink,
                         size: 20,
                       ),
                     ),
@@ -124,8 +125,8 @@ class _PrivacySecurityScreenState extends State<PrivacySecurityScreen> {
                     child: Text(
                       'Privacy & Security',
                       textAlign: TextAlign.center,
-                      style: GoogleFonts.inter(
-                        color: const Color(0xFFF8FAFC),
+                      style: TextStyle(
+                        color: SgColors.ink,
                         fontSize: 26,
                         fontWeight: FontWeight.w700,
                         letterSpacing: -0.4,
@@ -189,11 +190,14 @@ class _PrivacySecurityScreenState extends State<PrivacySecurityScreen> {
                         ),
                         const _PrivacyDivider(),
                         _PrivacyActionRow(
-                          key: const Key('privacy-row-notification-preferences'),
+                          key: const Key(
+                            'privacy-row-notification-preferences',
+                          ),
                           title: 'Notification Preferences',
                           subtitle:
                               'Choose how you want to receive offers and updates.',
-                          onTap: () => context.push('/notification-preferences'),
+                          onTap: () =>
+                              context.push('/notification-preferences'),
                         ),
                         const _PrivacyDivider(),
                         _PrivacyActionRow(
@@ -227,8 +231,8 @@ class _PrivacySectionLabel extends StatelessWidget {
       padding: const EdgeInsets.only(left: 2),
       child: Text(
         text.toUpperCase(),
-        style: GoogleFonts.inter(
-          color: const Color(0xFF94A3B8),
+        style: TextStyle(
+          color: SgColors.inkMuted,
           fontSize: 14,
           fontWeight: FontWeight.w600,
           letterSpacing: 1.4,
@@ -247,9 +251,9 @@ class _PrivacyCard extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       decoration: BoxDecoration(
-        color: const Color(0xFF24211C),
+        color: SgColors.bg300,
         borderRadius: BorderRadius.circular(18),
-        border: Border.all(color: const Color(0x0DFFFFFF)),
+        border: Border.all(color: SgColors.line),
       ),
       child: child,
     );
@@ -264,7 +268,7 @@ class _PrivacyDivider extends StatelessWidget {
     return Container(
       margin: const EdgeInsets.only(left: 16),
       height: 1,
-      color: const Color(0x0DFFFFFF),
+      color: SgColors.bg200,
     );
   }
 }
@@ -301,8 +305,8 @@ class _PrivacyActionRow extends StatelessWidget {
                   children: [
                     Text(
                       title,
-                      style: GoogleFonts.inter(
-                        color: const Color(0xFFF8FAFC),
+                      style: TextStyle(
+                        color: SgColors.ink,
                         fontSize: 16,
                         fontWeight: FontWeight.w600,
                         letterSpacing: -0.2,
@@ -311,8 +315,8 @@ class _PrivacyActionRow extends StatelessWidget {
                     const SizedBox(height: 4),
                     Text(
                       subtitle,
-                      style: GoogleFonts.inter(
-                        color: const Color(0xFF94A3B8),
+                      style: TextStyle(
+                        color: SgColors.inkMuted,
                         fontSize: 12,
                         fontWeight: FontWeight.w500,
                         height: 1.25,
@@ -322,11 +326,7 @@ class _PrivacyActionRow extends StatelessWidget {
                 ),
               ),
               const SizedBox(width: 10),
-              const Icon(
-                Icons.chevron_right,
-                color: Color(0xFF64748B),
-                size: 24,
-              ),
+              Icon(Icons.chevron_right, color: SgColors.inkSubtle, size: 24),
             ],
           ),
         ),
@@ -361,8 +361,8 @@ class _PrivacyToggleRow extends StatelessWidget {
               children: [
                 Text(
                   title,
-                  style: GoogleFonts.inter(
-                    color: const Color(0xFFF8FAFC),
+                  style: TextStyle(
+                    color: SgColors.ink,
                     fontSize: 16,
                     fontWeight: FontWeight.w600,
                     letterSpacing: -0.2,
@@ -371,8 +371,8 @@ class _PrivacyToggleRow extends StatelessWidget {
                 const SizedBox(height: 4),
                 Text(
                   subtitle,
-                  style: GoogleFonts.inter(
-                    color: const Color(0xFF94A3B8),
+                  style: TextStyle(
+                    color: SgColors.inkMuted,
                     fontSize: 12,
                     fontWeight: FontWeight.w500,
                     height: 1.25,
@@ -387,10 +387,10 @@ class _PrivacyToggleRow extends StatelessWidget {
             // ambiguous -- unusable for tests, integration drivers and a11y tooling.
             value: value,
             onChanged: onChanged,
-            activeThumbColor: Colors.white,
-            activeTrackColor: const Color(0xFFEEBD2B),
-            inactiveThumbColor: Colors.white,
-            inactiveTrackColor: const Color(0xFF475569),
+            activeThumbColor: SgColors.bg100,
+            activeTrackColor: SgColors.gold500,
+            inactiveThumbColor: SgColors.bg100,
+            inactiveTrackColor: SgColors.lineStrong,
             materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
           ),
         ],
@@ -415,10 +415,8 @@ class _PrivacyNavItem extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final color = selected ? const Color(0xFFEEBD2B) : const Color(0xFF94A3B8);
-    final shadows = selected
-        ? const [Shadow(color: Color(0x80EEBD2B), blurRadius: 8)]
-        : null;
+    final color = selected ? SgColors.goldText : SgColors.inkMuted;
+    final shadows = selected ? const <Shadow>[] : null;
 
     return Expanded(
       child: InkWell(

@@ -7,6 +7,8 @@ import 'package:provider/provider.dart';
 import '../../services/push_notification_service.dart';
 import '../../providers/auth_provider.dart';
 
+import '../../ui/sg_tokens.dart';
+
 class OtpVerificationScreen extends StatefulWidget {
   final String phoneNumber;
   const OtpVerificationScreen({super.key, required this.phoneNumber});
@@ -75,12 +77,12 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen> {
     if (response != null && response['status'] == 'success') {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
+          SnackBar(
             content: Text(
               'New OTP sent. Check your messages.',
-              style: TextStyle(color: Colors.white),
+              style: TextStyle(color: SgColors.onDanger),
             ),
-            backgroundColor: Colors.green,
+            backgroundColor: SgColors.success,
           ),
         );
       }
@@ -90,9 +92,9 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen> {
         SnackBar(
           content: Text(
             authProvider.error ?? 'Failed to resend OTP',
-            style: const TextStyle(color: Colors.white),
+            style: TextStyle(color: SgColors.onDanger),
           ),
-          backgroundColor: Colors.red,
+          backgroundColor: SgColors.danger,
         ),
       );
     }
@@ -102,10 +104,10 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen> {
     final otp = _controllers.map((c) => c.text).join();
     if (otp.length < 6) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
+        SnackBar(
           content: Text(
             'Please enter the complete 6-digit OTP',
-            style: TextStyle(color: Colors.white),
+            style: TextStyle(color: SgColors.ink),
           ),
         ),
       );
@@ -136,12 +138,12 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen> {
     if (success) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
+          SnackBar(
             content: Text(
               'OTP verified successfully',
-              style: TextStyle(color: Colors.white),
+              style: TextStyle(color: SgColors.onDanger),
             ),
-            backgroundColor: Colors.green,
+            backgroundColor: SgColors.success,
           ),
         );
         if (authProvider.isUpdated) {
@@ -157,9 +159,9 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen> {
           SnackBar(
             content: Text(
               authProvider.error ?? 'Verification failed',
-              style: const TextStyle(color: Colors.white),
+              style: TextStyle(color: SgColors.onDanger),
             ),
-            backgroundColor: Colors.red,
+            backgroundColor: SgColors.danger,
           ),
         );
       }
@@ -345,7 +347,7 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen> {
                     ),
                   ),
                   child: auth.isLoading
-                      ? const CircularProgressIndicator(color: Colors.white)
+                      ? CircularProgressIndicator(color: SgColors.onGold)
                       : Row(
                           mainAxisAlignment: MainAxisAlignment.center,
                           children: [

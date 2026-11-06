@@ -1,14 +1,15 @@
 import 'package:flutter/material.dart';
 
-import 'package:google_fonts/google_fonts.dart';
 import 'package:go_router/go_router.dart';
 import '../../services/support_service.dart';
 import 'report_problem_screen.dart';
 
+import '../../ui/sg_tokens.dart';
+
 class HelpSupportScreen extends StatelessWidget {
   const HelpSupportScreen({super.key});
 
-  static const Color _screenBackground = Color(0xFF1A1814);
+  static Color get _screenBackground => SgColors.bg000;
 
   void _openHomeTab(BuildContext context, int tabIndex) {
     context.go('/home?tab=$tabIndex');
@@ -41,9 +42,9 @@ class HelpSupportScreen extends StatelessWidget {
         child: Container(
           height: 84,
           padding: const EdgeInsets.fromLTRB(24, 12, 24, 24),
-          decoration: const BoxDecoration(
-            color: Color(0xE61A1814),
-            border: Border(top: BorderSide(color: Color(0x0DFFFFFF))),
+          decoration: BoxDecoration(
+            color: SgColors.bg100.withValues(alpha: 0.90),
+            border: Border(top: BorderSide(color: SgColors.line)),
           ),
           child: Row(
             children: [
@@ -89,13 +90,13 @@ class HelpSupportScreen extends StatelessWidget {
                     child: Container(
                       width: 40,
                       height: 40,
-                      decoration: const BoxDecoration(
-                        color: Color(0x1AFFFFFF),
+                      decoration: BoxDecoration(
+                        color: SgColors.bg300,
                         shape: BoxShape.circle,
                       ),
-                      child: const Icon(
+                      child: Icon(
                         Icons.chevron_left,
-                        color: Color(0xFFE2E8F0),
+                        color: SgColors.ink,
                         size: 24,
                       ),
                     ),
@@ -103,8 +104,8 @@ class HelpSupportScreen extends StatelessWidget {
                   const SizedBox(width: 16),
                   Text(
                     'Help & Support',
-                    style: GoogleFonts.inter(
-                      color: const Color(0xFFF8FAFC),
+                    style: TextStyle(
+                      color: SgColors.ink,
                       fontSize: 20,
                       fontWeight: FontWeight.w600,
                       letterSpacing: -0.3,
@@ -151,7 +152,7 @@ class HelpSupportScreen extends StatelessWidget {
                       _MiniTile(
                         icon: Icons.shield,
                         label: 'Safety',
-                        iconBackground: const Color(0x338B6508),
+                        iconBackground: SgColors.goldSoft,
                         onTap: () => _report(context, SupportIssueType.safety),
                       ),
                     ],
@@ -205,10 +206,8 @@ class _HelpNavItem extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final color = selected ? const Color(0xFFEEBD2B) : const Color(0xFF94A3B8);
-    final shadows = selected
-        ? const [Shadow(color: Color(0x80EEBD2B), blurRadius: 8)]
-        : null;
+    final color = selected ? SgColors.goldText : SgColors.inkMuted;
+    final shadows = selected ? const <Shadow>[] : null;
 
     return Expanded(
       child: InkWell(
@@ -221,7 +220,7 @@ class _HelpNavItem extends StatelessWidget {
             const SizedBox(height: 4),
             Text(
               label,
-              style: GoogleFonts.inter(
+              style: TextStyle(
                 color: color,
                 fontSize: 10,
                 fontWeight: FontWeight.w500,
@@ -243,17 +242,17 @@ class _HelpSearchField extends StatelessWidget {
     return Container(
       height: 54,
       decoration: BoxDecoration(
-        color: const Color(0xFF24211C),
+        color: SgColors.bg300,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: const Color(0x0DFFFFFF)),
+        border: Border.all(color: SgColors.line),
       ),
       child: TextField(
-        style: GoogleFonts.inter(color: Colors.white),
+        style: TextStyle(color: SgColors.ink),
         decoration: InputDecoration(
           border: InputBorder.none,
           hintText: 'Search for issues...',
-          hintStyle: GoogleFonts.inter(color: const Color(0xFF64748B)),
-          prefixIcon: const Icon(Icons.search, color: Color(0xFF64748B)),
+          hintStyle: TextStyle(color: SgColors.inkSubtle),
+          prefixIcon: Icon(Icons.search, color: SgColors.inkSubtle),
           contentPadding: const EdgeInsets.symmetric(vertical: 16),
         ),
       ),
@@ -269,8 +268,8 @@ class _HelpSectionLabel extends StatelessWidget {
   Widget build(BuildContext context) {
     return Text(
       text,
-      style: GoogleFonts.inter(
-        color: Colors.white,
+      style: TextStyle(
+        color: SgColors.ink,
         fontSize: 18,
         fontWeight: FontWeight.w700,
       ),
@@ -301,9 +300,9 @@ class _MiniTile extends StatelessWidget {
       borderRadius: BorderRadius.circular(20),
       child: Container(
         decoration: BoxDecoration(
-          color: const Color(0xFF24211C),
+          color: SgColors.bg300,
           borderRadius: BorderRadius.circular(20),
-          border: Border.all(color: const Color(0x0DFFFFFF)),
+          border: Border.all(color: SgColors.line),
         ),
         padding: const EdgeInsets.all(16),
         child: Column(
@@ -312,16 +311,16 @@ class _MiniTile extends StatelessWidget {
             Container(
               padding: const EdgeInsets.all(8),
               decoration: BoxDecoration(
-                color: iconBackground ?? const Color(0x1AEEBD2B),
+                color: iconBackground ?? SgColors.goldSoft,
                 borderRadius: BorderRadius.circular(10),
               ),
-              child: Icon(icon, color: const Color(0xFFEEBD2B), size: 20),
+              child: Icon(icon, color: SgColors.goldText, size: 20),
             ),
             const Spacer(),
             Text(
               label,
-              style: GoogleFonts.inter(
-                color: Colors.white,
+              style: TextStyle(
+                color: SgColors.ink,
                 fontSize: 14,
                 fontWeight: FontWeight.w600,
               ),
@@ -350,38 +349,35 @@ class _ContactTile extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       decoration: BoxDecoration(
-        color: const Color(0xFF24211C),
+        color: SgColors.bg300,
         borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: const Color(0x0DFFFFFF)),
+        border: Border.all(color: SgColors.line),
       ),
       child: ListTile(
         contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
         leading: Container(
           padding: const EdgeInsets.all(10),
           decoration: BoxDecoration(
-            color: const Color(0xFFEEBD2B).withValues(alpha: 0.1),
+            color: SgColors.gold500.withValues(alpha: 0.1),
             shape: BoxShape.circle,
           ),
-          child: Icon(icon, color: const Color(0xFFEEBD2B), size: 24),
+          child: Icon(icon, color: SgColors.goldText, size: 24),
         ),
         title: Text(
           title,
-          style: GoogleFonts.inter(
-            color: Colors.white,
+          style: TextStyle(
+            color: SgColors.ink,
             fontSize: 16,
             fontWeight: FontWeight.w600,
           ),
         ),
         subtitle: Text(
           subtitle,
-          style: GoogleFonts.inter(
-            color: const Color(0xFF94A3B8),
-            fontSize: 13,
-          ),
+          style: TextStyle(color: SgColors.inkMuted, fontSize: 13),
         ),
-        trailing: const Icon(
+        trailing: Icon(
           Icons.chevron_right,
-          color: Color(0xFF64748B),
+          color: SgColors.inkSubtle,
           size: 20,
         ),
       ),

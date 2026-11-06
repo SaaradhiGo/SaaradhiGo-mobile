@@ -16,6 +16,8 @@ import 'package:flutter/material.dart';
 import '../../services/models/support_ticket.dart';
 import '../../services/support_service.dart';
 
+import '../../ui/sg_tokens.dart';
+
 class ReportProblemScreen extends StatefulWidget {
   const ReportProblemScreen({
     super.key,
@@ -87,10 +89,10 @@ class _ReportProblemScreenState extends State<ReportProblemScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFF0B0B0B),
+      backgroundColor: SgColors.bg000,
       appBar: AppBar(
-        backgroundColor: const Color(0xFF0B0B0B),
-        foregroundColor: Colors.white,
+        backgroundColor: SgColors.bg000,
+        foregroundColor: SgColors.ink,
         title: const Text('Report a problem'),
       ),
       body: SafeArea(
@@ -109,16 +111,16 @@ class _ReportProblemScreenState extends State<ReportProblemScreen> {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            const Icon(
+            Icon(
               Icons.check_circle_outline,
               size: 64,
-              color: Color(0xFFEEBD2B),
+              color: SgColors.goldText,
             ),
             const SizedBox(height: 16),
-            const Text(
+            Text(
               'Thanks — we have it',
               style: TextStyle(
-                color: Colors.white,
+                color: SgColors.ink,
                 fontSize: 20,
                 fontWeight: FontWeight.w600,
               ),
@@ -131,15 +133,15 @@ class _ReportProblemScreenState extends State<ReportProblemScreen> {
                   ? 'Your reference is #${ticket.id}. Support will reply in '
                         'the app.'
                   : 'Support will reply in the app.',
-              style: const TextStyle(color: Colors.white70),
+              style: TextStyle(color: SgColors.inkMuted),
               textAlign: TextAlign.center,
             ),
             const SizedBox(height: 24),
             ElevatedButton(
               onPressed: () => Navigator.of(context).maybePop(),
               style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFFEEBD2B),
-                foregroundColor: Colors.black,
+                backgroundColor: SgColors.gold500,
+                foregroundColor: SgColors.onGold,
               ),
               child: const Text('Done'),
             ),
@@ -157,10 +159,10 @@ class _ReportProblemScreenState extends State<ReportProblemScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            const Text(
+            Text(
               'What went wrong?',
               style: TextStyle(
-                color: Colors.white,
+                color: SgColors.ink,
                 fontSize: 18,
                 fontWeight: FontWeight.w600,
               ),
@@ -168,11 +170,11 @@ class _ReportProblemScreenState extends State<ReportProblemScreen> {
             const SizedBox(height: 16),
             DropdownButtonFormField<SupportIssueType>(
               initialValue: _issueType,
-              dropdownColor: const Color(0xFF1C1C1E),
-              style: const TextStyle(color: Colors.white),
-              decoration: const InputDecoration(
+              dropdownColor: SgColors.bg200,
+              style: TextStyle(color: SgColors.ink),
+              decoration: InputDecoration(
                 labelText: 'Type of problem',
-                labelStyle: TextStyle(color: Colors.white70),
+                labelStyle: TextStyle(color: SgColors.inkMuted),
                 border: OutlineInputBorder(),
               ),
               items: [
@@ -190,14 +192,14 @@ class _ReportProblemScreenState extends State<ReportProblemScreen> {
               minLines: 4,
               maxLines: 8,
               maxLength: 2000,
-              style: const TextStyle(color: Colors.white),
-              decoration: const InputDecoration(
+              style: TextStyle(color: SgColors.ink),
+              decoration: InputDecoration(
                 labelText: 'Describe the problem',
-                labelStyle: TextStyle(color: Colors.white70),
+                labelStyle: TextStyle(color: SgColors.inkMuted),
                 alignLabelWithHint: true,
                 border: OutlineInputBorder(),
                 helperText: 'Include what happened and when, if you can.',
-                helperStyle: TextStyle(color: Colors.white38),
+                helperStyle: TextStyle(color: SgColors.inkSubtle),
               ),
               validator: (value) {
                 final text = value?.trim() ?? '';
@@ -215,7 +217,7 @@ class _ReportProblemScreenState extends State<ReportProblemScreen> {
               const SizedBox(height: 8),
               Text(
                 'This will be attached to trip #${widget.tripId}.',
-                style: const TextStyle(color: Colors.white54, fontSize: 12),
+                style: TextStyle(color: SgColors.inkMuted, fontSize: 12),
               ),
             ],
             if (_error != null) ...[
@@ -223,18 +225,18 @@ class _ReportProblemScreenState extends State<ReportProblemScreen> {
               Container(
                 padding: const EdgeInsets.all(12),
                 decoration: BoxDecoration(
-                  color: const Color(0x33B00020),
+                  color: SgColors.danger.withValues(alpha: 0.14),
                   borderRadius: BorderRadius.circular(8),
-                  border: Border.all(color: const Color(0xFFB00020)),
+                  border: Border.all(color: SgColors.danger),
                 ),
                 child: Row(
                   children: [
-                    const Icon(Icons.error_outline, color: Color(0xFFFF8A80)),
+                    Icon(Icons.error_outline, color: SgColors.danger),
                     const SizedBox(width: 12),
                     Expanded(
                       child: Text(
                         _error!,
-                        style: const TextStyle(color: Color(0xFFFF8A80)),
+                        style: TextStyle(color: SgColors.danger),
                       ),
                     ),
                   ],
@@ -245,17 +247,17 @@ class _ReportProblemScreenState extends State<ReportProblemScreen> {
             ElevatedButton(
               onPressed: _submitting ? null : _submit,
               style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFFEEBD2B),
-                foregroundColor: Colors.black,
+                backgroundColor: SgColors.gold500,
+                foregroundColor: SgColors.onGold,
                 padding: const EdgeInsets.symmetric(vertical: 16),
               ),
               child: _submitting
-                  ? const SizedBox(
+                  ? SizedBox(
                       height: 20,
                       width: 20,
                       child: CircularProgressIndicator(
                         strokeWidth: 2,
-                        color: Colors.black,
+                        color: SgColors.bg000,
                       ),
                     )
                   : const Text('Submit'),

@@ -5,7 +5,6 @@ import '../../ui/account_widgets.dart';
 import '../../ui/sg_text.dart';
 import '../../ui/sg_tokens.dart';
 import '../../providers/map_provider.dart';
-import 'package:google_fonts/google_fonts.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 import 'package:shimmer/shimmer.dart';
@@ -129,7 +128,7 @@ class _HistoryScreenState extends State<HistoryScreen> {
               child: Container(
                 height: 180,
                 decoration: BoxDecoration(
-                  color: Colors.white,
+                  color: SgColors.bg300,
                   borderRadius: BorderRadius.circular(24),
                 ),
               ),
@@ -146,21 +145,11 @@ class _HistoryScreenState extends State<HistoryScreen> {
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Icon(
-            Icons.history,
-            size: 64,
-            color: Colors.white.withValues(alpha: 0.05),
-          ),
+          Icon(Icons.history, size: 64, color: SgColors.inkSubtle),
           const SizedBox(height: 16),
-          Text(
-            'No rides yet',
-            style: SgText.title,
-          ),
+          Text('No rides yet', style: SgText.title),
           const SizedBox(height: 8),
-          Text(
-            'Rides you take will show here.',
-            style: SgText.caption,
-          ),
+          Text('Rides you take will show here.', style: SgText.caption),
         ],
       ),
     );
@@ -173,15 +162,12 @@ class _HistoryScreenState extends State<HistoryScreen> {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            const Icon(Icons.error_outline, size: 48, color: Color(0xFFF87171)),
+            Icon(Icons.error_outline, size: 48, color: SgColors.danger),
             const SizedBox(height: 16),
             Text(
               message,
               textAlign: TextAlign.center,
-              style: GoogleFonts.inter(
-                color: const Color(0xFFE2E8F0),
-                fontSize: 16,
-              ),
+              style: TextStyle(color: SgColors.ink, fontSize: 16),
             ),
             const SizedBox(height: 24),
             ElevatedButton(
@@ -221,7 +207,9 @@ class _HistoryRideCard extends StatelessWidget {
     final provider = context.read<MapProvider>();
     if (provider.pickupLocation == null) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Set your pickup on the home screen first.')),
+        const SnackBar(
+          content: Text('Set your pickup on the home screen first.'),
+        ),
       );
       return;
     }
@@ -239,7 +227,8 @@ class _HistoryRideCard extends StatelessWidget {
         ? DateFormat('d MMM, h:mm a').format(trip.createdAt!)
         : 'Recently';
     final fare = trip.finalFare ?? trip.estimatedFare ?? '0';
-    final canRebook = trip.destinationLat != null && trip.destinationLng != null;
+    final canRebook =
+        trip.destinationLat != null && trip.destinationLng != null;
 
     return Container(
       padding: const EdgeInsets.all(SgSpace.s4),
@@ -258,14 +247,20 @@ class _HistoryRideCard extends StatelessWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(vehicleClassName(trip.vehicleType), style: SgText.title),
+                    Text(
+                      vehicleClassName(trip.vehicleType),
+                      style: SgText.title,
+                    ),
                     const SizedBox(height: 2),
                     Text(dateStr, style: SgText.caption),
                   ],
                 ),
               ),
               // What was charged, exactly as the receipt says.
-              Text('${marketOf(context).currencySymbol}$fare', style: SgText.fare),
+              Text(
+                '${marketOf(context).currencySymbol}$fare',
+                style: SgText.fare,
+              ),
             ],
           ),
           const SizedBox(height: SgSpace.s4),
@@ -280,14 +275,16 @@ class _HistoryRideCard extends StatelessWidget {
               onPressed: () => _rebook(context),
               style: OutlinedButton.styleFrom(
                 foregroundColor: SgColors.ink,
-                side: const BorderSide(color: SgColors.lineStrong),
+                side: BorderSide(color: SgColors.lineStrong),
                 minimumSize: const Size.fromHeight(kSgTouch),
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(SgRadius.md),
                 ),
               ),
-              child: Text('Ride here again',
-                  style: SgText.body.copyWith(fontWeight: FontWeight.w700)),
+              child: Text(
+                'Ride here again',
+                style: SgText.body.copyWith(fontWeight: FontWeight.w700),
+              ),
             ),
           ],
         ],
@@ -316,7 +313,7 @@ class _TimelineRoute extends StatelessWidget {
                 child: Container(
                   width: 8,
                   height: 8,
-                  decoration: const BoxDecoration(
+                  decoration: BoxDecoration(
                     color: SgColors.pickup,
                     shape: BoxShape.circle,
                   ),
@@ -345,7 +342,7 @@ class _TimelineRoute extends StatelessWidget {
                     margin: const EdgeInsets.symmetric(vertical: 2),
                     width: 2,
                     height: 4,
-                    color: Colors.white.withValues(alpha: 0.1),
+                    color: SgColors.bg200,
                   ),
                 ),
               ),

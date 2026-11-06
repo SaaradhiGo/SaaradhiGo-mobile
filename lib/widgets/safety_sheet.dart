@@ -25,6 +25,8 @@ import '../core/market/market_config_store.dart';
 import '../services/sos_service.dart';
 import 'hold_to_send_button.dart';
 
+import '../ui/sg_tokens.dart';
+
 /// India's single emergency number. One constant, named, because a literal
 /// '112' three screens deep is how a market launch ships the wrong number.
 const String kIndiaEmergencyNumber = '112';
@@ -86,7 +88,10 @@ class TripSafetyContext {
 }
 
 /// Offers the trip details to an SMS composer, else copies them.
-Future<void> shareTripDetails(BuildContext context, TripSafetyContext trip) async {
+Future<void> shareTripDetails(
+  BuildContext context,
+  TripSafetyContext trip,
+) async {
   final message = trip.shareMessage();
   final sms = Uri(scheme: 'sms', queryParameters: {'body': message});
   final launched = await launchUrl(sms, mode: LaunchMode.externalApplication);
@@ -106,7 +111,7 @@ Future<void> showSafetySheet(
 }) {
   return showModalBottomSheet<void>(
     context: context,
-    backgroundColor: const Color(0xFF1A1917),
+    backgroundColor: SgColors.bg200,
     isScrollControlled: true,
     shape: const RoundedRectangleBorder(
       borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
@@ -180,8 +185,10 @@ class _SafetySheetState extends State<SafetySheet> {
   }
 
   Future<void> _callSupport(String number) async {
-    await launchUrl(Uri.parse('tel:$number'),
-        mode: LaunchMode.externalApplication);
+    await launchUrl(
+      Uri.parse('tel:$number'),
+      mode: LaunchMode.externalApplication,
+    );
   }
 
   Future<void> _call112() async {
@@ -211,16 +218,16 @@ class _SafetySheetState extends State<SafetySheet> {
                 width: 44,
                 height: 4,
                 decoration: BoxDecoration(
-                  color: Colors.white24,
+                  color: SgColors.bg300,
                   borderRadius: BorderRadius.circular(2),
                 ),
               ),
             ),
             const SizedBox(height: 18),
-            const Text(
+            Text(
               'Safety',
               style: TextStyle(
-                color: Colors.white,
+                color: SgColors.ink,
                 fontSize: 20,
                 fontWeight: FontWeight.w800,
               ),
@@ -229,7 +236,7 @@ class _SafetySheetState extends State<SafetySheet> {
             Text(
               'Our team is alerted immediately. For police, fire or '
               'ambulance, call $_emergencyNumber.',
-              style: TextStyle(color: Color(0xFF94A3B8), fontSize: 13),
+              style: TextStyle(color: SgColors.inkMuted, fontSize: 13),
             ),
             const SizedBox(height: 18),
 
@@ -240,8 +247,8 @@ class _SafetySheetState extends State<SafetySheet> {
               icon: const Icon(Icons.call),
               label: Text('Call $_emergencyNumber'),
               style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFFDC2626),
-                foregroundColor: Colors.white,
+                backgroundColor: SgColors.danger,
+                foregroundColor: SgColors.ink,
                 padding: const EdgeInsets.symmetric(vertical: 14),
               ),
             ),
@@ -252,19 +259,19 @@ class _SafetySheetState extends State<SafetySheet> {
               icon: const Icon(Icons.ios_share),
               label: const Text('Share my trip'),
               style: OutlinedButton.styleFrom(
-                foregroundColor: Colors.white,
-                side: const BorderSide(color: Colors.white24),
+                foregroundColor: SgColors.ink,
+                side: BorderSide(color: SgColors.lineStrong),
                 padding: const EdgeInsets.symmetric(vertical: 14),
               ),
             ),
 
             const SizedBox(height: 18),
-            const Divider(color: Colors.white12),
+            Divider(color: SgColors.line),
             const SizedBox(height: 6),
-            const Text(
+            Text(
               'Tell SaaradhiGo what is wrong',
               style: TextStyle(
-                color: Colors.white,
+                color: SgColors.ink,
                 fontSize: 14,
                 fontWeight: FontWeight.w700,
               ),
@@ -297,9 +304,9 @@ class _SafetySheetState extends State<SafetySheet> {
                       key: Key('sos_${category.wireValue}'),
                       label: Text(category.label),
                       selected: _category == category,
-                      selectedColor: const Color(0xFF7F1D1D),
-                      backgroundColor: const Color(0xFF262522),
-                      labelStyle: const TextStyle(color: Colors.white),
+                      selectedColor: SgColors.danger.withValues(alpha: 0.14),
+                      backgroundColor: SgColors.bg300,
+                      labelStyle: TextStyle(color: SgColors.ink),
                       onSelected: (_) => setState(() => _category = category),
                     ),
                 ],
@@ -317,10 +324,10 @@ class _SafetySheetState extends State<SafetySheet> {
               TextButton.icon(
                 key: const Key('safety_call_support'),
                 onPressed: () => _callSupport(support),
-                icon: const Icon(Icons.support_agent, color: Colors.white70),
-                label: const Text(
+                icon: Icon(Icons.support_agent, color: SgColors.inkMuted),
+                label: Text(
                   'Call SaaradhiGo support',
-                  style: TextStyle(color: Colors.white70),
+                  style: TextStyle(color: SgColors.inkMuted),
                 ),
               ),
             ],
@@ -349,12 +356,14 @@ class _ResultBanner extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     if (result.ok) {
-      final reference = result.sosId != null ? ' Reference #${result.sosId}.' : '';
+      final reference = result.sosId != null
+          ? ' Reference #${result.sosId}.'
+          : '';
       return Container(
         key: const Key('sos_success'),
         padding: const EdgeInsets.all(14),
         decoration: BoxDecoration(
-          color: const Color(0xFF064E3B),
+          color: SgColors.success.withValues(alpha: 0.14),
           borderRadius: BorderRadius.circular(12),
         ),
         child: Column(
@@ -362,7 +371,7 @@ class _ResultBanner extends StatelessWidget {
           children: [
             Row(
               children: [
-                const Icon(Icons.verified_user, color: Color(0xFF6EE7B7)),
+                Icon(Icons.verified_user, color: SgColors.success),
                 const SizedBox(width: 10),
                 Expanded(
                   child: Semantics(
@@ -371,8 +380,8 @@ class _ResultBanner extends StatelessWidget {
                       mistake == true
                           ? 'Marked as a mistake. Our safety team has been told.$reference'
                           : 'Alert sent. Our safety team has been alerted.$reference '
-                              'Keep your phone with you.',
-                      style: const TextStyle(color: Colors.white, fontSize: 13),
+                                'Keep your phone with you.',
+                      style: TextStyle(color: SgColors.ink, fontSize: 13),
                     ),
                   ),
                 ),
@@ -384,7 +393,7 @@ class _ResultBanner extends StatelessWidget {
                 key: const Key('sos_mistake'),
                 onPressed: reportingMistake ? null : onMistake,
                 style: TextButton.styleFrom(
-                  foregroundColor: Colors.white,
+                  foregroundColor: SgColors.ink,
                   minimumSize: const Size(48, 48),
                 ),
                 child: Text(
@@ -405,7 +414,7 @@ class _ResultBanner extends StatelessWidget {
       padding: const EdgeInsets.all(14),
       margin: const EdgeInsets.only(bottom: 12),
       decoration: BoxDecoration(
-        color: const Color(0xFF7F1D1D),
+        color: SgColors.danger.withValues(alpha: 0.14),
         borderRadius: BorderRadius.circular(12),
       ),
       child: Column(
@@ -414,15 +423,17 @@ class _ResultBanner extends StatelessWidget {
           Text(
             result.message ??
                 'We could not alert our team. Please call $_emergencyNumber.',
-            style: const TextStyle(color: Colors.white, fontSize: 13),
+            style: TextStyle(color: SgColors.ink, fontSize: 13),
           ),
           const SizedBox(height: 8),
           TextButton.icon(
             key: const Key('sos_failure_call_112'),
             onPressed: onCall,
-            icon: const Icon(Icons.call, color: Colors.white),
-            label: Text('Call $_emergencyNumber now',
-                style: const TextStyle(color: Colors.white)),
+            icon: Icon(Icons.call, color: SgColors.ink),
+            label: Text(
+              'Call $_emergencyNumber now',
+              style: TextStyle(color: SgColors.ink),
+            ),
           ),
         ],
       ),

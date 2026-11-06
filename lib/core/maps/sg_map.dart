@@ -13,6 +13,8 @@ library;
 import 'package:flutter/material.dart';
 import 'package:latlong2/latlong.dart';
 
+import '../../ui/sg_tokens.dart';
+
 import 'google_maps_provider.dart';
 import 'maps_availability.dart';
 import 'placeholder_maps_provider.dart';
@@ -46,36 +48,24 @@ class SgIconMarker extends SgMarkerIcon {
   String get key => 'icon:${icon.codePoint}:${color.toARGB32()}@$size';
 }
 
-/// The driver's car seen from above: light body, gold outline.
+/// The driver's car on the rider's map: the badge's favicon cut, gold on
+/// black, white ring (assets/markers/driver-car.png, 1x/2x/3x).
 class SgCarMarker extends SgMarkerIcon {
-  const SgCarMarker({double size = 28}) : super(size);
+  const SgCarMarker({double size = 40}) : super(size);
   @override
   String get key => 'car@$size';
 }
 
-/// Draws the car glyph centred on [c], nose up.
+/// The bitmap the map providers draw for [SgCarMarker]; 3x, scaled down.
+const kDriverCarMarkerAsset = 'assets/markers/3.0x/driver-car.png';
+
+/// A stand-in for the car bitmap where an image cannot be awaited (the
+/// placeholder map): the same black disc, white ring and gold centre.
 void paintCarGlyph(Canvas canvas, Offset c, double size) {
-  final w = size * 0.5, h = size * 0.92;
-  final body = RRect.fromRectAndRadius(
-      Rect.fromCenter(center: c, width: w, height: h), Radius.circular(w * 0.38));
-  canvas.drawRRect(body, Paint()..color = const Color(0xFFF1F5F9));
-  canvas.drawRRect(
-      body,
-      Paint()
-        ..color = const Color(0xFFFFD700)
-        ..style = PaintingStyle.stroke
-        ..strokeWidth = 2);
-  final glass = Paint()..color = const Color(0xFF18181B);
-  canvas.drawRRect(
-      RRect.fromRectAndRadius(
-          Rect.fromCenter(center: c.translate(0, -h * 0.17), width: w * 0.68, height: h * 0.2),
-          const Radius.circular(2)),
-      glass);
-  canvas.drawRRect(
-      RRect.fromRectAndRadius(
-          Rect.fromCenter(center: c.translate(0, h * 0.2), width: w * 0.62, height: h * 0.14),
-          const Radius.circular(2)),
-      glass);
+  final r = size / 2;
+  canvas.drawCircle(c, r, Paint()..color = SgColors.white);
+  canvas.drawCircle(c, r - 2, Paint()..color = SgColors.black);
+  canvas.drawCircle(c, r * 0.42, Paint()..color = SgColors.gold500);
 }
 
 @immutable

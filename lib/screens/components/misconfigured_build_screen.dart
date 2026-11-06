@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 
 import '../../core/app_config.dart';
 
+import '../../ui/sg_tokens.dart';
+
 /// Shown instead of the app when a release build was compiled wrong.
 ///
 /// The alternative is worse than an error screen. A store build that silently
@@ -22,7 +24,7 @@ class MisconfiguredBuildScreen extends StatelessWidget {
     return MaterialApp(
       debugShowCheckedModeBanner: false,
       home: Scaffold(
-        backgroundColor: const Color(0xFF1B1B1F),
+        backgroundColor: SgColors.bg000,
         body: SafeArea(
           child: Center(
             child: Padding(
@@ -30,14 +32,17 @@ class MisconfiguredBuildScreen extends StatelessWidget {
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  const Icon(Icons.build_circle_outlined,
-                      size: 64, color: Color(0xFFFFB4AB)),
+                  Icon(
+                    Icons.build_circle_outlined,
+                    size: 64,
+                    color: SgColors.danger,
+                  ),
                   const SizedBox(height: 20),
-                  const Text(
+                  Text(
                     'Build not configured',
                     textAlign: TextAlign.center,
                     style: TextStyle(
-                      color: Colors.white,
+                      color: SgColors.ink,
                       fontSize: 22,
                       fontWeight: FontWeight.w600,
                     ),
@@ -46,18 +51,18 @@ class MisconfiguredBuildScreen extends StatelessWidget {
                   Text(
                     reason,
                     textAlign: TextAlign.center,
-                    style: const TextStyle(
-                      color: Color(0xFFCAC4D0),
+                    style: TextStyle(
+                      color: SgColors.inkMuted,
                       fontSize: 15,
                       height: 1.45,
                     ),
                   ),
                   const SizedBox(height: 24),
-                  const Text(
+                  Text(
                     'This build will not run so it cannot be mistaken for a '
                     'working one.',
                     textAlign: TextAlign.center,
-                    style: TextStyle(color: Color(0xFF938F99), fontSize: 13),
+                    style: TextStyle(color: SgColors.inkSubtle, fontSize: 13),
                   ),
                 ],
               ),
@@ -92,17 +97,19 @@ class EnvironmentBadge extends StatelessWidget {
             right: 0,
             child: IgnorePointer(
               child: Material(
-                color: const Color(0xCCB3261E),
+                color: SgColors.danger,
                 child: Padding(
                   padding: const EdgeInsets.symmetric(
-                      horizontal: 8, vertical: 2),
+                    horizontal: 8,
+                    vertical: 2,
+                  ),
                   // Excluded from semantics: a screen-reader user on a QA build
                   // does not need this read out before every screen.
                   child: ExcludeSemantics(
                     child: Text(
                       AppConfig.environmentLabel,
-                      style: const TextStyle(
-                        color: Colors.white,
+                      style: TextStyle(
+                        color: SgColors.ink,
                         fontSize: 10,
                         fontWeight: FontWeight.w700,
                         letterSpacing: 0.5,

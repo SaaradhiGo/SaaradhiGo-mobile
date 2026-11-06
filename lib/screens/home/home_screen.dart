@@ -3,8 +3,6 @@ import 'dart:ui';
 
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
-import 'package:flutter_svg/flutter_svg.dart';
-import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
 import 'package:latlong2/latlong.dart';
 import '../../providers/notification_provider.dart';
@@ -24,6 +22,8 @@ import '../components/market_overlays.dart' show marketOf;
 import '../../screens/components/coming_soon_overlay.dart';
 import 'history_screen.dart';
 import 'wallet_screen.dart';
+import '../../ui/appearance_settings.dart';
+import '../../ui/sg_brand.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key, this.initialTabIndex = 0});
@@ -162,7 +162,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                     height: 20,
                     child: CircularProgressIndicator(
                       strokeWidth: 2,
-                      color: Color(0xFFEEBD2B),
+                      color: SgColors.gold500,
                     ),
                   ),
                   SizedBox(width: 16),
@@ -226,25 +226,19 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        backgroundColor: const Color(0xFF1E1C18),
+        backgroundColor: SgColors.bg200,
         title: Text(
           'Active Ride',
-          style: GoogleFonts.inter(
-            color: Colors.white,
-            fontWeight: FontWeight.bold,
-          ),
+          style: TextStyle(color: SgColors.ink, fontWeight: FontWeight.bold),
         ),
         content: Text(
           'You already have an active ride request or trip. Would you like to view it?',
-          style: GoogleFonts.inter(color: Colors.white70),
+          style: TextStyle(color: SgColors.inkMuted),
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: Text(
-              'Dismiss',
-              style: GoogleFonts.inter(color: Colors.white54),
-            ),
+            child: Text('Dismiss', style: TextStyle(color: SgColors.inkMuted)),
           ),
           TextButton(
             onPressed: () {
@@ -253,8 +247,8 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
             },
             child: Text(
               'View Ride',
-              style: GoogleFonts.inter(
-                color: const Color(0xFFEEBD2B),
+              style: TextStyle(
+                color: SgColors.goldText,
                 fontWeight: FontWeight.bold,
               ),
             ),
@@ -415,7 +409,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                         ),
                         padding: EdgeInsets.zero,
                         onPressed: () => setState(() => _tabIndex = 0),
-                        icon: const SgIcon(
+                        icon: SgIcon(
                           SgIcons.back,
                           size: 24,
                           color: SgColors.ink,
@@ -439,17 +433,22 @@ class _MenuDrawer extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    Widget row(String icon, String label, VoidCallback onTap, {int count = 0, Key? key}) =>
-        SgListRow(
-          key: key,
-          icon: icon,
-          label: label,
-          count: count,
-          onTap: () {
-            Navigator.of(context).pop();
-            onTap();
-          },
-        );
+    Widget row(
+      String icon,
+      String label,
+      VoidCallback onTap, {
+      int count = 0,
+      Key? key,
+    }) => SgListRow(
+      key: key,
+      icon: icon,
+      label: label,
+      count: count,
+      onTap: () {
+        Navigator.of(context).pop();
+        onTap();
+      },
+    );
 
     final auth = context.watch<AuthProvider>();
     final unread = context.watch<NotificationProvider>().unreadCount;
@@ -458,7 +457,12 @@ class _MenuDrawer extends StatelessWidget {
       shape: const RoundedRectangleBorder(),
       child: SafeArea(
         child: ListView(
-          padding: const EdgeInsets.fromLTRB(SgSpace.s5, SgSpace.s4, SgSpace.s5, SgSpace.s4),
+          padding: const EdgeInsets.fromLTRB(
+            SgSpace.s5,
+            SgSpace.s4,
+            SgSpace.s5,
+            SgSpace.s4,
+          ),
           children: [
             SgPersonHeader(
               name: auth.fullName,
@@ -470,16 +474,44 @@ class _MenuDrawer extends StatelessWidget {
               },
             ),
             const SizedBox(height: SgSpace.s3),
-            const Divider(height: 1, color: SgColors.line),
+            Divider(height: 1, color: SgColors.line),
             const SizedBox(height: SgSpace.s2),
-            row(SgIcons.history, 'Your rides', () => onTab(1), key: const Key('menu_rides')),
-            row(SgIcons.wallet, 'Wallet', () => onTab(2), key: const Key('menu_wallet')),
-            row(kCardIcon, 'Payment methods', () => context.push('/payment-methods')),
-            row(SgIcons.bell, 'Notifications', () => context.push('/notifications'), count: unread),
+            row(
+              SgIcons.history,
+              'Your rides',
+              () => onTab(1),
+              key: const Key('menu_rides'),
+            ),
+            row(
+              SgIcons.wallet,
+              'Wallet',
+              () => onTab(2),
+              key: const Key('menu_wallet'),
+            ),
+            row(
+              kCardIcon,
+              'Payment methods',
+              () => context.push('/payment-methods'),
+            ),
+            row(
+              SgIcons.bell,
+              'Notifications',
+              () => context.push('/notifications'),
+              count: unread,
+            ),
             if (MarketConfigStore.instance.current.referralsAvailable)
               row(kGiftIcon, 'Refer a friend', () => context.push('/refer')),
-            row(SgIcons.user, 'Profile', () => onTab(3), key: const Key('menu_profile')),
-            row(SgIcons.help, 'Help and support', () => context.push('/help-support')),
+            row(
+              SgIcons.user,
+              'Profile',
+              () => onTab(3),
+              key: const Key('menu_profile'),
+            ),
+            row(
+              SgIcons.help,
+              'Help and support',
+              () => context.push('/help-support'),
+            ),
           ],
         ),
       ),
@@ -514,7 +546,11 @@ class _HomeTab extends StatelessWidget {
   final VoidCallback onProfileTap;
   final ValueNotifier<bool> searchOpen;
 
-  Future<void> _goTo(BuildContext context, String dropPlaceId, {String? dropName}) async {
+  Future<void> _goTo(
+    BuildContext context,
+    String dropPlaceId, {
+    String? dropName,
+  }) async {
     final provider = context.read<MapProvider>();
     if (provider.isTripInProgress) {
       onActiveRideTap();
@@ -525,7 +561,7 @@ class _HomeTab extends StatelessWidget {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text('Please select pickup location first'),
-          backgroundColor: Color(0xFFEEBD2B),
+          backgroundColor: SgColors.gold500,
           duration: Duration(seconds: 2),
         ),
       );
@@ -586,15 +622,18 @@ class _HomeTab extends StatelessWidget {
         RecentPlaceData(
           name: splitPlace(trip.destinationAddress).name,
           address: splitPlace(trip.destinationAddress).address,
-          distance: (here != null &&
+          distance:
+              (here != null &&
                   trip.destinationLat != null &&
                   trip.destinationLng != null)
               ? market.formatDistanceKm(
-                  const Distance().as(
-                    LengthUnit.Kilometer,
-                    here,
-                    LatLng(trip.destinationLat!, trip.destinationLng!),
-                  ).toDouble(),
+                  const Distance()
+                      .as(
+                        LengthUnit.Kilometer,
+                        here,
+                        LatLng(trip.destinationLat!, trip.destinationLng!),
+                      )
+                      .toDouble(),
                 )
               : null,
           onTap: () async {
@@ -676,19 +715,26 @@ class _HomeTab extends StatelessWidget {
                     child: Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        SgMapButton(icon: SgIcons.menu, label: 'Menu', onTap: onMenuTap),
+                        SgMapButton(
+                          icon: SgIcons.menu,
+                          label: 'Menu',
+                          onTap: onMenuTap,
+                        ),
                         Container(
-                          width: kSgTouch,
                           height: kSgTouch,
                           decoration: BoxDecoration(
                             color: SgColors.bg000,
-                            shape: BoxShape.circle,
+                            borderRadius: BorderRadius.circular(SgRadius.pill),
                             border: Border.all(color: SgColors.goldLine),
                           ),
-                          padding: const EdgeInsets.all(10),
-                          child: SvgPicture.asset('assets/brand/saaradhigo-emblem-gold.svg'),
+                          padding: const EdgeInsets.symmetric(horizontal: 12),
+                          child: const SgBrandLockup(badgeSize: 32),
                         ),
-                        SgMapButton(icon: SgIcons.user, label: 'Account', onTap: onProfileTap),
+                        SgMapButton(
+                          icon: SgIcons.user,
+                          label: 'Account',
+                          onTap: onProfileTap,
+                        ),
                       ],
                     ),
                   ),
@@ -793,6 +839,8 @@ class _ProfileTab extends StatelessWidget {
               onTap: () => context.push('/refer'),
             ),
         ]),
+        const SizedBox(height: SgSpace.s5),
+        SgListGroup(appearanceRows(context)),
         const SizedBox(height: SgSpace.s5),
         SgListGroup([
           SgListRow(
@@ -906,7 +954,7 @@ class _LocationCardState extends State<_LocationCard> {
         return Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            const Divider(height: SgSpace.s4, color: SgColors.line),
+            Divider(height: SgSpace.s4, color: SgColors.line),
             if (_isPickupFocused) _buildCurrentLocationOption(),
             if (mapProvider.isLoadingSuggestions)
               const Padding(
@@ -945,9 +993,13 @@ class _LocationCardState extends State<_LocationCard> {
         constraints: const BoxConstraints(minHeight: 56),
         child: Row(
           children: [
-            const Padding(
+            Padding(
               padding: EdgeInsets.symmetric(horizontal: SgSpace.s3),
-              child: Icon(Icons.my_location, color: SgColors.goldText, size: 20),
+              child: Icon(
+                Icons.my_location,
+                color: SgColors.goldText,
+                size: 20,
+              ),
             ),
             Text('Current Location', style: SgText.body),
           ],
@@ -978,7 +1030,7 @@ class _LocationCardState extends State<_LocationCard> {
             ScaffoldMessenger.of(context).showSnackBar(
               const SnackBar(
                 content: Text('Please select pickup location first'),
-                backgroundColor: Color(0xFFEEBD2B),
+                backgroundColor: SgColors.gold500,
                 duration: Duration(seconds: 2),
               ),
             );
@@ -1069,7 +1121,7 @@ class _LocationCardState extends State<_LocationCard> {
                   width: 14,
                   height: 14,
                   margin: const EdgeInsets.symmetric(horizontal: SgSpace.s2),
-                  decoration: const BoxDecoration(
+                  decoration: BoxDecoration(
                     color: SgColors.pickup,
                     shape: BoxShape.circle,
                   ),
@@ -1084,7 +1136,9 @@ class _LocationCardState extends State<_LocationCard> {
                       isDense: true,
                       border: InputBorder.none,
                       hintText: 'Enter pickup point',
-                      hintStyle: SgText.body.copyWith(color: SgColors.inkSubtle),
+                      hintStyle: SgText.body.copyWith(
+                        color: SgColors.inkSubtle,
+                      ),
                       contentPadding: EdgeInsets.zero,
                     ),
                   ),
@@ -1114,7 +1168,7 @@ class _LocationCardState extends State<_LocationCard> {
                           }
                           widget.onLocationTap();
                         },
-                        icon: const Icon(
+                        icon: Icon(
                           Icons.my_location,
                           color: SgColors.goldText,
                           size: 20,
@@ -1162,11 +1216,9 @@ class _ActiveRideTile extends StatelessWidget {
         child: Container(
           padding: const EdgeInsets.all(14),
           decoration: BoxDecoration(
-            color: const Color(0xFFEEBD2B).withValues(alpha: 0.15),
+            color: SgColors.gold500.withValues(alpha: 0.15),
             borderRadius: BorderRadius.circular(16),
-            border: Border.all(
-              color: const Color(0xFFEEBD2B).withValues(alpha: 0.3),
-            ),
+            border: Border.all(color: SgColors.goldText.withValues(alpha: 0.3)),
           ),
           child: Row(
             children: [
@@ -1174,13 +1226,10 @@ class _ActiveRideTile extends StatelessWidget {
                 width: 48,
                 height: 48,
                 decoration: const BoxDecoration(
-                  color: Color(0xFFEEBD2B),
+                  color: SgColors.gold500,
                   shape: BoxShape.circle,
                 ),
-                child: const Icon(
-                  Icons.directions_car,
-                  color: Color(0xFF1A1814),
-                ),
+                child: const Icon(Icons.directions_car, color: SgColors.onGold),
               ),
               const SizedBox(width: 14),
               Expanded(
@@ -1189,10 +1238,10 @@ class _ActiveRideTile extends StatelessWidget {
                   children: [
                     Row(
                       children: [
-                        const Text(
+                        Text(
                           'Ongoing Ride',
                           style: TextStyle(
-                            color: Color(0xFFEEBD2B),
+                            color: SgColors.goldText,
                             fontSize: 14,
                             fontWeight: FontWeight.w700,
                           ),
@@ -1204,13 +1253,13 @@ class _ActiveRideTile extends StatelessWidget {
                             vertical: 2,
                           ),
                           decoration: BoxDecoration(
-                            color: Colors.redAccent,
+                            color: SgColors.danger,
                             borderRadius: BorderRadius.circular(4),
                           ),
-                          child: const Text(
+                          child: Text(
                             'LIVE',
                             style: TextStyle(
-                              color: Colors.white,
+                              color: SgColors.ink,
                               fontSize: 9,
                               fontWeight: FontWeight.bold,
                             ),
@@ -1223,8 +1272,8 @@ class _ActiveRideTile extends StatelessWidget {
                       destination,
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(
-                        color: Colors.white,
+                      style: TextStyle(
+                        color: SgColors.ink,
                         fontSize: 17,
                         fontWeight: FontWeight.w600,
                       ),
@@ -1232,7 +1281,7 @@ class _ActiveRideTile extends StatelessWidget {
                   ],
                 ),
               ),
-              const Icon(Icons.chevron_right, color: Color(0xFFEEBD2B)),
+              Icon(Icons.chevron_right, color: SgColors.goldText),
             ],
           ),
         ),

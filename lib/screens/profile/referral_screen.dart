@@ -6,6 +6,8 @@ import '../../core/referral/referral_models.dart';
 import '../../services/referral_service.dart';
 import '../../services/token_store.dart';
 
+import '../../ui/sg_tokens.dart';
+
 /// The text a rider shares. The API supplies the code and the offer (never a
 /// ready-made message), so this is a neutral line built from them.
 String referralShareText(ReferralMine mine) {
@@ -391,7 +393,7 @@ class _ReferralScreenState extends State<ReferralScreen> {
               label,
               style: TextStyle(
                 color: r.pendingReview
-                    ? const Color(0xFFEEBD2B)
+                    ? SgColors.goldText
                     : scheme.onSurface.withValues(alpha: 0.75),
                 fontSize: 13,
               ),

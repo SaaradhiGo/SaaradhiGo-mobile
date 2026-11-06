@@ -11,6 +11,7 @@ import 'dart:math' as math;
 import 'dart:ui' as ui;
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart' show rootBundle;
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart' as gm;
 import 'package:latlong2/latlong.dart';
@@ -49,7 +50,10 @@ class MarkerBitmaps {
     });
   }
 
-  static Future<gm.BitmapDescriptor> _draw(SgMarkerIcon icon, double dpr) async {
+  static Future<gm.BitmapDescriptor> _draw(
+    SgMarkerIcon icon,
+    double dpr,
+  ) async {
     final px = (icon.size * dpr).round();
     final recorder = ui.PictureRecorder();
     final canvas = Canvas(recorder);
@@ -62,7 +66,18 @@ class MarkerBitmaps {
         canvas.drawPicture(info.picture);
         info.picture.dispose();
       case SgCarMarker():
-        paintCarGlyph(canvas, Offset(px / 2, px / 2), px.toDouble());
+        final data = await rootBundle.load(kDriverCarMarkerAsset);
+        final codec = await ui.instantiateImageCodec(data.buffer.asUint8List());
+        final frame = await codec.getNextFrame();
+        final img = frame.image;
+        canvas.drawImageRect(
+          img,
+          Rect.fromLTWH(0, 0, img.width.toDouble(), img.height.toDouble()),
+          Rect.fromLTWH(0, 0, px.toDouble(), px.toDouble()),
+          Paint()..filterQuality = FilterQuality.medium,
+        );
+        img.dispose();
+        codec.dispose();
       case SgIconMarker(:final icon, :final color):
         final tp = TextPainter(
           text: TextSpan(
@@ -121,8 +136,12 @@ class _GoogleController implements SgMapController {
     _onProgrammatic();
     // The SDK takes one padding; the map's own `padding` already keeps the
     // sheet clear, so the larger side inset is enough here.
-    final inset = [padding.left, padding.right, padding.top, padding.bottom]
-        .reduce(math.max);
+    final inset = [
+      padding.left,
+      padding.right,
+      padding.top,
+      padding.bottom,
+    ].reduce(math.max);
     return _c.animateCamera(
       gm.CameraUpdate.newLatLngBounds(
         gm.LatLngBounds(southwest: gm.LatLng(s, w), northeast: gm.LatLng(n, e)),
@@ -192,7 +211,9 @@ class _GoogleSgMapState extends State<_GoogleSgMap> {
           points: [for (final pt in p.points) _g(pt)],
           color: p.color,
           width: p.width.round(),
-          patterns: p.dotted ? [gm.PatternItem.dot, gm.PatternItem.gap(8)] : const [],
+          patterns: p.dotted
+              ? [gm.PatternItem.dot, gm.PatternItem.gap(8)]
+              : const [],
         ),
   };
 

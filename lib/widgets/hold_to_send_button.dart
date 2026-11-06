@@ -13,6 +13,8 @@ library;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
+import '../ui/sg_tokens.dart';
+
 class HoldToSendButton extends StatefulWidget {
   const HoldToSendButton({
     super.key,
@@ -63,7 +65,7 @@ class _HoldToSendButtonState extends State<HoldToSendButton>
 
   @override
   Widget build(BuildContext context) {
-    const red = Color(0xFFDC2626);
+    final red = SgColors.danger;
     return Semantics(
       button: true,
       enabled: widget.enabled,
@@ -84,9 +86,13 @@ class _HoldToSendButtonState extends State<HoldToSendButton>
           builder: (context, _) => Container(
             constraints: const BoxConstraints(minHeight: 56),
             decoration: BoxDecoration(
-              color: widget.enabled ? red.withValues(alpha: 0.18) : Colors.white10,
+              color: widget.enabled
+                  ? red.withValues(alpha: 0.18)
+                  : SgColors.bg200,
               borderRadius: BorderRadius.circular(14),
-              border: Border.all(color: widget.enabled ? red : Colors.white24),
+              border: Border.all(
+                color: widget.enabled ? red : SgColors.lineStrong,
+              ),
             ),
             child: Stack(
               children: [
@@ -114,13 +120,13 @@ class _HoldToSendButtonState extends State<HoldToSendButton>
                   child: Row(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      const Icon(Icons.sos, color: Colors.white),
+                      Icon(Icons.sos, color: SgColors.ink),
                       const SizedBox(width: 10),
                       Flexible(
                         child: Text(
                           _hold.value > 0 ? 'Keep holding' : widget.label,
-                          style: const TextStyle(
-                            color: Colors.white,
+                          style: TextStyle(
+                            color: SgColors.ink,
                             fontSize: 16,
                             fontWeight: FontWeight.w700,
                           ),

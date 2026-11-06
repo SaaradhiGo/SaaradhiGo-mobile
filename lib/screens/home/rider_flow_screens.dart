@@ -22,7 +22,6 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart' as riverpod;
 import 'package:go_router/go_router.dart';
-import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
 import 'package:url_launcher/url_launcher.dart';
 
@@ -64,10 +63,11 @@ Future<bool> _cancelRideAndReport(BuildContext context) async {
   final confirmed = await provider.cancelRideRequest();
   if (!confirmed && context.mounted) {
     ScaffoldMessenger.maybeOf(context)?.showSnackBar(
-      const SnackBar(
+      SnackBar(
         duration: Duration(seconds: 6),
-        backgroundColor: Color(0xFFB00020),
+        backgroundColor: SgColors.danger,
         content: Text(
+          style: TextStyle(color: SgColors.onDanger),
           'We could not cancel your ride. It is still active — please try '
           'again.',
         ),
@@ -77,44 +77,63 @@ Future<bool> _cancelRideAndReport(BuildContext context) async {
   return confirmed;
 }
 
-
 /// Who the rider is riding with, read from the ride payload the screens render.
 class _DriverView {
   _DriverView(dynamic raw)
-      : ride = raw is Map ? raw : const {},
-        info = (raw is Map && raw['driver_info'] is Map) ? raw['driver_info'] as Map : const {},
-        vehicle = (raw is Map && raw['vehicle_info'] is Map) ? raw['vehicle_info'] as Map : const {};
+    : ride = raw is Map ? raw : const {},
+      info = (raw is Map && raw['driver_info'] is Map)
+          ? raw['driver_info'] as Map
+          : const {},
+      vehicle = (raw is Map && raw['vehicle_info'] is Map)
+          ? raw['vehicle_info'] as Map
+          : const {};
   final Map ride;
   final Map info;
   final Map vehicle;
 
-  String get name => (info['name'] ?? ride['driver_name'] ?? '').toString().trim();
+  String get name =>
+      (info['name'] ?? ride['driver_name'] ?? '').toString().trim();
   String get first => firstNameOf(name);
-  String get plate => (vehicle['vehicle_number'] ?? ride['vehicle_number'] ?? '').toString().trim();
+  String get plate =>
+      (vehicle['vehicle_number'] ?? ride['vehicle_number'] ?? '')
+          .toString()
+          .trim();
   String get pin => (ride['otp'] ?? '').toString().trim();
   String? get photo => info['photo_url']?.toString();
   String? get tripId => (ride['trip_id'] ?? ride['id'])?.toString();
 
   String get _model {
     final m = '${vehicle['brand'] ?? ''} ${vehicle['model'] ?? ''}'.trim();
-    return m.isNotEmpty ? m : (ride['vehicle_model'] ?? ride['vehicle_info_summary'] ?? '').toString().trim();
+    return m.isNotEmpty
+        ? m
+        : (ride['vehicle_model'] ?? ride['vehicle_info_summary'] ?? '')
+              .toString()
+              .trim();
   }
 
   String? get vehicleLine {
     final color = (vehicle['color'] ?? '').toString().trim();
-    final line = [if (_model.isNotEmpty) _model, if (color.isNotEmpty) color].join(' \u00B7 ');
+    final line = [
+      if (_model.isNotEmpty) _model,
+      if (color.isNotEmpty) color,
+    ].join(' \u00B7 ');
     return line.isEmpty ? null : line;
   }
 
   DriverCardData get card => DriverCardData(
-        name: name.isEmpty ? 'Your driver' : name,
-        rating: ratingText(info['stars'] ?? info['rating']),
-        vehicleLine: vehicleLine,
-        plate: plate.isEmpty ? null : plate,
-      );
+    name: name.isEmpty ? 'Your driver' : name,
+    rating: ratingText(info['stars'] ?? info['rating']),
+    vehicleLine: vehicleLine,
+    plate: plate.isEmpty ? null : plate,
+  );
 
   String? get meetLine {
-    for (final k in ['pickup_note', 'pickup_notes', 'meeting_point', 'meet_point']) {
+    for (final k in [
+      'pickup_note',
+      'pickup_notes',
+      'meeting_point',
+      'meet_point',
+    ]) {
       final v = ride[k]?.toString().trim();
       if (v != null && v.isNotEmpty) return v;
     }
@@ -122,11 +141,11 @@ class _DriverView {
   }
 
   TripSafetyContext get safety => TripSafetyContext(
-        tripId: tripId,
-        driverName: name.isEmpty ? null : name,
-        vehicleNumber: plate.isEmpty ? null : plate,
-        vehicleModel: _model.isEmpty ? null : _model,
-      );
+    tripId: tripId,
+    driverName: name.isEmpty ? null : name,
+    vehicleNumber: plate.isEmpty ? null : plate,
+    vehicleModel: _model.isEmpty ? null : _model,
+  );
 }
 
 /// Whole minutes from "3 mins" / "1 hour 5 mins"; null when there is no number.
@@ -134,7 +153,9 @@ int? _minutesOf(String? text) {
   if (text == null) return null;
   var total = 0;
   var found = false;
-  for (final m in RegExp(r'(\d+)\s*(hour|hr|h|min)').allMatches(text.toLowerCase())) {
+  for (final m in RegExp(
+    r'(\d+)\s*(hour|hr|h|min)',
+  ).allMatches(text.toLowerCase())) {
     found = true;
     final n = int.parse(m.group(1)!);
     total += m.group(2) == 'min' ? n : n * 60;
@@ -148,29 +169,47 @@ int? _minutesOf(String? text) {
 SgLockedFareCard _lockedFare(MapProvider mp) {
   final type = mp.selectedVehicleType;
   final est = type == null ? null : mp.fareEstimates[type];
-  final opt = (type == null || est == null) ? null : RideOption.fromEstimate(type, est);
+  final opt = (type == null || est == null)
+      ? null
+      : RideOption.fromEstimate(type, est);
   final raw = mp.rideRequestResponse;
-  final fallback = raw is Map ? (raw['total_fare'] ?? raw['estimated_fare']) : null;
+  final fallback = raw is Map
+      ? (raw['total_fare'] ?? raw['estimated_fare'])
+      : null;
   return SgLockedFareCard(
     vehicleType: type,
     className: opt?.name ?? 'Saaradhi ${vehicleClassName(type)}',
-    route: routeLine(mp.pickupAddress ?? mp.pickupLocation?.name, mp.destinationAddress),
-    fareText: opt?.fareText ??
-        formatMoney(fallback, raw is Map ? raw['currency'] as String? : null, decimals: 0) ??
+    route: routeLine(
+      mp.pickupAddress ?? mp.pickupLocation?.name,
+      mp.destinationAddress,
+    ),
+    fareText:
+        opt?.fareText ??
+        formatMoney(
+          fallback,
+          raw is Map ? raw['currency'] as String? : null,
+          decimals: 0,
+        ) ??
         '',
   );
 }
 
 Future<void> _callDriver(BuildContext context, _DriverView d) async {
   void say(String m) {
-    if (context.mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(m)));
+    if (context.mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(m)));
+    }
   }
 
   // Only a tel: link; the number is never shown (privacy posture, Phase-0).
   final raw = (d.info['phone'] ?? d.ride['driver_phone'] ?? '').toString();
-  if (raw.isEmpty) return say('Driver phone unavailable. Use in-app chat instead.');
+  if (raw.isEmpty) {
+    return say('Driver phone unavailable. Use in-app chat instead.');
+  }
   try {
-    if (!await launchUrl(Uri(scheme: 'tel', path: raw))) say('Could not open dialer on this device.');
+    if (!await launchUrl(Uri(scheme: 'tel', path: raw))) {
+      say('Could not open dialer on this device.');
+    }
   } catch (_) {
     say('Could not start a call.');
   }
@@ -180,17 +219,19 @@ void _openChat(BuildContext context, _DriverView d) {
   final tripId = int.tryParse(d.tripId ?? '') ?? 0;
   if (tripId <= 0) return;
   Navigator.of(context).push(
-    MaterialPageRoute(builder: (_) => TripChatScreen(tripId: tripId, myRole: 'rider')),
+    MaterialPageRoute(
+      builder: (_) => TripChatScreen(tripId: tripId, myRole: 'rider'),
+    ),
   );
 }
 
 SgActionData _safetyAction(Key key, VoidCallback onTap) => SgActionData(
-      key: (key as ValueKey<String>).value,
-      label: 'Safety',
-      icon: SgIcons.shield,
-      danger: true,
-      onTap: onTap,
-    );
+  key: (key as ValueKey<String>).value,
+  label: 'Safety',
+  icon: SgIcons.shield,
+  danger: true,
+  onTap: onTap,
+);
 
 class SetDestinationScreen extends StatelessWidget {
   const SetDestinationScreen({super.key});
@@ -202,8 +243,8 @@ class SetDestinationScreen extends StatelessWidget {
       bottom: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          const ListTile(
-            leading: Icon(Icons.place, color: Color(0xFFEEBD2B)),
+          ListTile(
+            leading: Icon(Icons.place, color: SgColors.goldText),
             title: Text(
               '1200 Ocean Drive',
               style: TextStyle(fontWeight: FontWeight.w700),
@@ -345,7 +386,8 @@ class _SearchingDriverScreenState extends State<SearchingDriverScreen> {
     await Navigator.of(context).maybePop();
     // Choose-ride sits under the pickup step, which has nothing left to confirm.
     if (toChooseRide &&
-        router.routerDelegate.currentConfiguration.last.matchedLocation == '/precise-pickup' &&
+        router.routerDelegate.currentConfiguration.last.matchedLocation ==
+            '/precise-pickup' &&
         router.canPop()) {
       router.pop();
     }
@@ -379,12 +421,16 @@ class _SearchingDriverScreenState extends State<SearchingDriverScreen> {
             }
           },
           child: _DarkMapScaffold(
-            title: failure == null ? 'Finding your Saaradhi' : 'No Saaradhi nearby right now',
+            title: failure == null
+                ? 'Finding your Saaradhi'
+                : 'No Saaradhi nearby right now',
             close: true,
             searching: true,
             pulse: failure == null,
             mapBottom: 400,
-            sheet: failure == null ? _searching(context, mp) : _failed(context, mp, failure),
+            sheet: failure == null
+                ? _searching(context, mp)
+                : _failed(context, mp, failure),
           ),
         );
       },
@@ -393,7 +439,8 @@ class _SearchingDriverScreenState extends State<SearchingDriverScreen> {
 
   Widget _searching(BuildContext context, MapProvider mp) {
     final type = mp.selectedVehicleType;
-    final nearby = type != null && mp.fareEstimates[type]?['drivers_nearby'] == true;
+    final nearby =
+        type != null && mp.fareEstimates[type]?['drivers_nearby'] == true;
     return FindingSheet(
       subline: findingSubline(driversNearby: nearby),
       fare: _lockedFare(mp),
@@ -416,31 +463,28 @@ class _SearchingDriverScreenState extends State<SearchingDriverScreen> {
     return await showDialog<bool>(
           context: context,
           builder: (context) => AlertDialog(
-            backgroundColor: const Color(0xFF1E1C18),
+            backgroundColor: SgColors.bg200,
             title: Text(
               'Cancel Search?',
-              style: GoogleFonts.inter(
-                color: Colors.white,
+              style: TextStyle(
+                color: SgColors.ink,
                 fontWeight: FontWeight.bold,
               ),
             ),
             content: Text(
               'Are you sure you want to cancel your ride request?',
-              style: GoogleFonts.inter(color: Colors.white70),
+              style: TextStyle(color: SgColors.inkMuted),
             ),
             actions: [
               TextButton(
                 onPressed: () => Navigator.pop(context, false),
-                child: Text(
-                  'Wait',
-                  style: GoogleFonts.inter(color: const Color(0xFFEEBD2B)),
-                ),
+                child: Text('Wait', style: TextStyle(color: SgColors.goldText)),
               ),
               TextButton(
                 onPressed: () => Navigator.pop(context, true),
                 child: Text(
                   'Cancel Anyway',
-                  style: GoogleFonts.inter(color: Colors.redAccent),
+                  style: TextStyle(color: SgColors.danger),
                 ),
               ),
             ],
@@ -524,8 +568,11 @@ class _DriverFoundScreenState extends State<DriverFoundScreen> {
         final rideData = mapProvider.rideRequestResponse;
         final d = _DriverView(rideData);
         final arrived =
-            mapProvider.container?.read(rideNotifierProvider).status == RideStatus.driverArrived;
-        final mins = mapProvider.driverLocation == null ? null : _minutesOf(mapProvider.duration);
+            mapProvider.container?.read(rideNotifierProvider).status ==
+            RideStatus.driverArrived;
+        final mins = mapProvider.driverLocation == null
+            ? null
+            : _minutesOf(mapProvider.duration);
         final who = d.first.isEmpty ? 'Your driver' : d.first;
         final headline = arrived
             ? (d.first.isEmpty ? 'Your driver has arrived' : '$who has arrived')
@@ -598,31 +645,25 @@ class _DriverFoundScreenState extends State<DriverFoundScreen> {
       context: context,
       barrierDismissible: false,
       builder: (context) => AlertDialog(
-        backgroundColor: const Color(0xFF1E1C18),
+        backgroundColor: SgColors.bg200,
         title: Text(
           'Ongoing Ride',
-          style: GoogleFonts.inter(
-            color: Colors.white,
-            fontWeight: FontWeight.bold,
-          ),
+          style: TextStyle(color: SgColors.ink, fontWeight: FontWeight.bold),
         ),
         content: Text(
           'You have an active ride request. Are you sure you want to cancel?',
-          style: GoogleFonts.inter(color: Colors.white70),
+          style: TextStyle(color: SgColors.inkMuted),
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context, false),
-            child: Text(
-              'Wait',
-              style: GoogleFonts.inter(color: const Color(0xFFEEBD2B)),
-            ),
+            child: Text('Wait', style: TextStyle(color: SgColors.goldText)),
           ),
           TextButton(
             onPressed: () => Navigator.pop(context, true),
             child: Text(
               'Cancel Anyway',
-              style: GoogleFonts.inter(color: Colors.redAccent),
+              style: TextStyle(color: SgColors.danger),
             ),
           ),
         ],
@@ -731,31 +772,31 @@ class _FullMapTrackingScreenState extends State<FullMapTrackingScreen> {
     return await showDialog<bool>(
           context: context,
           builder: (context) => AlertDialog(
-            backgroundColor: const Color(0xFF1E1C18),
+            backgroundColor: SgColors.bg200,
             title: Text(
               'Cancel Ride?',
-              style: GoogleFonts.inter(
-                color: Colors.white,
+              style: TextStyle(
+                color: SgColors.ink,
                 fontWeight: FontWeight.bold,
               ),
             ),
             content: Text(
               'Are you sure you want to cancel your ongoing ride?',
-              style: GoogleFonts.inter(color: Colors.white70),
+              style: TextStyle(color: SgColors.inkMuted),
             ),
             actions: [
               TextButton(
                 onPressed: () => Navigator.pop(context, false),
                 child: Text(
                   'Continue Ride',
-                  style: GoogleFonts.inter(color: const Color(0xFFEEBD2B)),
+                  style: TextStyle(color: SgColors.goldText),
                 ),
               ),
               TextButton(
                 onPressed: () => Navigator.pop(context, true),
                 child: Text(
                   'Cancel Ride',
-                  style: GoogleFonts.inter(color: Colors.red),
+                  style: TextStyle(color: SgColors.danger),
                 ),
               ),
             ],
@@ -770,7 +811,10 @@ class _FullMapTrackingScreenState extends State<FullMapTrackingScreen> {
       builder: (context, mapProvider, child) {
         final ride = mapProvider.rideRequestResponse;
         final d = _DriverView(ride);
-        final drop = (mapProvider.destinationAddress ?? '').split(',').first.trim();
+        final drop = (mapProvider.destinationAddress ?? '')
+            .split(',')
+            .first
+            .trim();
         final mins = _minutesOf(mapProvider.duration);
         final headline = [
           drop.isEmpty ? 'On the way' : 'On the way to $drop',
@@ -803,20 +847,27 @@ class _FullMapTrackingScreenState extends State<FullMapTrackingScreen> {
               headline: headline,
               driver: d.card,
               extra: ride?['status'] == 'complete'
-                  ? SgPrimaryButton(label: 'View summary', onPressed: () => context.push('/ride-summary'))
+                  ? SgPrimaryButton(
+                      label: 'View summary',
+                      onPressed: () => context.push('/ride-summary'),
+                    )
                   : null,
               actions: [
                 SgActionData(
                   key: 'tracking_share',
                   label: 'Share trip',
                   icon: SgIcons.share,
-                  onTap: () => shareTripDetails(context, _safetyContext(mapProvider)),
+                  onTap: () =>
+                      shareTripDetails(context, _safetyContext(mapProvider)),
                 ),
                 // The safety sheet POSTs /sos/, offers 112, and shows a failure
                 // instead of swallowing it. Always one tap from this screen.
                 _safetyAction(
                   const ValueKey('tracking_sos_button'),
-                  () => showSafetySheet(context, trip: _safetyContext(mapProvider)),
+                  () => showSafetySheet(
+                    context,
+                    trip: _safetyContext(mapProvider),
+                  ),
                 ),
               ],
             ),
@@ -901,23 +952,27 @@ class _RidePaymentSummaryScreenState extends State<RidePaymentSummaryScreen> {
     super.initState();
     // The method chosen at booking, never a wallet that may be empty.
     _selectedPaymentMethod =
-        context.read<MapProvider>().selectedPaymentMethod == 'cash' ? 'cash' : 'upi_card';
+        context.read<MapProvider>().selectedPaymentMethod == 'cash'
+        ? 'cash'
+        : 'upi_card';
     WidgetsBinding.instance.addPostFrameCallback((_) {
       final mp = context.read<MapProvider>();
       final raw = mp.rideRequestResponse;
-      _rateTripId = mp.tripId ??
+      _rateTripId =
+          mp.tripId ??
           (raw is Map ? (raw['trip_id'] ?? raw['id'])?.toString() : null);
       _rateDriverName = raw is Map ? raw['driver_name']?.toString() : null;
       _dropName = mp.destinationAddress;
       _durationText = mp.duration;
-      _payMethod = (raw is Map ? raw['payment_method'] : null)?.toString() ?? mp.selectedPaymentMethod;
-      _cashSub = mp.container?.listen<RideState>(
-        rideNotifierProvider,
-        (_, next) {
-          if (next.rawResponse?['cash_confirmed'] == true) _onCashConfirmed();
-        },
-        fireImmediately: true,
-      );
+      _payMethod =
+          (raw is Map ? raw['payment_method'] : null)?.toString() ??
+          mp.selectedPaymentMethod;
+      _cashSub = mp.container?.listen<RideState>(rideNotifierProvider, (
+        _,
+        next,
+      ) {
+        if (next.rawResponse?['cash_confirmed'] == true) _onCashConfirmed();
+      }, fireImmediately: true);
       // The frame is best-effort, and after `complete` the rider's sockets
       // may already be closed (trip 121 on QA: confirmed, never heard). The
       // trip record is the authority, so ask it too.
@@ -1084,7 +1139,10 @@ class _RidePaymentSummaryScreenState extends State<RidePaymentSummaryScreen> {
 
   void _showCashError(String message) {
     ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(message), backgroundColor: Colors.redAccent),
+      SnackBar(
+        content: Text(style: TextStyle(color: SgColors.onDanger), message),
+        backgroundColor: SgColors.danger,
+      ),
     );
   }
 
@@ -1272,8 +1330,9 @@ class _RidePaymentSummaryScreenState extends State<RidePaymentSummaryScreen> {
                 return r?.orderId;
               },
           onConfirming: () {
-            if (mounted)
+            if (mounted) {
               setState(() => _confirming = kPaymentConfirmingMessage);
+            }
           },
         );
         final result = await flow.pay(token: token, tripId: tripId);
@@ -1333,8 +1392,11 @@ class _RidePaymentSummaryScreenState extends State<RidePaymentSummaryScreen> {
         // backend refused): the message the backend gave, as before.
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text(result.message ?? kPaymentUnavailableMessage),
-            backgroundColor: Colors.redAccent,
+            content: Text(
+              style: TextStyle(color: SgColors.onDanger),
+              result.message ?? kPaymentUnavailableMessage,
+            ),
+            backgroundColor: SgColors.danger,
           ),
         );
     }
@@ -1397,14 +1459,29 @@ class _RidePaymentSummaryScreenState extends State<RidePaymentSummaryScreen> {
           backgroundColor: SgColors.bg000,
           body: SafeArea(
             child: ListView(
-              padding: const EdgeInsets.fromLTRB(SgSpace.s4, SgSpace.s2, SgSpace.s4, SgSpace.s5),
+              padding: const EdgeInsets.fromLTRB(
+                SgSpace.s4,
+                SgSpace.s2,
+                SgSpace.s4,
+                SgSpace.s5,
+              ),
               children: [
                 Align(
                   alignment: Alignment.centerLeft,
-                  child: SgMapButton(icon: SgIcons.back, label: 'Back', onTap: () => context.pop()),
+                  child: SgMapButton(
+                    icon: SgIcons.back,
+                    label: 'Back',
+                    onTap: () => context.pop(),
+                  ),
                 ),
                 const SizedBox(height: SgSpace.s3),
-                TripArrivedHeader(detailLine: tripDetailLine(_dropName, _openedAt, _durationText)),
+                TripArrivedHeader(
+                  detailLine: tripDetailLine(
+                    _dropName,
+                    _openedAt,
+                    _durationText,
+                  ),
+                ),
                 const SizedBox(height: SgSpace.s5),
                 TripChargeCard(
                   fare: totalFareStr.toString(),
@@ -1419,7 +1496,10 @@ class _RidePaymentSummaryScreenState extends State<RidePaymentSummaryScreen> {
                     _confirming!,
                     key: const Key('payment_confirming'),
                     textAlign: TextAlign.center,
-                    style: SgText.body.copyWith(color: SgColors.goldText, fontWeight: FontWeight.w600),
+                    style: SgText.body.copyWith(
+                      color: SgColors.goldText,
+                      fontWeight: FontWeight.w600,
+                    ),
                   ),
                 ],
                 const SizedBox(height: SgSpace.s5),
@@ -1435,7 +1515,8 @@ class _RidePaymentSummaryScreenState extends State<RidePaymentSummaryScreen> {
                     subtitle: 'Hand it to your driver',
                     icon: SgIcons.cash,
                     isSelected: _selectedPaymentMethod == 'cash',
-                    onTap: () => setState(() => _selectedPaymentMethod = 'cash'),
+                    onTap: () =>
+                        setState(() => _selectedPaymentMethod = 'cash'),
                   ),
                   const SizedBox(height: SgSpace.s3),
                   _buildPaymentOption(
@@ -1446,7 +1527,8 @@ class _RidePaymentSummaryScreenState extends State<RidePaymentSummaryScreen> {
                         : 'Current Balance: ${MarketConfigStore.instance.current.currencySymbol}${walletProvider.balance.toStringAsFixed(2)}',
                     icon: SgIcons.wallet,
                     isSelected: _selectedPaymentMethod == 'wallet',
-                    onTap: () => setState(() => _selectedPaymentMethod = 'wallet'),
+                    onTap: () =>
+                        setState(() => _selectedPaymentMethod = 'wallet'),
                   ),
                   const SizedBox(height: SgSpace.s3),
                   _buildPaymentOption(
@@ -1454,7 +1536,8 @@ class _RidePaymentSummaryScreenState extends State<RidePaymentSummaryScreen> {
                     title: 'Pay via UPI/Card',
                     icon: SgIcons.cash,
                     isSelected: _selectedPaymentMethod == 'upi_card',
-                    onTap: () => setState(() => _selectedPaymentMethod = 'upi_card'),
+                    onTap: () =>
+                        setState(() => _selectedPaymentMethod = 'upi_card'),
                   ),
                   const SizedBox(height: SgSpace.s5),
                   SgPrimaryButton(
@@ -1462,25 +1545,33 @@ class _RidePaymentSummaryScreenState extends State<RidePaymentSummaryScreen> {
                     onPressed: _isProcessing
                         ? null
                         : () => _selectedPaymentMethod == 'cash'
-                            ? _payWithCash(payTotal, currencyCode, rideData)
-                            : _processPayment(payTotal, walletProvider, rideData),
+                              ? _payWithCash(payTotal, currencyCode, rideData)
+                              : _processPayment(
+                                  payTotal,
+                                  walletProvider,
+                                  rideData,
+                                ),
                   ),
                   const SizedBox(height: SgSpace.s2),
                   if (_selectedPaymentMethod != 'cash')
-                  Center(
-                    child: TextButton(
-                      onPressed: _isProcessing
-                          ? null
-                          : () => _payWithCash(payTotal, currencyCode, rideData),
-                      child: Text(
-                        'Pay with Cash instead?',
-                        style: SgText.body.copyWith(
-                          color: SgColors.inkMuted,
-                          decoration: TextDecoration.underline,
+                    Center(
+                      child: TextButton(
+                        onPressed: _isProcessing
+                            ? null
+                            : () => _payWithCash(
+                                payTotal,
+                                currencyCode,
+                                rideData,
+                              ),
+                        child: Text(
+                          'Pay with Cash instead?',
+                          style: SgText.body.copyWith(
+                            color: SgColors.inkMuted,
+                            decoration: TextDecoration.underline,
+                          ),
                         ),
                       ),
                     ),
-                  ),
                 ],
               ],
             ),
@@ -1506,7 +1597,10 @@ class _RidePaymentSummaryScreenState extends State<RidePaymentSummaryScreen> {
         onTap: onTap,
         child: Container(
           constraints: const BoxConstraints(minHeight: 68),
-          padding: const EdgeInsets.symmetric(horizontal: SgSpace.s4, vertical: SgSpace.s3),
+          padding: const EdgeInsets.symmetric(
+            horizontal: SgSpace.s4,
+            vertical: SgSpace.s3,
+          ),
           decoration: BoxDecoration(
             color: isSelected ? SgColors.goldSoft : SgColors.bg200,
             borderRadius: BorderRadius.circular(SgRadius.md),
@@ -1517,19 +1611,31 @@ class _RidePaymentSummaryScreenState extends State<RidePaymentSummaryScreen> {
           ),
           child: Row(
             children: [
-              SgIcon(icon, size: 24, color: isSelected ? SgColors.goldText : SgColors.inkMuted),
+              SgIcon(
+                icon,
+                size: 24,
+                color: isSelected ? SgColors.goldText : SgColors.inkMuted,
+              ),
               const SizedBox(width: SgSpace.s4),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(title, style: SgText.body.copyWith(fontSize: 16, fontWeight: FontWeight.w700)),
+                    Text(
+                      title,
+                      style: SgText.body.copyWith(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
                     if (subtitle != null) Text(subtitle, style: SgText.caption),
                   ],
                 ),
               ),
               Icon(
-                isSelected ? Icons.radio_button_checked : Icons.radio_button_unchecked,
+                isSelected
+                    ? Icons.radio_button_checked
+                    : Icons.radio_button_unchecked,
                 color: isSelected ? SgColors.gold500 : SgColors.lineStrong,
               ),
             ],
@@ -1573,13 +1679,18 @@ class RateReviewDriverScreen extends StatelessWidget {
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (context.mounted) context.go('/home');
       });
-      return const Scaffold(backgroundColor: SgColors.bg000);
+      return Scaffold(backgroundColor: SgColors.bg000);
     }
     return Scaffold(
       backgroundColor: SgColors.bg000,
       body: SafeArea(
         child: ListView(
-          padding: const EdgeInsets.fromLTRB(SgSpace.s4, SgSpace.s6, SgSpace.s4, SgSpace.s5),
+          padding: const EdgeInsets.fromLTRB(
+            SgSpace.s4,
+            SgSpace.s6,
+            SgSpace.s4,
+            SgSpace.s5,
+          ),
           children: [
             TripCompleteView(
               detailLine: detail,
@@ -1592,7 +1703,9 @@ class RateReviewDriverScreen extends StatelessWidget {
                 onDone: (rated) {
                   if (rated) {
                     ScaffoldMessenger.maybeOf(context)?.showSnackBar(
-                      const SnackBar(content: Text('Thanks for rating your trip.')),
+                      const SnackBar(
+                        content: Text('Thanks for rating your trip.'),
+                      ),
                     );
                   }
                   context.go('/home');
@@ -1705,10 +1818,10 @@ class _DarkMapScaffoldState extends State<_DarkMapScaffold>
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) return;
-      _mapController?.fitPoints(
-        [mapProvider.driverLocation!, targetLocation],
-        padding: const EdgeInsets.symmetric(horizontal: 70, vertical: 180),
-      );
+      _mapController?.fitPoints([
+        mapProvider.driverLocation!,
+        targetLocation,
+      ], padding: const EdgeInsets.symmetric(horizontal: 70, vertical: 180));
     });
   }
 
@@ -1752,7 +1865,7 @@ class _DarkMapScaffoldState extends State<_DarkMapScaffold>
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFF12110E),
+      backgroundColor: SgColors.bg000,
       body: Consumer<MapProvider>(
         builder: (context, mapProvider, child) {
           final markers = <SgMarker>[];
@@ -1810,9 +1923,9 @@ class _DarkMapScaffoldState extends State<_DarkMapScaffold>
                 SgMarker(
                   id: 'nearby-${n++}',
                   point: LatLng(lat.toDouble(), lng.toDouble()),
-                  icon: const SgIconMarker(
+                  icon: SgIconMarker(
                     Icons.directions_car,
-                    Color(0xFFEEBD2B),
+                    SgColors.goldText,
                     size: 24,
                   ),
                   anchor: const Offset(0.5, 0.5),
@@ -1836,12 +1949,13 @@ class _DarkMapScaffoldState extends State<_DarkMapScaffold>
           ];
 
           final pickupPoint =
-              mapProvider.precisePickupLocation ?? mapProvider.pickupLocation?.latLng;
+              mapProvider.precisePickupLocation ??
+              mapProvider.pickupLocation?.latLng;
           final initialCenter = widget.searching
               ? (pickupPoint ?? const LatLng(17.385044, 78.4867))
               : (mapProvider.dropLocation?.latLng ??
-                  mapProvider.pickupLocation?.latLng ??
-                  const LatLng(17.385044, 78.4867));
+                    mapProvider.pickupLocation?.latLng ??
+                    const LatLng(17.385044, 78.4867));
 
           return Stack(
             children: [
@@ -1911,15 +2025,15 @@ class _VehicleTile extends StatelessWidget {
       margin: const EdgeInsets.only(bottom: 8),
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: active ? const Color(0x33EEBD2B) : Colors.white10,
+        color: active ? SgColors.goldSoft : SgColors.bg200,
         borderRadius: BorderRadius.circular(12),
         border: Border.all(
-          color: active ? const Color(0x66EEBD2B) : Colors.white24,
+          color: active ? SgColors.goldLine : SgColors.lineStrong,
         ),
       ),
       child: Row(
         children: [
-          Icon(icon, color: const Color(0xFFEEBD2B)),
+          Icon(icon, color: SgColors.goldText),
           const SizedBox(width: 10),
           Expanded(
             child: Column(
@@ -1927,19 +2041,19 @@ class _VehicleTile extends StatelessWidget {
               children: [
                 Text(
                   name,
-                  style: const TextStyle(
-                    color: Colors.white,
+                  style: TextStyle(
+                    color: SgColors.ink,
                     fontWeight: FontWeight.w700,
                   ),
                 ),
-                Text(eta, style: const TextStyle(color: Colors.white70)),
+                Text(eta, style: TextStyle(color: SgColors.inkMuted)),
               ],
             ),
           ),
           Text(
             fare,
-            style: const TextStyle(
-              color: Color(0xFFEEBD2B),
+            style: TextStyle(
+              color: SgColors.goldText,
               fontWeight: FontWeight.w700,
             ),
           ),
@@ -1958,9 +2072,9 @@ class _Card extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       decoration: BoxDecoration(
-        color: Colors.black,
+        color: SgColors.bg000,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: Colors.black12),
+        border: Border.all(color: SgColors.line),
       ),
       child: child,
     );
@@ -1976,9 +2090,9 @@ class _DarkCard extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       decoration: BoxDecoration(
-        color: const Color(0xFF1C1C1E),
+        color: SgColors.bg200,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: Colors.white12),
+        border: Border.all(color: SgColors.line),
       ),
       child: child,
     );
@@ -2001,12 +2115,12 @@ class _PaymentTile extends StatelessWidget {
     return Container(
       margin: const EdgeInsets.only(bottom: 10),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: SgColors.bg200,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: Colors.black12),
+        border: Border.all(color: SgColors.line),
       ),
       child: ListTile(
-        leading: Icon(icon, color: const Color(0xFFEEBD2B)),
+        leading: Icon(icon, color: SgColors.goldText),
         title: Text(title, style: const TextStyle(fontWeight: FontWeight.w700)),
         subtitle: Text(subtitle),
         trailing: const Icon(Icons.chevron_right),
@@ -2019,24 +2133,24 @@ class _MiniTile extends StatelessWidget {
   const _MiniTile({
     required this.icon,
     required this.label,
-    this.iconBackground = const Color(0x1AEEBD2B),
+    this.iconBackground,
   });
 
   final IconData icon;
   final String label;
-  final Color iconBackground;
+  final Color? iconBackground;
 
   @override
   Widget build(BuildContext context) {
     return Container(
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: const Color(0xFF24211C),
+        color: SgColors.bg300,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: const Color(0x0DFFFFFF)),
-        boxShadow: const [
+        border: Border.all(color: SgColors.line),
+        boxShadow: [
           BoxShadow(
-            color: Color(0x14000000),
+            color: SgColors.shadow.withValues(alpha: 0.08),
             blurRadius: 20,
             offset: Offset(0, 8),
           ),
@@ -2049,16 +2163,16 @@ class _MiniTile extends StatelessWidget {
             width: 40,
             height: 40,
             decoration: BoxDecoration(
-              color: iconBackground,
+              color: iconBackground ?? SgColors.goldSoft,
               shape: BoxShape.circle,
             ),
-            child: Icon(icon, color: const Color(0xFFEEBD2B), size: 24),
+            child: Icon(icon, color: SgColors.goldText, size: 24),
           ),
           const SizedBox(height: 10),
           Text(
             label,
-            style: GoogleFonts.inter(
-              color: const Color(0xFFF8FAFC),
+            style: TextStyle(
+              color: SgColors.ink,
               fontSize: 18,
               fontWeight: FontWeight.w600,
               letterSpacing: -0.2,
@@ -2078,15 +2192,15 @@ class _HelpSearchField extends StatelessWidget {
     return Container(
       height: 54,
       decoration: BoxDecoration(
-        color: const Color(0xFF24211C),
+        color: SgColors.bg300,
         borderRadius: BorderRadius.circular(24),
-        border: Border.all(color: const Color(0x0DFFFFFF)),
+        border: Border.all(color: SgColors.line),
       ),
       child: TextField(
-        cursorColor: const Color(0xFFEEBD2B),
+        cursorColor: SgColors.goldText,
         textAlignVertical: TextAlignVertical.center,
-        style: GoogleFonts.inter(
-          color: const Color(0xFFF8FAFC),
+        style: TextStyle(
+          color: SgColors.ink,
           fontSize: 16,
           fontWeight: FontWeight.w500,
         ),
@@ -2098,14 +2212,10 @@ class _HelpSearchField extends StatelessWidget {
             minWidth: 48,
             minHeight: 54,
           ),
-          prefixIcon: const Icon(
-            Icons.search,
-            color: Color(0xFF94A3B8),
-            size: 24,
-          ),
+          prefixIcon: Icon(Icons.search, color: SgColors.inkMuted, size: 24),
           hintText: 'Search for help',
-          hintStyle: GoogleFonts.inter(
-            color: const Color(0xFF94A3B8),
+          hintStyle: TextStyle(
+            color: SgColors.inkMuted,
             fontSize: 16,
             fontWeight: FontWeight.w500,
           ),
@@ -2131,20 +2241,20 @@ class _ContactTile extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: const Color(0x1A8B6508),
+        color: SgColors.goldSoft,
         borderRadius: BorderRadius.circular(24),
-        border: Border.all(color: const Color(0x338B6508)),
+        border: Border.all(color: SgColors.goldLine),
       ),
       child: Row(
         children: [
           Container(
             width: 40,
             height: 40,
-            decoration: const BoxDecoration(
-              color: Color(0x338B6508),
+            decoration: BoxDecoration(
+              color: SgColors.goldSoft,
               shape: BoxShape.circle,
             ),
-            child: Icon(icon, color: const Color(0xFFEEBD2B), size: 20),
+            child: Icon(icon, color: SgColors.goldText, size: 20),
           ),
           const SizedBox(width: 14),
           Expanded(
@@ -2153,8 +2263,8 @@ class _ContactTile extends StatelessWidget {
               children: [
                 Text(
                   title,
-                  style: GoogleFonts.inter(
-                    color: const Color(0xFFF8FAFC),
+                  style: TextStyle(
+                    color: SgColors.ink,
                     fontSize: 16,
                     fontWeight: FontWeight.w600,
                     height: 1.1,
@@ -2164,8 +2274,8 @@ class _ContactTile extends StatelessWidget {
                 const SizedBox(height: 4),
                 Text(
                   subtitle,
-                  style: GoogleFonts.inter(
-                    color: const Color(0xFF94A3B8),
+                  style: TextStyle(
+                    color: SgColors.inkMuted,
                     fontSize: 12,
                     fontWeight: FontWeight.w500,
                     height: 1.1,
@@ -2175,7 +2285,7 @@ class _ContactTile extends StatelessWidget {
             ),
           ),
           const SizedBox(width: 8),
-          const Icon(Icons.chevron_right, color: Color(0xFF94A3B8), size: 24),
+          Icon(Icons.chevron_right, color: SgColors.inkMuted, size: 24),
         ],
       ),
     );
@@ -2191,8 +2301,8 @@ class _HelpSectionLabel extends StatelessWidget {
   Widget build(BuildContext context) {
     return Text(
       text.toUpperCase(),
-      style: GoogleFonts.inter(
-        color: const Color(0xFF94A3B8),
+      style: TextStyle(
+        color: SgColors.inkMuted,
         fontSize: 14,
         fontWeight: FontWeight.w500,
         letterSpacing: 2.4,
@@ -2248,7 +2358,7 @@ class _SmoothAnimatedMarkerState extends State<SmoothAnimatedMarker>
             width: 20,
             height: 20,
             decoration: BoxDecoration(
-              color: const Color(0xFFEEBD2B).withValues(alpha: 0.3),
+              color: SgColors.gold500.withValues(alpha: 0.3),
               shape: BoxShape.circle,
             ),
           ),

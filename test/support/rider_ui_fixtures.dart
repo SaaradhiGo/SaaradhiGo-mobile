@@ -13,23 +13,38 @@ import 'package:saaradhigo_rider/ui/trip_widgets.dart';
 const _mapProvider = PlaceholderMapsProvider();
 
 Widget sgApp(Widget child) => MaterialApp(
-      debugShowCheckedModeBanner: false,
-      theme: sgDarkTheme(),
-      home: Scaffold(backgroundColor: SgColors.bg000, body: child),
-    );
+  debugShowCheckedModeBanner: false,
+  theme: sgDarkTheme(),
+  home: Scaffold(backgroundColor: SgColors.bg000, body: child),
+);
 
 Map<String, Map<String, dynamic>> fourClasses({bool higher = false}) => {
-      'auto': {'estimated_fare': '142.00', 'pickup_eta_min': 3, 'seats': 3, 'currency': 'INR'},
-      'hatchback': {'estimated_fare': '196.40', 'pickup_eta_min': 4, 'seats': 4, 'currency': 'INR'},
-      'sedan': {
-        'estimated_fare': '248.00',
-        'pickup_eta_min': 5,
-        'seats': 4,
-        'currency': 'INR',
-        if (higher) 'price_reason': 'Surge pricing near Hitech City',
-      },
-      'suv': {'estimated_fare': '412.00', 'pickup_eta_min': 8, 'seats': 6, 'currency': 'INR'},
-    };
+  'auto': {
+    'estimated_fare': '142.00',
+    'pickup_eta_min': 3,
+    'seats': 3,
+    'currency': 'INR',
+  },
+  'hatchback': {
+    'estimated_fare': '196.40',
+    'pickup_eta_min': 4,
+    'seats': 4,
+    'currency': 'INR',
+  },
+  'sedan': {
+    'estimated_fare': '248.00',
+    'pickup_eta_min': 5,
+    'seats': 4,
+    'currency': 'INR',
+    if (higher) 'price_reason': 'Surge pricing near Hitech City',
+  },
+  'suv': {
+    'estimated_fare': '412.00',
+    'pickup_eta_min': 8,
+    'seats': 6,
+    'currency': 'INR',
+  },
+};
 
 /// The Home frame: placeholder map, top bar, and the "Where to?" sheet.
 Widget homeFrame({
@@ -72,8 +87,10 @@ Widget homeFrame({
           child: HomeSheet(
             greeting: greeting,
             search: SgSearchBar(
-              field: Text('Search destination',
-                  style: SgText.body.copyWith(color: SgColors.inkSubtle)),
+              field: Text(
+                'Search destination',
+                style: SgText.body.copyWith(color: SgColors.inkSubtle),
+              ),
             ),
             chips: chips,
             recents: recents,
@@ -99,13 +116,15 @@ Widget chooseFrame({
           initialCenter: const LatLng(17.42, 78.4),
           markers: const [
             SgMarker(
-                id: 'pickup',
-                point: LatLng(17.40, 78.37),
-                icon: SgSvgMarker('assets/markers/pickup.svg')),
+              id: 'pickup',
+              point: LatLng(17.40, 78.37),
+              icon: SgSvgMarker('assets/markers/pickup.svg'),
+            ),
             SgMarker(
-                id: 'drop',
-                point: LatLng(17.45, 78.45),
-                icon: SgSvgMarker('assets/markers/dropoff.svg')),
+              id: 'drop',
+              point: LatLng(17.45, 78.45),
+              icon: SgSvgMarker('assets/markers/dropoff.svg'),
+            ),
           ],
           polylines: const [
             SgPolyline(
@@ -151,47 +170,80 @@ Widget tripFrame({
   bool pulse = false,
   double sheetHeight = 420,
 }) {
-  return Stack(children: [
-    Positioned.fill(
-      child: SgMap(
-        provider: _mapProvider,
-        initialCenter: tripPickup,
-        initialZoom: 15,
-        padding: EdgeInsets.only(bottom: sheetHeight, top: 96),
-        markers: markers,
-        polylines: polylines,
+  return Stack(
+    children: [
+      Positioned.fill(
+        child: SgMap(
+          provider: _mapProvider,
+          initialCenter: tripPickup,
+          initialZoom: 15,
+          padding: EdgeInsets.only(bottom: sheetHeight, top: 96),
+          markers: markers,
+          polylines: polylines,
+        ),
       ),
-    ),
-    if (pulse) Positioned(top: 96, bottom: sheetHeight, left: 0, right: 0, child: const PulseRings()),
-    Positioned(
-      top: 52,
-      left: 16,
-      child: SgMapButton(icon: SgIcons.close, label: 'Close', onTap: () {}),
-    ),
-    Align(alignment: Alignment.bottomCenter, child: sheet),
-  ]);
+      if (pulse)
+        Positioned(
+          top: 96,
+          bottom: sheetHeight,
+          left: 0,
+          right: 0,
+          child: const PulseRings(),
+        ),
+      Positioned(
+        top: 52,
+        left: 16,
+        child: SgMapButton(icon: SgIcons.close, label: 'Close', onTap: () {}),
+      ),
+      Align(alignment: Alignment.bottomCenter, child: sheet),
+    ],
+  );
 }
 
 /// Confirm pickup: map above, fixed pin in its middle, sheet below.
 Widget confirmFrame({required Widget sheet, String? chip}) {
-  return Column(children: [
-    Expanded(
-      child: Stack(children: [
-        const Positioned.fill(child: SgMap(provider: _mapProvider, initialCenter: tripPickup, initialZoom: 17)),
-        Align(
-          alignment: Alignment.center,
-          child: Transform.translate(offset: const Offset(0, -44), child: const FixedPickupPin()),
+  return Column(
+    children: [
+      Expanded(
+        child: Stack(
+          children: [
+            const Positioned.fill(
+              child: SgMap(
+                provider: _mapProvider,
+                initialCenter: tripPickup,
+                initialZoom: 17,
+              ),
+            ),
+            Align(
+              alignment: Alignment.center,
+              child: Transform.translate(
+                offset: const Offset(0, -44),
+                child: const FixedPickupPin(),
+              ),
+            ),
+            if (chip != null)
+              Align(
+                alignment: Alignment.center,
+                child: Transform.translate(
+                  offset: const Offset(0, -112),
+                  child: MapChip(chip),
+                ),
+              ),
+            Positioned(
+              top: 52,
+              left: 16,
+              child: SgMapButton(
+                icon: SgIcons.back,
+                label: 'Back',
+                onTap: () {},
+              ),
+            ),
+          ],
         ),
-        if (chip != null)
-          Align(
-            alignment: Alignment.center,
-            child: Transform.translate(offset: const Offset(0, -112), child: MapChip(chip)),
-          ),
-        Positioned(top: 52, left: 16, child: SgMapButton(icon: SgIcons.back, label: 'Back', onTap: () {})),
-      ]),
-    ),
-    sheet,
-  ]);
+      ),
+      sheet,
+    ],
+  );
 }
 
 void setPhoneSurface(dynamic tester) {
@@ -209,6 +261,8 @@ Future<void> loadSgFonts() async {
     await loader.load();
   }
 
-  await load('Manrope', ['Manrope.ttf']);
-  await load('CormorantGaramond', ['CormorantGaramond.ttf']);
+  await load('AnekLatin', ['AnekLatin.ttf']);
+  await load('AnekTelugu', ['AnekTelugu.ttf']);
+  await load('AnekDevanagari', ['AnekDevanagari.ttf']);
+  await load('Cinzel', ['Cinzel-SemiBold.ttf']);
 }

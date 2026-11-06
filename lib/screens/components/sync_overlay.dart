@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
 
+import '../../ui/sg_text.dart';
+import '../../ui/sg_tokens.dart';
+
 class SyncOverlay extends StatelessWidget {
   const SyncOverlay({super.key});
 
@@ -7,20 +10,20 @@ class SyncOverlay extends StatelessWidget {
   Widget build(BuildContext context) {
     return Positioned.fill(
       child: Container(
-        color: const Color(0xFF12110E).withValues(alpha: 0.8),
-        child: const Center(
+        color: SgColors.bg000.withValues(alpha: 0.8),
+        child: Center(
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
               CircularProgressIndicator(
-                valueColor: AlwaysStoppedAnimation<Color>(Color(0xFFEEBD2B)),
+                valueColor: AlwaysStoppedAnimation<Color>(SgColors.goldText),
               ),
               SizedBox(height: 24),
               Text(
                 'Syncing your ride...',
                 style: TextStyle(
-                  color: Colors.white,
-                  fontFamily: 'Manrope',
+                  color: SgColors.ink,
+                  fontFamily: SgText.sans,
                   fontSize: 16,
                   fontWeight: FontWeight.w500,
                 ),

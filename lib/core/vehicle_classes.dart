@@ -13,9 +13,16 @@ library;
 
 import 'package:flutter/material.dart';
 
+import '../ui/sg_tokens.dart';
+
 /// Asked for when `/pricing/vehicle-types/` cannot be reached. Only classes
 /// that come back with a fare are shown, so an unpriced one never appears.
-const List<String> kFallbackVehicleTypes = ['auto', 'hatchback', 'sedan', 'suv'];
+const List<String> kFallbackVehicleTypes = [
+  'auto',
+  'hatchback',
+  'sedan',
+  'suv',
+];
 
 /// The public name for a backend class.
 String vehicleClassName(String? type) {
@@ -37,7 +44,11 @@ String vehicleClassName(String? type) {
   // A class added on the server renders readably instead of disappearing.
   final words = key.split(RegExp(r'[_\s]+')).where((w) => w.isNotEmpty);
   return words
-      .map((w) => w.length <= 2 ? w.toUpperCase() : w[0].toUpperCase() + w.substring(1))
+      .map(
+        (w) => w.length <= 2
+            ? w.toUpperCase()
+            : w[0].toUpperCase() + w.substring(1),
+      )
       .join(' ');
 }
 
@@ -104,4 +115,40 @@ int? vehicleClassSeats(String? type) {
       return 6;
   }
   return null;
+}
+
+/// The colour class a backend type shows as (icon colour and its 14% tile).
+/// The same table as the driver app and the website. An unknown code has no
+/// class colour: ink on a bg-300 tile. Only classes pricing returns are drawn.
+SgVehicleClass? vehicleColourClass(String? type) {
+  switch ((type ?? '').trim().toLowerCase()) {
+    case 'bike':
+      return SgVehicleClass.bike;
+    case 'auto':
+      return SgVehicleClass.auto;
+    case 'hatchback':
+    case 'mini':
+      return SgVehicleClass.car;
+    case 'sedan':
+      return SgVehicleClass.comfort;
+    case 'suv':
+      return SgVehicleClass.suv;
+    case 'premium':
+    case 'black':
+    case 'luxury':
+      return SgVehicleClass.premium;
+  }
+  return null;
+}
+
+/// The icon colour for a backend type.
+Color vehicleIconColour(String? type) {
+  final c = vehicleColourClass(type);
+  return c == null ? SgColors.ink : SgColors.vehicleClass(c);
+}
+
+/// The tile behind the icon for a backend type.
+Color vehicleTileColour(String? type) {
+  final c = vehicleColourClass(type);
+  return c == null ? SgColors.bg300 : SgColors.vehicleClassTile(c);
 }

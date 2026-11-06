@@ -1,5 +1,6 @@
 import '../../core/market/market_config_store.dart';
 import 'package:flutter/material.dart';
+import '../../ui/sg_tokens.dart';
 
 class Wallet {
   final double balance;
@@ -117,13 +118,13 @@ class Transaction {
   Color get statusColor {
     switch (status.toLowerCase()) {
       case 'completed':
-        return Colors.green;
+        return SgColors.success;
       case 'pending':
-        return Colors.orange;
+        return SgColors.goldText;
       case 'failed':
-        return Colors.red;
+        return SgColors.danger;
       default:
-        return Colors.grey;
+        return SgColors.inkMuted;
     }
   }
 }
