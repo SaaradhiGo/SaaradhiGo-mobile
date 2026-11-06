@@ -7,6 +7,7 @@ import 'package:intl/intl.dart';
 
 import '../core/vehicle_classes.dart';
 import '../utils/money.dart' show currencySymbol;
+import 'appearance_settings.dart' show sgStrings;
 import 'sg_text.dart';
 import 'sg_tokens.dart';
 import 'sg_widgets.dart';
@@ -86,6 +87,9 @@ class RideOption {
 
   /// A server reason, with the word "surge" never reaching the rider.
   static String? _reason(Map<String, dynamic> e) {
+    // `rider_reason` (Night 2 field) is written for riders: shown verbatim.
+    final rider = e['rider_reason']?.toString().trim();
+    if (rider != null && rider.isNotEmpty) return rider;
     final raw = (e['price_reason'] ?? e['fare_reason'] ?? e['surge_reason'])
         ?.toString()
         .trim();
@@ -146,6 +150,28 @@ String? preselectVehicle(List<String> offered, String? lastUsed) {
   return offered.first;
 }
 
+/// Cheapest and Fastest, each only when one class alone has it.
+///
+/// Cheapest is the lowest fare; Fastest the lowest non-null pickup ETA. A tie
+/// gets no tag rather than two.
+({String? cheapest, String? fastest}) rideTags(List<RideOption> options) {
+  String? unique(Iterable<(String, num)> xs) {
+    if (xs.isEmpty) return null;
+    final low = xs.map((x) => x.$2).reduce((a, b) => a < b ? a : b);
+    final at = xs.where((x) => x.$2 == low).toList();
+    return at.length == 1 ? at.single.$1 : null;
+  }
+
+  return (
+    cheapest: unique([for (final o in options) (o.type, o.fare)]),
+    fastest: unique([
+      for (final o in options)
+        if (o.etaMin != null) (o.type, o.etaMin!),
+    ]),
+  );
+}
+
+/// Every fare, side by side (Tier 2 spec, screen 4).
 class ChooseRideSheet extends StatelessWidget {
   const ChooseRideSheet({
     super.key,
@@ -155,6 +181,7 @@ class ChooseRideSheet extends StatelessWidget {
     required this.onConfirm,
     required this.paymentLabel,
     this.summary,
+    this.route,
     this.onChangePayment,
     this.footer,
   });
@@ -166,6 +193,9 @@ class ChooseRideSheet extends StatelessWidget {
 
   /// "12.4 km · 24 min".
   final String? summary;
+
+  /// "Banjara Hills → Mindspace".
+  final String? route;
   final String paymentLabel;
   final VoidCallback? onChangePayment;
 
@@ -174,26 +204,43 @@ class ChooseRideSheet extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l = sgStrings(context);
     RideOption? selected;
     for (final o in options) {
       if (o.type == selectedType) selected = o;
     }
+    final tags = rideTags(options);
     return SgSheetSurface(
       child: Column(
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
+          if (route != null && route!.isNotEmpty)
+            Text(
+              route!,
+              key: const Key('choose_route'),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: SgText.title,
+            ),
+          const SizedBox(height: SgSpace.s1),
           Row(
             crossAxisAlignment: CrossAxisAlignment.baseline,
             textBaseline: TextBaseline.alphabetic,
             children: [
               Expanded(
                 child: Text(
-                  'Choose a ride',
-                  style: SgText.title.copyWith(fontSize: 20, height: 26 / 20),
+                  l.waysToGo(options.length),
+                  style: SgText.heading.copyWith(fontSize: 24, height: 28 / 24),
                 ),
               ),
-              ?(summary == null ? null : Text(summary!, style: SgText.caption)),
+              if (summary != null)
+                Text(
+                  summary!,
+                  style: SgText.caption.copyWith(
+                    fontFeatures: const [FontFeature.tabularFigures()],
+                  ),
+                ),
             ],
           ),
           const SizedBox(height: SgSpace.s3),
@@ -208,17 +255,30 @@ class ChooseRideSheet extends StatelessWidget {
                     child: _RideRow(
                       option: o,
                       selected: o.type == selectedType,
+                      cheapest: tags.cheapest == o.type ? l.tagCheapest : null,
+                      fastest: tags.fastest == o.type ? l.tagFastest : null,
                       onTap: () => onSelect(o.type),
                     ),
                   ),
-                if (footer != null) footer!,
+                ?footer,
               ],
             ),
           ),
+          // The demand line: the server's reason verbatim, or "Higher demand
+          // right now". Never the word surge.
           if (selected?.reason != null)
             Padding(
+              key: const Key('choose_demand'),
               padding: const EdgeInsets.only(top: SgSpace.s2),
-              child: Text(selected!.reason!, style: SgText.caption),
+              child: Row(
+                children: [
+                  SgIcon(SgIcons.clock, size: 16, color: SgColors.inkMuted),
+                  const SizedBox(width: SgSpace.s2),
+                  Expanded(
+                    child: Text(selected!.reason!, style: SgText.caption),
+                  ),
+                ],
+              ),
             ),
           const SizedBox(height: SgSpace.s2),
           Container(
@@ -228,9 +288,14 @@ class ChooseRideSheet extends StatelessWidget {
             ),
             child: Row(
               children: [
-                const SgIcon(SgIcons.cash, size: 20),
+                SgIcon(SgIcons.cash, size: 20, color: SgColors.ink),
                 const SizedBox(width: SgSpace.s3),
-                Expanded(child: Text(paymentLabel, style: SgText.body)),
+                Expanded(
+                  child: Text(
+                    paymentLabel,
+                    style: SgText.body.copyWith(fontWeight: FontWeight.w700),
+                  ),
+                ),
                 if (onChangePayment != null)
                   TextButton(
                     onPressed: onChangePayment,
@@ -239,7 +304,7 @@ class ChooseRideSheet extends StatelessWidget {
                       foregroundColor: SgColors.goldText,
                     ),
                     child: Text(
-                      'Change',
+                      l.change,
                       style: SgText.body.copyWith(
                         color: SgColors.goldText,
                         fontWeight: FontWeight.w700,
@@ -251,12 +316,41 @@ class ChooseRideSheet extends StatelessWidget {
           ),
           const SizedBox(height: SgSpace.s2),
           SgPrimaryButton(
+            key: const Key('choose_book'),
             label: selected == null
-                ? 'Select a ride'
-                : 'Confirm ${selected.shortName} · ${selected.fareText}',
+                ? l.selectRide
+                : l.bookClass(selected.shortName, selected.fareText),
             onPressed: selected == null ? null : onConfirm,
           ),
         ],
+      ),
+    );
+  }
+}
+
+/// A small pill: Cheapest / Fastest.
+class SgTag extends StatelessWidget {
+  const SgTag(this.text, {super.key, this.color});
+  final String text;
+  final Color? color;
+
+  @override
+  Widget build(BuildContext context) {
+    final c = color ?? SgColors.success;
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1),
+      decoration: BoxDecoration(
+        color: c.withValues(alpha: 0.14),
+        borderRadius: BorderRadius.circular(SgRadius.pill),
+      ),
+      child: Text(
+        text,
+        style: SgText.caption.copyWith(
+          color: c,
+          fontSize: 12,
+          height: 16 / 12,
+          fontWeight: FontWeight.w700,
+        ),
       ),
     );
   }
@@ -267,10 +361,14 @@ class _RideRow extends StatelessWidget {
     required this.option,
     required this.selected,
     required this.onTap,
+    this.cheapest,
+    this.fastest,
   });
   final RideOption option;
   final bool selected;
   final VoidCallback onTap;
+  final String? cheapest;
+  final String? fastest;
 
   @override
   Widget build(BuildContext context) {
@@ -278,36 +376,36 @@ class _RideRow extends StatelessWidget {
       button: true,
       selected: selected,
       child: InkWell(
-        borderRadius: BorderRadius.circular(SgRadius.md),
+        key: Key('ride_row_${option.type}'),
+        borderRadius: BorderRadius.circular(SgRadius.lg),
         onTap: onTap,
-        child: Container(
-          constraints: const BoxConstraints(minHeight: 68),
-          padding: const EdgeInsets.symmetric(
-            horizontal: SgSpace.s3,
-            vertical: SgSpace.s2,
-          ),
+        child: AnimatedContainer(
+          duration: SgMotion.press,
+          curve: SgMotion.curve,
+          constraints: const BoxConstraints(minHeight: 80),
+          padding: const EdgeInsets.all(SgSpace.s3),
           decoration: BoxDecoration(
             color: selected ? SgColors.goldSoft : SgColors.bg200,
-            borderRadius: BorderRadius.circular(SgRadius.md),
+            borderRadius: BorderRadius.circular(SgRadius.lg),
             border: Border.all(
-              color: selected ? SgColors.gold500 : SgColors.lineStrong,
-              width: selected ? 1.5 : 1,
+              color: selected ? SgColors.gold500 : SgColors.line,
+              width: selected ? 2.5 : 1,
             ),
           ),
           child: Row(
             children: [
               Container(
                 width: 56,
-                height: 40,
+                height: 56,
                 decoration: BoxDecoration(
                   color: vehicleTileColour(option.type),
-                  borderRadius: BorderRadius.circular(SgRadius.sm),
+                  borderRadius: BorderRadius.circular(SgRadius.md),
                 ),
                 child: Center(
                   child: SvgPicture.asset(
                     vehicleClassAsset(option.type),
-                    width: 30,
-                    height: 30,
+                    width: 34,
+                    height: 34,
                     colorFilter: ColorFilter.mode(
                       vehicleIconColour(option.type),
                       BlendMode.srcIn,
@@ -321,13 +419,10 @@ class _RideRow extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      option.name,
+                      option.shortName,
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
-                      style: SgText.body.copyWith(
-                        fontSize: 16,
-                        fontWeight: FontWeight.w700,
-                      ),
+                      style: SgText.title,
                     ),
                     if (option.meta.isNotEmpty)
                       Text(
@@ -338,9 +433,27 @@ class _RideRow extends StatelessWidget {
                                 color: SgColors.inkSubtle,
                               ),
                       ),
+                    if (cheapest != null || fastest != null)
+                      Padding(
+                        padding: const EdgeInsets.only(top: SgSpace.s1),
+                        child: Wrap(
+                          spacing: SgSpace.s1,
+                          children: [
+                            if (cheapest != null)
+                              SgTag(cheapest!, key: const Key('tag_cheapest')),
+                            if (fastest != null)
+                              SgTag(
+                                fastest!,
+                                key: const Key('tag_fastest'),
+                                color: SgColors.goldText,
+                              ),
+                          ],
+                        ),
+                      ),
                   ],
                 ),
               ),
+              const SizedBox(width: SgSpace.s2),
               Text(option.fareText, style: SgText.fare),
             ],
           ),

@@ -303,6 +303,144 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Wallet'**
   String get wallet;
+
+  /// Every fare: heading with the number of classes.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{1 way to get there} other{{count} ways to get there}}'**
+  String waysToGo(int count);
+
+  /// Every fare: tag on the lowest fare.
+  ///
+  /// In en, this message translates to:
+  /// **'Cheapest'**
+  String get tagCheapest;
+
+  /// Every fare: tag on the lowest pickup time.
+  ///
+  /// In en, this message translates to:
+  /// **'Fastest'**
+  String get tagFastest;
+
+  /// Every fare: primary button.
+  ///
+  /// In en, this message translates to:
+  /// **'Book {name} · {fare}'**
+  String bookClass(String name, String fare);
+
+  /// Every fare: button before a class is chosen.
+  ///
+  /// In en, this message translates to:
+  /// **'Select a ride'**
+  String get selectRide;
+
+  /// Change action (payment method).
+  ///
+  /// In en, this message translates to:
+  /// **'Change'**
+  String get change;
+
+  /// Payment method: cash.
+  ///
+  /// In en, this message translates to:
+  /// **'Cash'**
+  String get payCash;
+
+  /// Payment method: wallet.
+  ///
+  /// In en, this message translates to:
+  /// **'Wallet'**
+  String get payWallet;
+
+  /// Payment method: online.
+  ///
+  /// In en, this message translates to:
+  /// **'UPI / card'**
+  String get payOnline;
+
+  /// Fare ticket: eyebrow.
+  ///
+  /// In en, this message translates to:
+  /// **'Your fare ticket'**
+  String get fareTicket;
+
+  /// Fare ticket: the lock promise.
+  ///
+  /// In en, this message translates to:
+  /// **'Locked when you book. It will not go up.'**
+  String get fareLocked;
+
+  /// Fare ticket: pickup row label.
+  ///
+  /// In en, this message translates to:
+  /// **'Pickup'**
+  String get pickupLabel;
+
+  /// Fare ticket: drop row label.
+  ///
+  /// In en, this message translates to:
+  /// **'Drop'**
+  String get dropLabel;
+
+  /// Fare ticket: edit the pickup.
+  ///
+  /// In en, this message translates to:
+  /// **'Edit'**
+  String get edit;
+
+  /// Fare ticket: hint after Edit.
+  ///
+  /// In en, this message translates to:
+  /// **'Drag the map to move your pickup'**
+  String get dragToMove;
+
+  /// Fare ticket: opens the breakdown.
+  ///
+  /// In en, this message translates to:
+  /// **'See how {fare} is worked out'**
+  String seeHowWorkedOut(String fare);
+
+  /// Fare ticket: primary button.
+  ///
+  /// In en, this message translates to:
+  /// **'Confirm pickup and book'**
+  String get confirmAndBook;
+
+  /// Finding: heading.
+  ///
+  /// In en, this message translates to:
+  /// **'Finding a {name} driver'**
+  String findingClass(String name);
+
+  /// Finding: checklist line.
+  ///
+  /// In en, this message translates to:
+  /// **'Fare locked at {fare}'**
+  String fareLockedAt(String fare);
+
+  /// Finding: current checklist line.
+  ///
+  /// In en, this message translates to:
+  /// **'Waiting for one to accept'**
+  String get waitingAccept;
+
+  /// Finding: note.
+  ///
+  /// In en, this message translates to:
+  /// **'You can close the app; we will notify you.'**
+  String get closeAppNote;
+
+  /// Note under a cancel action when cancelling costs nothing.
+  ///
+  /// In en, this message translates to:
+  /// **'Free to cancel'**
+  String get freeToCancel;
+
+  /// Finding: secondary button.
+  ///
+  /// In en, this message translates to:
+  /// **'Cancel request'**
+  String get cancelRequest;
 }
 
 class _AppLocalizationsDelegate

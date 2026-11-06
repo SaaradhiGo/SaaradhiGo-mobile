@@ -696,11 +696,15 @@ class MapChip extends StatelessWidget {
     child: Row(
       mainAxisSize: MainAxisSize.min,
       children: [
-        Text(
-          text,
-          style: SgText.caption.copyWith(
-            color: SgColors.ink,
-            fontWeight: FontWeight.w700,
+        Flexible(
+          child: Text(
+            text,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: SgText.caption.copyWith(
+              color: SgColors.ink,
+              fontWeight: FontWeight.w700,
+            ),
           ),
         ),
       ],

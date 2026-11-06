@@ -6,9 +6,10 @@ import 'package:go_router/go_router.dart';
 import '../../providers/map_provider.dart';
 import '../components/coming_soon_overlay.dart';
 import '../components/market_overlays.dart';
-import '../../widgets/fare_breakdown.dart';
 import '../../widgets/promo_entry_section.dart';
+import '../../ui/appearance_settings.dart' show paymentMethodLabel, sgStrings;
 import '../../ui/choose_ride_sheet.dart';
+import '../../ui/trip_widgets.dart' show routeLine;
 import '../../ui/sg_text.dart';
 import '../../ui/sg_tokens.dart';
 import '../../ui/sg_widgets.dart';
@@ -324,7 +325,8 @@ class _RouteMapScreenState extends State<RouteMapScreen> {
             child: Column(
               children: [
                 SizedBox(
-                  height: MediaQuery.of(context).size.height * 0.40,
+                  // A short route strip; the fares are the screen.
+                  height: MediaQuery.of(context).size.height * 0.26,
                   child: Stack(
                     children: [
                       // Ensure FlutterMap has explicit constraints to prevent "render box with no size" errors
@@ -508,15 +510,19 @@ class _RouteMapScreenState extends State<RouteMapScreen> {
       summary: (distance == null && provider.duration == null)
           ? null
           : '${distance ?? '--'} · ${minLabel(provider.duration ?? '--')}',
-      paymentLabel: payment.toLowerCase() == 'cash'
-          ? 'Cash'
-          : payment[0].toUpperCase() + payment.substring(1),
+      route: routeLine(
+        provider.pickupAddress ?? provider.pickupLocation?.name,
+        provider.destinationAddress,
+      ),
+      paymentLabel: paymentMethodLabel(sgStrings(context), payment),
       onChangePayment: () => context.push('/payment-methods'),
       onConfirm: () => context.push('/precise-pickup'),
       footer: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          _buildFareDetailsLink(provider.fareEstimates[chosen]),
+          // The breakdown link moved to the fare ticket ("See how ₹X is
+          // worked out"). Here, clipped at the bottom of the scrolling list,
+          // it showed as a stray gold dash above the payment row.
           // Hidden unless app-config says a promo is available (promos_available).
           PromoEntrySection(
             market: marketOf(context),
@@ -532,46 +538,6 @@ class _RouteMapScreenState extends State<RouteMapScreen> {
                     ?.longitude,
           ),
         ],
-      ),
-    );
-  }
-
-  /// "How is this calculated?" for the currently selected vehicle type.
-  ///
-  /// One affordance under the list rather than one per row: the rider is
-  /// choosing between totals, and only the selected option's breakdown is
-  /// meaningful once they have chosen.
-  ///
-  /// The panel itself does no arithmetic -- it renders the components the server
-  /// already returns from /ride/estimate-fare/. Before this, the booking screen
-  /// showed a single number per vehicle type and no way to ask why, including
-  /// when a surge multiplier was being applied.
-  Widget _buildFareDetailsLink(Map<String, dynamic>? fareData) {
-    if (fareData == null || fareData.isEmpty) return const SizedBox.shrink();
-    if (fareData['estimated_fare'] == null) return const SizedBox.shrink();
-
-    return Align(
-      alignment: Alignment.centerLeft,
-      child: TextButton.icon(
-        onPressed: () => showFareBreakdownSheet(context, fareData),
-        icon: Icon(
-          Icons.receipt_long_outlined,
-          size: 18,
-          color: SgColors.goldText,
-        ),
-        label: Text(
-          'How is this fare calculated?',
-          style: TextStyle(
-            color: SgColors.goldText,
-            fontSize: 14,
-            fontWeight: FontWeight.w600,
-          ),
-        ),
-        style: TextButton.styleFrom(
-          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-          minimumSize: const Size(0, 44), // Comfortable tap target.
-          tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-        ),
       ),
     );
   }

@@ -24,12 +24,22 @@ class _FakeMap extends MapProvider {
 
   @override
   PlaceDetails? get pickupLocation => PlaceDetails(
-      placeId: 'p', name: 'Hitech City Metro', formattedAddress: '', latitude: 17.4435, longitude: 78.3772);
+    placeId: 'p',
+    name: 'Hitech City Metro',
+    formattedAddress: '',
+    latitude: 17.4435,
+    longitude: 78.3772,
+  );
 
   @override
   Map<String, Map<String, dynamic>> get fareEstimates => {
-        'sedan': {'estimated_fare': '248.00', 'pickup_eta_min': 5, 'drivers_nearby': true, 'currency': 'INR'},
-      };
+    'sedan': {
+      'estimated_fare': '248.00',
+      'pickup_eta_min': 5,
+      'drivers_nearby': true,
+      'currency': 'INR',
+    },
+  };
 
   @override
   String? get selectedVehicleType => 'sedan';
@@ -45,18 +55,27 @@ class _FakeMap extends MapProvider {
 }
 
 DriverCardData _ravi() => const DriverCardData(
-    name: 'Ravi Kumar', rating: '4.92', vehicleLine: 'Maruti Dzire · White', plate: 'ts 09 ex 4821');
+  name: 'Ravi Kumar',
+  rating: '4.92',
+  vehicleLine: 'Maruti Dzire · White',
+  plate: 'ts 09 ex 4821',
+);
 
 SgLockedFareCard _fare() => const SgLockedFareCard(
-    vehicleType: 'sedan',
-    className: 'Saaradhi Sedan',
-    route: 'Hitech City Metro → Inorbit Mall',
-    fareText: '₹248');
+  vehicleType: 'sedan',
+  className: 'Saaradhi Sedan',
+  route: 'Hitech City Metro → Inorbit Mall',
+  fareText: '₹248',
+);
 
 class _FakeRating implements RatingService {
   final scores = <int>[];
   @override
-  Future<RatingResult> rateTrip({required String tripId, required int score, String? comments}) async {
+  Future<RatingResult> rateTrip({
+    required String tripId,
+    required int score,
+    String? comments,
+  }) async {
     scores.add(score);
     return const RatingResult(RatingOutcome.submitted);
   }
@@ -66,20 +85,30 @@ class _FakeRating implements RatingService {
 }
 
 List<SgActionData> _actions(void Function(String) tapped) => [
-      for (final a in const [
-        ('call', 'Call', SgIcons.call),
-        ('msg', 'Message', SgIcons.message),
-        ('share', 'Share trip', SgIcons.share),
-      ])
-        SgActionData(key: a.$1, label: a.$2, icon: a.$3, onTap: () => tapped(a.$1)),
-      SgActionData(key: 'safety', label: 'Safety', icon: SgIcons.shield, danger: true, onTap: () => tapped('safety')),
-    ];
+  for (final a in const [
+    ('call', 'Call', SgIcons.call),
+    ('msg', 'Message', SgIcons.message),
+    ('share', 'Share trip', SgIcons.share),
+  ])
+    SgActionData(key: a.$1, label: a.$2, icon: a.$3, onTap: () => tapped(a.$1)),
+  SgActionData(
+    key: 'safety',
+    label: 'Safety',
+    icon: SgIcons.shield,
+    danger: true,
+    onTap: () => tapped('safety'),
+  ),
+];
 
 void main() {
   group('fare-quote ETA', () {
     test('rows read "5 min · 4 seats"', () {
       final o = RideOption.fromEstimates({
-        'sedan': {'estimated_fare': '248', 'pickup_eta_min': 5, 'drivers_nearby': true},
+        'sedan': {
+          'estimated_fare': '248',
+          'pickup_eta_min': 5,
+          'drivers_nearby': true,
+        },
       }).single;
       expect(o.meta, '5 min · 4 seats');
       expect(o.etaMin, 5);
@@ -88,61 +117,98 @@ void main() {
 
     test('no drivers nearby says so, with seats, and drops the ETA', () {
       final o = RideOption.fromEstimates({
-        'sedan': {'estimated_fare': '248', 'pickup_eta_min': null, 'drivers_nearby': false},
+        'sedan': {
+          'estimated_fare': '248',
+          'pickup_eta_min': null,
+          'drivers_nearby': false,
+        },
       }).single;
       expect(o.meta, 'No drivers nearby · 4 seats');
       expect(o.driversNearby, isFalse);
       expect(o.etaMin, isNull);
     });
 
-    test('a null ETA with drivers near shows seats only; a missing flag is not "none nearby"', () {
-      final o = RideOption.fromEstimates({
-        'sedan': {'estimated_fare': '248', 'pickup_eta_min': null, 'drivers_nearby': true},
-        'suv': {'estimated_fare': '400'},
-      });
-      expect(o.first.meta, '4 seats');
-      expect(o.last.driversNearby, isTrue);
-    });
+    test(
+      'a null ETA with drivers near shows seats only; a missing flag is not "none nearby"',
+      () {
+        final o = RideOption.fromEstimates({
+          'sedan': {
+            'estimated_fare': '248',
+            'pickup_eta_min': null,
+            'drivers_nearby': true,
+          },
+          'suv': {'estimated_fare': '400'},
+        });
+        expect(o.first.meta, '4 seats');
+        expect(o.last.driversNearby, isTrue);
+      },
+    );
 
     testWidgets('the no-drivers row stays selectable', (tester) async {
       setPhoneSurface(tester);
       addTearDown(tester.view.reset);
       final picked = <String>[];
-      await tester.pumpWidget(sgApp(chooseFrame(
-        options: RideOption.fromEstimates({
-          'sedan': {'estimated_fare': '248', 'pickup_eta_min': 5, 'drivers_nearby': true},
-          'suv': {'estimated_fare': '412', 'drivers_nearby': false},
-        }),
-        selected: 'sedan',
-        onSelect: picked.add,
-      )));
+      await tester.pumpWidget(
+        sgApp(
+          chooseFrame(
+            options: RideOption.fromEstimates({
+              'sedan': {
+                'estimated_fare': '248',
+                'pickup_eta_min': 5,
+                'drivers_nearby': true,
+              },
+              'suv': {'estimated_fare': '412', 'drivers_nearby': false},
+            }),
+            selected: 'sedan',
+            onSelect: picked.add,
+          ),
+        ),
+      );
       await tester.pump();
       expect(find.text('5 min · 4 seats'), findsOneWidget);
       expect(find.text('No drivers nearby · 6 seats'), findsOneWidget);
-      await tester.tap(find.text('Saaradhi SUV'));
+      await tester.ensureVisible(find.byKey(const Key('ride_row_suv')));
+      await tester.pump();
+      await tester.tap(find.byKey(const Key('ride_row_suv')));
       expect(picked, ['suv']);
     });
   });
 
   group('confirm pickup', () {
-    testWidgets('the dragged coordinates are what is confirmed', (tester) async {
+    testWidgets('the dragged coordinates are what is confirmed', (
+      tester,
+    ) async {
       setPhoneSurface(tester);
       addTearDown(tester.view.reset);
       final fake = _FakeMap();
-      final router = GoRouter(routes: [
-        GoRoute(path: '/', builder: (_, _) => const PrecisePickupScreen()),
-        GoRoute(path: '/searching-driver', builder: (_, _) => const Scaffold(body: Text('searching'))),
-      ]);
-      await tester.pumpWidget(ChangeNotifierProvider<MapProvider>.value(
-        value: fake,
-        child: MaterialApp.router(routerConfig: router),
-      ));
+      final router = GoRouter(
+        routes: [
+          GoRoute(path: '/', builder: (_, _) => const PrecisePickupScreen()),
+          GoRoute(
+            path: '/searching-driver',
+            builder: (_, _) => const Scaffold(body: Text('searching')),
+          ),
+        ],
+      );
+      await tester.pumpWidget(
+        ChangeNotifierProvider<MapProvider>.value(
+          value: fake,
+          child: MaterialApp.router(routerConfig: router),
+        ),
+      );
       await tester.pump(const Duration(milliseconds: 50));
 
-      expect(find.text('Confirm pickup'), findsOneWidget);
-      expect(find.text('Pickup in 5 min'), findsOneWidget);
-      expect(find.text('Fare locked at ₹248. Drivers see it before they accept.'), findsOneWidget);
-      expect(find.text('Hitech City Metro'), findsOneWidget);
+      expect(find.text('Confirm pickup and book'), findsOneWidget);
+      expect(find.byKey(const Key('fare_ticket')), findsOneWidget);
+      expect(find.text('YOUR FARE TICKET'), findsOneWidget);
+      expect(find.text('₹248'), findsOneWidget);
+      expect(
+        find.text('Locked when you book. It will not go up.'),
+        findsOneWidget,
+      );
+      expect(find.text('See how ₹248 is worked out'), findsOneWidget);
+      // The chip over the pin and the ticket's pickup row.
+      expect(find.text('Hitech City Metro'), findsWidgets);
       expect(find.byType(SgPrimaryButton), findsOneWidget);
 
       await tester.dragFrom(const Offset(195, 300), const Offset(0, -120));
@@ -150,10 +216,14 @@ void main() {
       await tester.pumpAndSettle();
       expect(find.text('Road No 36, Jubilee Hills'), findsOneWidget);
 
-      await tester.tap(find.text('Request Sedan'));
+      await tester.tap(find.text('Confirm pickup and book'));
       await tester.pump();
       final at = fake.confirmed!;
-      expect(at.latitude, lessThan(17.4435), reason: 'dragging the map up moves the pin south');
+      expect(
+        at.latitude,
+        lessThan(17.4435),
+        reason: 'dragging the map up moves the pin south',
+      );
       expect((at.latitude - 17.4435).abs(), greaterThan(0.0005));
       expect(at.longitude, closeTo(78.3772, 1e-6));
       expect(fake.confirmedAddress, 'Road No 36, Jubilee Hills');
@@ -164,24 +234,41 @@ void main() {
     testWidgets('no ETA in the quote hides the chip', (tester) async {
       setPhoneSurface(tester);
       addTearDown(tester.view.reset);
-      await tester.pumpWidget(sgApp(confirmFrame(
-        sheet: ConfirmPickupSheet(
-            address: 'Hitech City', lockText: 'Fare locked at ₹248.', buttonLabel: 'Request Sedan', onConfirm: () {}),
-      )));
+      await tester.pumpWidget(
+        sgApp(
+          confirmFrame(
+            sheet: ConfirmPickupSheet(
+              address: 'Hitech City',
+              lockText: 'Fare locked at ₹248.',
+              buttonLabel: 'Request Sedan',
+              onConfirm: () {},
+            ),
+          ),
+        ),
+      );
       expect(find.textContaining('Pickup in'), findsNothing);
     });
   });
 
   group('finding your Saaradhi', () {
-    testWidgets('shows the locked fare and a way out, never a bare spinner', (tester) async {
+    testWidgets('shows the locked fare and a way out, never a bare spinner', (
+      tester,
+    ) async {
       setPhoneSurface(tester);
       addTearDown(tester.view.reset);
       var cancelled = false;
-      await tester.pumpWidget(sgApp(tripFrame(
-        pulse: true,
-        sheet: FindingSheet(
-            subline: findingSubline(driversNearby: false), fare: _fare(), onCancel: () => cancelled = true),
-      )));
+      await tester.pumpWidget(
+        sgApp(
+          tripFrame(
+            pulse: true,
+            sheet: FindingSheet(
+              subline: findingSubline(driversNearby: false),
+              fare: _fare(),
+              onCancel: () => cancelled = true,
+            ),
+          ),
+        ),
+      );
       await tester.pump(const Duration(milliseconds: 300));
       expect(find.text('Finding your Saaradhi'), findsOneWidget);
       expect(find.text('Usually under a minute.'), findsOneWidget);
@@ -194,26 +281,35 @@ void main() {
 
     test('"Drivers nearby." only when the quote said so', () {
       expect(findingSubline(driversNearby: true), contains('Drivers nearby.'));
-      expect(findingSubline(driversNearby: false), isNot(contains('Drivers nearby')));
+      expect(
+        findingSubline(driversNearby: false),
+        isNot(contains('Drivers nearby')),
+      );
     });
   });
 
   group('driver assigned', () {
-    testWidgets('plate on champagne, four PIN boxes, Safety one tap away', (tester) async {
+    testWidgets('plate on champagne, four PIN boxes, Safety one tap away', (
+      tester,
+    ) async {
       setPhoneSurface(tester);
       addTearDown(tester.view.reset);
       final tapped = <String>[];
-      await tester.pumpWidget(sgApp(tripFrame(
-        sheetHeight: 470,
-        sheet: ArrivingSheet(
-          headline: 'Ravi is 3 min away',
-          badge: 'On the way',
-          meetLine: 'Meet at Gate 2',
-          driver: _ravi(),
-          pin: '482193',
-          actions: _actions(tapped.add),
+      await tester.pumpWidget(
+        sgApp(
+          tripFrame(
+            sheetHeight: 470,
+            sheet: ArrivingSheet(
+              headline: 'Ravi is 3 min away',
+              badge: 'On the way',
+              meetLine: 'Meet at Gate 2',
+              driver: _ravi(),
+              pin: '482193',
+              actions: _actions(tapped.add),
+            ),
+          ),
         ),
-      )));
+      );
       await tester.pump();
       expect(find.text('Ravi is 3 min away'), findsOneWidget);
       expect(find.text('ON THE WAY'), findsOneWidget);
@@ -224,7 +320,9 @@ void main() {
       expect(find.text('Maruti Dzire · White'), findsOneWidget);
       final plate = find.text('TS 09 EX 4821');
       expect(plate, findsOneWidget);
-      final box = tester.widget<Container>(find.ancestor(of: plate, matching: find.byType(Container)).first);
+      final box = tester.widget<Container>(
+        find.ancestor(of: plate, matching: find.byType(Container)).first,
+      );
       expect((box.decoration as BoxDecoration).color, const Color(0xFFFFF4BF));
       expect(find.text('RIDE PIN'), findsOneWidget);
       expect(find.text('Share only in the car'), findsOneWidget);
@@ -246,8 +344,14 @@ void main() {
       expect(ratingText(null), isNull);
       expect(ratingText(0), isNull);
       expect(ratingText('0.00'), isNull);
-      expect(tripDetailLine('Inorbit Mall, Madhapur', DateTime(2026, 1, 1, 21, 41), '24 mins'),
-          'Inorbit Mall · 9:41 pm · 24 min');
+      expect(
+        tripDetailLine(
+          'Inorbit Mall, Madhapur',
+          DateTime(2026, 1, 1, 21, 41),
+          '24 mins',
+        ),
+        'Inorbit Mall · 9:41 pm · 24 min',
+      );
     });
   });
 
@@ -255,16 +359,31 @@ void main() {
     testWidgets('keeps Share trip and Safety visible', (tester) async {
       setPhoneSurface(tester);
       addTearDown(tester.view.reset);
-      await tester.pumpWidget(sgApp(tripFrame(
-        sheet: LiveTripSheet(
-          headline: 'On the way to Inorbit Mall · 12 min',
-          driver: _ravi(),
-          actions: [
-            SgActionData(key: 'share', label: 'Share trip', icon: SgIcons.share, onTap: () {}),
-            SgActionData(key: 'safety', label: 'Safety', icon: SgIcons.shield, danger: true, onTap: () {}),
-          ],
+      await tester.pumpWidget(
+        sgApp(
+          tripFrame(
+            sheet: LiveTripSheet(
+              headline: 'On the way to Inorbit Mall · 12 min',
+              driver: _ravi(),
+              actions: [
+                SgActionData(
+                  key: 'share',
+                  label: 'Share trip',
+                  icon: SgIcons.share,
+                  onTap: () {},
+                ),
+                SgActionData(
+                  key: 'safety',
+                  label: 'Safety',
+                  icon: SgIcons.shield,
+                  danger: true,
+                  onTap: () {},
+                ),
+              ],
+            ),
+          ),
         ),
-      )));
+      );
       expect(find.text('On the way to Inorbit Mall · 12 min'), findsOneWidget);
       expect(find.text('Share trip'), findsOneWidget);
       expect(find.text('Safety'), findsOneWidget);
@@ -273,20 +392,36 @@ void main() {
   });
 
   group('trip complete', () {
-    Future<void> pumpComplete(WidgetTester tester, {required bool paid, String? method = 'upi'}) async {
+    Future<void> pumpComplete(
+      WidgetTester tester, {
+      required bool paid,
+      String? method = 'upi',
+    }) async {
       setPhoneSurface(tester);
       addTearDown(tester.view.reset);
-      await tester.pumpWidget(sgApp(SafeArea(
-        child: ListView(padding: const EdgeInsets.all(16), children: [
-          TripCompleteView(
-            detailLine: 'Inorbit Mall · 9:41 pm · 24 min',
-            paidLabel: paidLabelFor(method, paid: paid),
-            fareText: '₹248',
-            paid: paid,
-            below: RideRatingPanel(tripId: '9', driverName: 'Ravi Kumar', onDone: (_) {}, service: _FakeRating()),
+      await tester.pumpWidget(
+        sgApp(
+          SafeArea(
+            child: ListView(
+              padding: const EdgeInsets.all(16),
+              children: [
+                TripCompleteView(
+                  detailLine: 'Inorbit Mall · 9:41 pm · 24 min',
+                  paidLabel: paidLabelFor(method, paid: paid),
+                  fareText: '₹248',
+                  paid: paid,
+                  below: RideRatingPanel(
+                    tripId: '9',
+                    driverName: 'Ravi Kumar',
+                    onDone: (_) {},
+                    service: _FakeRating(),
+                  ),
+                ),
+              ],
+            ),
           ),
-        ]),
-      )));
+        ),
+      );
       await tester.pump();
     }
 
@@ -325,11 +460,21 @@ void main() {
       expect(paidLabelFor('upi'), 'PAID BY UPI');
     });
 
-    testWidgets('Done saves the stars, or just leaves when there are none', (tester) async {
+    testWidgets('Done saves the stars, or just leaves when there are none', (
+      tester,
+    ) async {
       final svc = _FakeRating();
       final results = <bool>[];
-      await tester.pumpWidget(sgApp(
-          RideRatingPanel(tripId: '9', driverName: 'Ravi Kumar', service: svc, onDone: results.add)));
+      await tester.pumpWidget(
+        sgApp(
+          RideRatingPanel(
+            tripId: '9',
+            driverName: 'Ravi Kumar',
+            service: svc,
+            onDone: results.add,
+          ),
+        ),
+      );
       await tester.tap(find.text('Done'));
       await tester.pump();
       expect(results, [false]);
@@ -345,18 +490,25 @@ void main() {
   });
 
   group('no driver found', () {
-    testWidgets('Try again is the one gold button; Change ride is secondary', (tester) async {
+    testWidgets('Try again is the one gold button; Change ride is secondary', (
+      tester,
+    ) async {
       setPhoneSurface(tester);
       addTearDown(tester.view.reset);
       final taps = <String>[];
-      await tester.pumpWidget(sgApp(tripFrame(
-        sheet: NoDriverSheet(
-          subline: 'Drivers nearby are busy right now. Try again, or choose another ride.',
-          fare: _fare(),
-          onTryAgain: () => taps.add('again'),
-          onChangeRide: () => taps.add('change'),
+      await tester.pumpWidget(
+        sgApp(
+          tripFrame(
+            sheet: NoDriverSheet(
+              subline:
+                  'Drivers nearby are busy right now. Try again, or choose another ride.',
+              fare: _fare(),
+              onTryAgain: () => taps.add('again'),
+              onChangeRide: () => taps.add('change'),
+            ),
+          ),
         ),
-      )));
+      );
       expect(find.text('No Saaradhi nearby right now'), findsOneWidget);
       expect(find.text('₹248'), findsOneWidget);
       expect(find.byType(SgPrimaryButton), findsOneWidget);
@@ -366,22 +518,32 @@ void main() {
     });
   });
 
-  testWidgets('the placeholder map reports a drag and then idle', (tester) async {
+  testWidgets('the placeholder map reports a drag and then idle', (
+    tester,
+  ) async {
     setPhoneSurface(tester);
     addTearDown(tester.view.reset);
     final moves = <LatLng>[];
     var idle = 0;
-    await tester.pumpWidget(sgApp(SgMap(
-      provider: const PlaceholderMapsProvider(),
-      initialCenter: const LatLng(17.4, 78.4),
-      initialZoom: 17,
-      onCameraMove: (c) => moves.add(c.center),
-      onCameraIdle: () => idle++,
-    )));
+    await tester.pumpWidget(
+      sgApp(
+        SgMap(
+          provider: const PlaceholderMapsProvider(),
+          initialCenter: const LatLng(17.4, 78.4),
+          initialZoom: 17,
+          onCameraMove: (c) => moves.add(c.center),
+          onCameraIdle: () => idle++,
+        ),
+      ),
+    );
     await tester.dragFrom(const Offset(200, 300), const Offset(60, 0));
     await tester.pump();
     expect(moves, isNotEmpty);
-    expect(moves.last.longitude, lessThan(78.4), reason: 'content moved right, camera went west');
+    expect(
+      moves.last.longitude,
+      lessThan(78.4),
+      reason: 'content moved right, camera went west',
+    );
     expect(idle, 1);
   });
 }

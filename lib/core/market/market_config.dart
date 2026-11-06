@@ -120,7 +120,30 @@ class MarketConfig {
     this.referralsAvailable = false,
     this.isBuiltIn = false,
     this.supportPhone,
+    this.cancelChargesFee,
+    this.freeCancelSeconds,
+    this.freeWaitMinutes,
+    this.refundDays,
   });
+
+  /// `country.cancel_policy.charges_fee`. False: cancelling never costs the
+  /// rider anything, so a cancel action may say "Free to cancel". Null: say
+  /// nothing about it.
+  final bool? cancelChargesFee;
+
+  /// `country.cancel_policy.free_cancel_seconds`; null while there is no
+  /// window. TODO(data): no window is configured today.
+  final int? freeCancelSeconds;
+
+  /// `country.cancel_policy.free_wait_minutes`; null today.
+  final int? freeWaitMinutes;
+
+  /// `country.cancel_policy.refund_days` (working days); null hides the
+  /// refund-time line.
+  final int? refundDays;
+
+  /// True only when the config says cancelling costs nothing.
+  bool get freeToCancel => cancelChargesFee == false;
 
   /// `country.support.phone`: SaaradhiGo's own support line, or null while
   /// none is configured. The call row is hidden then; the app showed the
@@ -354,6 +377,18 @@ class MarketConfig {
       promosAvailable: data['promos_available'] == true,
       referralsAvailable: data['referrals_available'] == true,
       supportPhone: _str(_map(country['support'])['phone']),
+      cancelChargesFee: _map(country['cancel_policy'])['charges_fee'] is bool
+          ? _map(country['cancel_policy'])['charges_fee'] as bool
+          : null,
+      freeCancelSeconds: _int(
+        _map(country['cancel_policy'])['free_cancel_seconds'],
+      ),
+      freeWaitMinutes: _int(
+        _map(country['cancel_policy'])['free_wait_minutes'],
+      ),
+      refundDays:
+          _int(_map(country['cancel_policy'])['refund_days']) ??
+          _int(country['refund_days']),
     );
   }
 }
@@ -368,6 +403,8 @@ String? _str(Object? v) {
 }
 
 double? _num(Object? v) => v is num ? v.toDouble() : null;
+
+int? _int(Object? v) => v is num && v >= 0 ? v.toInt() : null;
 
 String? _digits(String? v) {
   if (v == null) return null;
