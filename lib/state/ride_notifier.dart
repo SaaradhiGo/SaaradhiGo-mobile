@@ -7,6 +7,7 @@ import 'ride_state.dart';
 import '../core/market/booking_refusal.dart';
 import '../core/promo/promo_messages.dart';
 import '../core/promo/promo_selection.dart';
+import '../core/pricing/quote_lock.dart';
 import '../services/models/location_model.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../services/websocket_service.dart';
@@ -542,6 +543,16 @@ class RideNotifier extends Notifier<RideState> {
         data['code'].toString(),
         promoBookingRefusalMessage(data['code']?.toString()),
       );
+      unawaited(clearState());
+      return;
+    }
+
+    // The quote on the ticket expired, or the pickup, drop or class moved off
+    // it. The server booked nothing and sent a fresh quote: hand it to the
+    // ticket (MapProvider shows it, the search screen goes back to it) and
+    // leave the search. Never book silently at a different fare.
+    if (isQuoteExpiredFrame(data)) {
+      QuoteLockState.instance.reportFrame(data, vehicleType: state.vehicleType);
       unawaited(clearState());
       return;
     }

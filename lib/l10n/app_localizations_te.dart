@@ -372,6 +372,19 @@ class AppLocalizationsTe extends AppLocalizations {
   }
 
   @override
+  String fareUpdatedTimePassed(String fare) {
+    return 'సమయం గడిచినందున ఛార్జీ $fareకు మారింది';
+  }
+
+  @override
+  String fareUpdatedPickupChanged(String fare) {
+    return 'పికప్ మారినందున ఛార్జీ $fareకు మారింది';
+  }
+
+  @override
+  String get fareUpdating => 'ఛార్జీ నవీకరిస్తున్నాం';
+
+  @override
   String askedDriversNearby(int n) {
     String _temp0 = intl.Intl.pluralLogic(
       n,

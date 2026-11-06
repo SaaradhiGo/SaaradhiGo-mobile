@@ -52,6 +52,10 @@ class _FakeMap extends MapProvider {
     confirmed = location;
     confirmedAddress = address;
   }
+
+  /// The moved pin, re-quoted at once (the fake prices it the same).
+  @override
+  LatLng? get precisePickupLocation => confirmed;
 }
 
 DriverCardData _ravi() => const DriverCardData(

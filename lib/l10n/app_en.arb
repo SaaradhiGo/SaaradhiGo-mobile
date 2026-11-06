@@ -202,6 +202,12 @@
   "@noDriversNearby": {"description": "Every fare: a class with no driver near."},
   "seatsCount": "{n, plural, =1{1 seat} other{{n} seats}}",
   "@seatsCount": {"description": "Every fare: seats in the class.", "placeholders": {"n": {"type": "int"}}},
+  "fareUpdatedTimePassed": "Fare updated to {fare} because time passed",
+  "@fareUpdatedTimePassed": {"description": "Fare ticket: the server's quote expired before booking; this is the fresh fare. Confirm again books it.", "placeholders": {"fare": {"type": "String"}}},
+  "fareUpdatedPickupChanged": "Fare updated to {fare} because the pickup changed",
+  "@fareUpdatedPickupChanged": {"description": "Fare ticket: the pickup, drop or class changed after the quote; this is the fresh fare.", "placeholders": {"fare": {"type": "String"}}},
+  "fareUpdating": "Updating your fare",
+  "@fareUpdating": {"description": "Fare ticket: re-quoting after the rider moved the pickup pin."},
   "askedDriversNearby": "{n, plural, =1{Asked 1 driver nearby} other{Asked {n} drivers nearby}}",
   "@askedDriversNearby": {"description": "Finding: how many drivers the search has offered the ride to so far (dispatch_progress drivers_notified, summed over waves). Shown only when above zero.", "placeholders": {"n": {"type": "int"}}}
 }

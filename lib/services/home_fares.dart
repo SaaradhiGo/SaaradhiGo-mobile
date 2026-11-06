@@ -11,6 +11,7 @@ library;
 
 import 'package:latlong2/latlong.dart';
 
+import '../core/market/market_config.dart';
 import '../core/vehicle_classes.dart';
 import '../ui/choose_ride_sheet.dart' show RideOption;
 import 'fare_service.dart';
@@ -56,21 +57,60 @@ class HomeQuote {
 String _titleCase(String s) =>
     s.isEmpty ? s : s[0].toUpperCase() + s.substring(1).toLowerCase();
 
+/// Only a nearby place gets a fare card: one inside the rider's current
+/// service area (the app-config city whose `service_area` box holds the
+/// rider) AND within `country.home_fare_places_max_km` of the rider. A
+/// 318 km, ₹4,331 card for Benz Circle is not "fares from here".
+///
+/// Null when [here] is unknown: nothing can be shown as near.
+bool Function(LatLng place)? homePlaceFilter(
+  MarketConfig market,
+  LatLng? here,
+) {
+  if (here == null) return null;
+  const distance = Distance();
+  final maxKm = market.homeFarePlacesMaxKm;
+  final boxed = market.cities.where((c) => c.bounds != null).toList();
+  // The same 1.5 km buffer the store's cityAt uses for the rider's own city.
+  BoundsConfig? area;
+  for (final c in boxed) {
+    final b = c.bounds!.grownByKm(1.5);
+    if (b.contains(here)) {
+      area = b;
+      break;
+    }
+  }
+  return (place) {
+    if (distance.as(LengthUnit.Kilometer, here, place) > maxKm) return false;
+    // No city boxes configured: the distance alone decides. Boxes configured
+    // but the rider is in none: no place is in the rider's service area.
+    if (boxed.isEmpty) return true;
+    return area != null && area.contains(place);
+  };
+}
+
 /// Up to [max] places: labelled saved places first, then other saved places,
-/// then recent drops with coordinates. Each name once.
+/// then recent drops with coordinates. Each name once. With [near], a place
+/// it rejects is skipped and the next one taken; with [requireNear] and no
+/// [near] (the rider's position is unknown), none.
 List<HomePlace> pickHomePlaces(
   List<FavoriteLocation> saved,
   List<Trip> recents, {
   int max = 2,
+  bool Function(LatLng place)? near,
+  bool requireNear = false,
 }) {
   final out = <HomePlace>[];
+  if (requireNear && near == null) return out;
   final seen = <String>{};
   void add(String name, String? address, double? lat, double? lng) {
     if (out.length >= max || lat == null || lng == null) return;
     if (lat == 0 && lng == 0) return;
+    final to = LatLng(lat, lng);
+    if (near != null && !near(to)) return;
     final n = name.trim();
     if (n.isEmpty || !seen.add(n.toLowerCase())) return;
-    out.add(HomePlace(name: n, address: address, to: LatLng(lat, lng)));
+    out.add(HomePlace(name: n, address: address, to: to));
   }
 
   String first(String address) => address.split(',').first.trim();

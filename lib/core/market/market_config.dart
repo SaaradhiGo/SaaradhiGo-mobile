@@ -72,6 +72,9 @@ class BoundsConfig {
   }
 }
 
+/// "Fares from here" range when app-config does not say.
+const double kDefaultHomeFarePlacesMaxKm = 60;
+
 class CityConfig {
   const CityConfig({
     required this.code,
@@ -124,7 +127,13 @@ class MarketConfig {
     this.freeCancelSeconds,
     this.freeWaitMinutes,
     this.refundDays,
+    this.homeFarePlacesMaxKm = kDefaultHomeFarePlacesMaxKm,
   });
+
+  /// `country.home_fare_places_max_km`: how far from the rider a saved or
+  /// recent place may be and still get a "Fares from here" card. 60 when the
+  /// server does not send it.
+  final double homeFarePlacesMaxKm;
 
   /// `country.cancel_policy.charges_fee`. False: cancelling never costs the
   /// rider anything, so a cancel action may say "Free to cancel". Null: say
@@ -389,6 +398,11 @@ class MarketConfig {
       refundDays:
           _int(_map(country['cancel_policy'])['refund_days']) ??
           _int(country['refund_days']),
+      homeFarePlacesMaxKm:
+          (country['home_fare_places_max_km'] is num &&
+              (country['home_fare_places_max_km'] as num) > 0)
+          ? (country['home_fare_places_max_km'] as num).toDouble()
+          : kDefaultHomeFarePlacesMaxKm,
     );
   }
 }

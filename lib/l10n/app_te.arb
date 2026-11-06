@@ -202,6 +202,12 @@
   "@noDriversNearby": {"description": "needs native review"},
   "seatsCount": "{n, plural, =1{1 సీటు} other{{n} సీట్లు}}",
   "@seatsCount": {"description": "needs native review"},
+  "fareUpdatedTimePassed": "సమయం గడిచినందున ఛార్జీ {fare}కు మారింది",
+  "@fareUpdatedTimePassed": {"description": "needs native review", "placeholders": {"fare": {"type": "String"}}},
+  "fareUpdatedPickupChanged": "పికప్ మారినందున ఛార్జీ {fare}కు మారింది",
+  "@fareUpdatedPickupChanged": {"description": "needs native review", "placeholders": {"fare": {"type": "String"}}},
+  "fareUpdating": "ఛార్జీ నవీకరిస్తున్నాం",
+  "@fareUpdating": {"description": "needs native review"},
   "askedDriversNearby": "{n, plural, =1{దగ్గరలోని 1 డ్రైవర్‌ను అడిగాం} other{దగ్గరలోని {n} డ్రైవర్లను అడిగాం}}",
   "@askedDriversNearby": {"description": "needs native review", "placeholders": {"n": {"type": "int"}}}
 }
