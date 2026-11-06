@@ -120,7 +120,7 @@ class HomeSheet extends StatelessWidget {
               ],
               const SizedBox(height: SgSpace.s2),
               if (loading && recents.isEmpty && chips.isEmpty)
-                const Padding(
+                Padding(
                   padding: EdgeInsets.all(SgSpace.s4),
                   child: Center(
                     child: SizedBox(
@@ -246,7 +246,7 @@ class _Place extends StatelessWidget {
               data.distance!,
               style: SgText.caption.copyWith(
                 color: SgColors.inkSubtle,
-                fontSize: 12,
+                fontSize: SgText.px(12),
               ),
             ),
         ],

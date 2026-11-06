@@ -10,6 +10,7 @@ import 'package:go_router/go_router.dart';
 import '../../providers/auth_provider.dart';
 
 import '../../ui/sg_tokens.dart';
+import '../../ui/sg_text.dart';
 
 class EditPersonalInformationScreen extends StatefulWidget {
   const EditPersonalInformationScreen({super.key});
@@ -156,9 +157,8 @@ class _EditPersonalInformationScreenState
               'SET PROFILE PHOTO',
               style: TextStyle(
                 color: SgColors.inkMuted,
-                fontSize: 12,
+                fontSize: SgText.px(12),
                 fontWeight: FontWeight.bold,
-                letterSpacing: 1.5,
               ),
             ),
             const SizedBox(height: 24),
@@ -214,7 +214,7 @@ class _EditPersonalInformationScreenState
             label,
             style: TextStyle(
               color: SgColors.ink,
-              fontSize: 13,
+              fontSize: SgText.px(13),
               fontWeight: FontWeight.w500,
             ),
           ),
@@ -321,9 +321,8 @@ class _EditPersonalInformationScreenState
         text.toUpperCase(),
         style: TextStyle(
           color: SgColors.inkMuted,
-          fontSize: 11,
+          fontSize: SgText.px(11),
           fontWeight: FontWeight.w700,
-          letterSpacing: 1.3,
         ),
       ),
     );
@@ -381,9 +380,8 @@ class _EditPersonalInformationScreenState
                       textAlign: TextAlign.center,
                       style: TextStyle(
                         color: SgColors.ink,
-                        fontSize: 24,
+                        fontSize: SgText.px(24),
                         fontWeight: FontWeight.w600,
-                        letterSpacing: -0.4,
                       ),
                     ),
                   ),
@@ -461,7 +459,7 @@ class _EditPersonalInformationScreenState
                         controller: _fullNameController,
                         style: TextStyle(
                           color: SgColors.ink,
-                          fontSize: 19,
+                          fontSize: SgText.px(19),
                           fontWeight: FontWeight.w500,
                         ),
                         decoration: InputDecoration(
@@ -473,7 +471,7 @@ class _EditPersonalInformationScreenState
                           hintText: _fallbackFullName,
                           hintStyle: TextStyle(
                             color: SgColors.inkSubtle,
-                            fontSize: 19,
+                            fontSize: SgText.px(19),
                           ),
                         ),
                       ),
@@ -486,7 +484,7 @@ class _EditPersonalInformationScreenState
                         keyboardType: TextInputType.emailAddress,
                         style: TextStyle(
                           color: SgColors.ink,
-                          fontSize: 19,
+                          fontSize: SgText.px(19),
                           fontWeight: FontWeight.w500,
                         ),
                         decoration: InputDecoration(
@@ -498,7 +496,7 @@ class _EditPersonalInformationScreenState
                           hintText: _fallbackEmail,
                           hintStyle: TextStyle(
                             color: SgColors.inkSubtle,
-                            fontSize: 19,
+                            fontSize: SgText.px(19),
                           ),
                         ),
                       ),
@@ -525,7 +523,7 @@ class _EditPersonalInformationScreenState
                               displayCountryCode,
                               style: TextStyle(
                                 color: SgColors.ink,
-                                fontSize: 19,
+                                fontSize: SgText.px(19),
                                 fontWeight: FontWeight.w600,
                               ),
                             ),
@@ -542,7 +540,7 @@ class _EditPersonalInformationScreenState
                                   color: const Color(
                                     0xFFF8FAFC,
                                   ).withValues(alpha: 0.5),
-                                  fontSize: 19,
+                                  fontSize: SgText.px(19),
                                   fontWeight: FontWeight.w500,
                                 ),
                               ),
@@ -570,7 +568,7 @@ class _EditPersonalInformationScreenState
                           isExpanded: true,
                           style: TextStyle(
                             color: SgColors.ink,
-                            fontSize: 19,
+                            fontSize: SgText.px(19),
                             fontWeight: FontWeight.w500,
                           ),
                           padding: const EdgeInsets.symmetric(horizontal: 14),
@@ -609,7 +607,7 @@ class _EditPersonalInformationScreenState
                         readOnly: true,
                         style: TextStyle(
                           color: SgColors.ink,
-                          fontSize: 19,
+                          fontSize: SgText.px(19),
                           fontWeight: FontWeight.w500,
                         ),
                         decoration: InputDecoration(
@@ -621,7 +619,7 @@ class _EditPersonalInformationScreenState
                           hintText: 'YYYY-MM-DD',
                           hintStyle: TextStyle(
                             color: SgColors.inkSubtle,
-                            fontSize: 19,
+                            fontSize: SgText.px(19),
                           ),
                           suffixIcon: Icon(
                             Icons.calendar_today,
@@ -639,7 +637,7 @@ class _EditPersonalInformationScreenState
                         keyboardType: TextInputType.phone,
                         style: TextStyle(
                           color: SgColors.ink,
-                          fontSize: 19,
+                          fontSize: SgText.px(19),
                           fontWeight: FontWeight.w500,
                         ),
                         decoration: InputDecoration(
@@ -651,7 +649,7 @@ class _EditPersonalInformationScreenState
                           hintText: sgStrings(context).emergencyPhoneHint,
                           hintStyle: TextStyle(
                             color: SgColors.inkSubtle,
-                            fontSize: 19,
+                            fontSize: SgText.px(19),
                           ),
                         ),
                       ),
@@ -665,7 +663,7 @@ class _EditPersonalInformationScreenState
                           'RESIDENTIAL ADDRESS',
                           style: TextStyle(
                             color: SgColors.ink,
-                            fontSize: 18,
+                            fontSize: SgText.px(18),
                             fontWeight: FontWeight.w600,
                           ),
                         ),
@@ -684,7 +682,7 @@ class _EditPersonalInformationScreenState
                                   controller: _houseNoController,
                                   style: TextStyle(
                                     color: SgColors.ink,
-                                    fontSize: 16,
+                                    fontSize: SgText.px(16),
                                   ),
                                   decoration: const InputDecoration(
                                     border: InputBorder.none,
@@ -711,7 +709,7 @@ class _EditPersonalInformationScreenState
                                   controller: _streetController,
                                   style: TextStyle(
                                     color: SgColors.ink,
-                                    fontSize: 16,
+                                    fontSize: SgText.px(16),
                                   ),
                                   decoration: InputDecoration(
                                     border: InputBorder.none,
@@ -745,7 +743,7 @@ class _EditPersonalInformationScreenState
                                   controller: _cityController,
                                   style: TextStyle(
                                     color: SgColors.ink,
-                                    fontSize: 16,
+                                    fontSize: SgText.px(16),
                                   ),
                                   decoration: InputDecoration(
                                     border: InputBorder.none,
@@ -777,7 +775,7 @@ class _EditPersonalInformationScreenState
                                   keyboardType: TextInputType.number,
                                   style: TextStyle(
                                     color: SgColors.ink,
-                                    fontSize: 16,
+                                    fontSize: SgText.px(16),
                                   ),
                                   decoration: InputDecoration(
                                     border: InputBorder.none,
@@ -834,10 +832,10 @@ class _EditPersonalInformationScreenState
                         color: SgColors.bg000,
                       ),
                     )
-                  : const Text(
+                  : Text(
                       'Save Changes',
                       style: TextStyle(
-                        fontSize: 18,
+                        fontSize: SgText.px(18),
                         fontWeight: FontWeight.bold,
                       ),
                     ),

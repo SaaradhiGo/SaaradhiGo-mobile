@@ -14,6 +14,7 @@ import 'dart:io' show Platform;
 import 'web_payment_stub.dart' if (dart.library.html) 'web_payment_helper.dart';
 
 import '../ui/sg_tokens.dart';
+import '../ui/sg_text.dart';
 
 class GatewaySuccessResponse {
   final String orderId;
@@ -166,7 +167,7 @@ class PaymentService {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              const CircularProgressIndicator(color: SgColors.gold500),
+              CircularProgressIndicator(color: SgColors.gold500),
               const SizedBox(height: 20),
               Material(
                 color: Colors.transparent,
@@ -174,7 +175,7 @@ class PaymentService {
                   'Initiating secure payment...',
                   style: TextStyle(
                     color: SgColors.white,
-                    fontSize: 16,
+                    fontSize: SgText.px(16),
                     fontWeight: FontWeight.w600,
                   ),
                 ),

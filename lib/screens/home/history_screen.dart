@@ -170,7 +170,7 @@ class _HistoryScreenState extends State<HistoryScreen> {
             Text(
               message,
               textAlign: TextAlign.center,
-              style: TextStyle(color: SgColors.ink, fontSize: 16),
+              style: TextStyle(color: SgColors.ink, fontSize: SgText.px(16)),
             ),
             const SizedBox(height: 24),
             ElevatedButton(
@@ -353,7 +353,7 @@ class _TimelineRoute extends StatelessWidget {
         ),
         Row(
           children: [
-            const SizedBox(
+            SizedBox(
               width: 24,
               height: 24,
               child: Center(

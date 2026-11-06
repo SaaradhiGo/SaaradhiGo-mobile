@@ -1,8 +1,12 @@
 {
   "@@locale": "te",
+  "themeSwitchToDark": "డార్క్ థీమ్‌కు మారండి",
+  "@themeSwitchToDark": {"description": "needs native review"},
+  "themeSwitchToLight": "లైట్ థీమ్‌కు మారండి",
+  "@themeSwitchToLight": {"description": "needs native review"},
   "appearance": "రూపం",
   "@appearance": {"description": "needs native review"},
-  "themeDark": "డార్క్",
+  "themeDark": "డార్క్ (నలుపు, బంగారు)",
   "@themeDark": {"description": "needs native review"},
   "themeLight": "లైట్",
   "@themeLight": {"description": "needs native review"},

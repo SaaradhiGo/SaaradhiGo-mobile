@@ -10,6 +10,8 @@ library;
 
 import 'dart:convert';
 
+import 'package:flutter/services.dart' show rootBundle;
+
 import '../../ui/sg_tokens.dart';
 
 /// `design-system/tokens.json`, dark values.
@@ -60,3 +62,16 @@ final String kSgMapStyle = jsonEncode([
   ..._rule('administrative.neighborhood', 'labels', {'visibility': 'off'}),
   ..._rule('road', 'labels.icon', {'visibility': 'off'}),
 ]);
+
+/// The Daylight basemap: assets/maps/sg_map_light.json, the same JSON as the
+/// website and the driver app, used verbatim. Loaded once by [loadLightMapStyle].
+String? kSgMapStyleLight;
+
+Future<void> loadLightMapStyle() async {
+  try {
+    kSgMapStyleLight = await rootBundle.loadString('assets/maps/sg_map_light.json');
+  } catch (_) {}
+}
+
+/// The style for the active theme.
+String sgMapStyle() => SgColors.isDark ? kSgMapStyle : (kSgMapStyleLight ?? kSgMapStyle);

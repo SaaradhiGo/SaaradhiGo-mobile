@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import '../../core/notifications/notification_prefs.dart';
 import '../../services/notification_preferences_service.dart';
 import '../../services/token_store.dart';
+import '../../ui/sg_text.dart';
 
 const String kPrefsSaveFailed =
     "We couldn't save that change. Your setting has not changed.";
@@ -154,7 +155,7 @@ class _NotificationPreferencesScreenState
               padding: const EdgeInsets.fromLTRB(16, 0, 16, 4),
               child: Text(
                 note,
-                style: TextStyle(color: scheme.onSurfaceVariant, fontSize: 13),
+                style: TextStyle(color: scheme.onSurfaceVariant, fontSize: SgText.px(13)),
               ),
             ),
           ...rows,

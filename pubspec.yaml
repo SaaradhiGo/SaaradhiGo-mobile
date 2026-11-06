@@ -71,6 +71,7 @@ flutter:
   generate: true
   assets:
     - assets/markers/
+    - assets/maps/
     - assets/brand/
     - assets/vehicles/
   fonts:

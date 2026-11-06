@@ -225,7 +225,7 @@ class _GoogleSgMapState extends State<_GoogleSgMap> {
         target: _g(map.initialCenter),
         zoom: map.initialZoom,
       ),
-      style: kSgMapStyle,
+      style: sgMapStyle(),
       markers: _markers(),
       polylines: _polylines(),
       padding: map.padding,

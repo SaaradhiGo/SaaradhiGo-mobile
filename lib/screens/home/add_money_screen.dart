@@ -6,6 +6,7 @@ import 'package:provider/provider.dart';
 import '../../providers/wallet_provider.dart';
 
 import '../../ui/sg_tokens.dart';
+import '../../ui/sg_text.dart';
 
 class AddMoneyScreen extends StatefulWidget {
   const AddMoneyScreen({super.key});
@@ -107,7 +108,7 @@ class _AddMoneyScreenState extends State<AddMoneyScreen> {
           'Add Money',
           style: TextStyle(
             color: SgColors.ink,
-            fontSize: 18,
+            fontSize: SgText.px(18),
             fontWeight: FontWeight.w600,
           ),
         ),
@@ -127,7 +128,7 @@ class _AddMoneyScreenState extends State<AddMoneyScreen> {
                     'Current Balance',
                     style: TextStyle(
                       color: SgColors.inkMuted,
-                      fontSize: 14,
+                      fontSize: SgText.px(14),
                       fontWeight: FontWeight.w500,
                     ),
                   ),
@@ -136,7 +137,7 @@ class _AddMoneyScreenState extends State<AddMoneyScreen> {
                     formatter.format(provider.balance),
                     style: TextStyle(
                       color: SgColors.ink,
-                      fontSize: 32,
+                      fontSize: SgText.px(32),
                       fontWeight: FontWeight.w700,
                     ),
                   ),
@@ -147,7 +148,7 @@ class _AddMoneyScreenState extends State<AddMoneyScreen> {
                     'Top up amount',
                     style: TextStyle(
                       color: SgColors.inkMuted,
-                      fontSize: 14,
+                      fontSize: SgText.px(14),
                       fontWeight: FontWeight.w500,
                     ),
                   ),
@@ -157,14 +158,14 @@ class _AddMoneyScreenState extends State<AddMoneyScreen> {
                     keyboardType: TextInputType.number,
                     style: TextStyle(
                       color: SgColors.goldText,
-                      fontSize: 40,
+                      fontSize: SgText.px(40),
                       fontWeight: FontWeight.w700,
                     ),
                     decoration: InputDecoration(
                       prefixText: '${marketOf(context).currencySymbol} ',
                       prefixStyle: TextStyle(
                         color: SgColors.goldText,
-                        fontSize: 40,
+                        fontSize: SgText.px(40),
                         fontWeight: FontWeight.w700,
                       ),
                       enabledBorder: UnderlineInputBorder(
@@ -176,7 +177,7 @@ class _AddMoneyScreenState extends State<AddMoneyScreen> {
                       hintText: '0',
                       hintStyle: TextStyle(
                         color: SgColors.goldText,
-                        fontSize: 40,
+                        fontSize: SgText.px(40),
                         fontWeight: FontWeight.w700,
                       ),
                     ),
@@ -211,7 +212,7 @@ class _AddMoneyScreenState extends State<AddMoneyScreen> {
                             '+ ${marketOf(context).currencySymbol}$amount',
                             style: TextStyle(
                               color: SgColors.goldText,
-                              fontSize: 14,
+                              fontSize: SgText.px(14),
                               fontWeight: FontWeight.w600,
                             ),
                           ),
@@ -251,7 +252,7 @@ class _AddMoneyScreenState extends State<AddMoneyScreen> {
                           : Text(
                               'Proceed to Pay',
                               style: TextStyle(
-                                fontSize: 16,
+                                fontSize: SgText.px(16),
                                 fontWeight: FontWeight.w700,
                               ),
                             ),

@@ -7,6 +7,7 @@ import '../services/promo_service.dart';
 import '../utils/money.dart';
 
 import '../ui/sg_tokens.dart';
+import '../ui/sg_text.dart';
 
 /// Inline promo-code entry for the fare screen.
 ///
@@ -169,21 +170,21 @@ class _PromoCodeFieldState extends State<PromoCodeField> {
                   style: TextStyle(
                     color: SgColors.success,
                     fontWeight: FontWeight.w700,
-                    fontSize: 13,
+                    fontSize: SgText.px(13),
                   ),
                 ),
                 const SizedBox(height: 2),
                 Text(
                   'Discount -$saved',
                   key: const Key('promo_discount_text'),
-                  style: TextStyle(color: SgColors.ink, fontSize: 13),
+                  style: TextStyle(color: SgColors.ink, fontSize: SgText.px(13)),
                 ),
                 Text(
                   'You pay $pay',
                   key: const Key('promo_payable_text'),
                   style: TextStyle(
                     color: SgColors.ink,
-                    fontSize: 14,
+                    fontSize: SgText.px(14),
                     fontWeight: FontWeight.w700,
                   ),
                 ),
@@ -269,7 +270,7 @@ class _PromoCodeFieldState extends State<PromoCodeField> {
             key: const Key('promo_refusal'),
             style: TextStyle(
               color: SgColors.danger,
-              fontSize: 12,
+              fontSize: SgText.px(12),
               fontWeight: FontWeight.w500,
             ),
           ),

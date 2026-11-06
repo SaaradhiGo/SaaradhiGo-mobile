@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import '../../ui/sg_text.dart';
+import '../../ui/sg_layout.dart';
 import 'package:latlong2/latlong.dart';
 import '../../core/maps/sg_map.dart';
 import '../../core/pricing/quote_lock.dart';
@@ -150,96 +152,107 @@ class _PrecisePickupScreenState extends State<PrecisePickupScreen> {
     } else {
       notice = null;
     }
-    return Column(
+    final mapStack = Stack(
       children: [
-        Expanded(
-          child: Stack(
-            children: [
-              Positioned.fill(
-                child: SgMap(
-                  initialCenter:
-                      mapProvider.pickupLocation?.latLng ??
-                      const LatLng(17.385044, 78.4867),
-                  initialZoom: 17,
-                  onCameraMove: (camera) {
-                    if (!camera.byGesture) return;
-                    _dragged = true;
-                    _updateSnapping(camera.center);
-                  },
-                  onCameraIdle: _onIdle,
-                  polylines: [
-                    SgPolyline(
-                      id: 'route',
-                      points: mapProvider.polylineCoordinates,
-                      width: 5,
-                      color: SgColors.gold500.withValues(alpha: 0.5),
-                    ),
-                  ],
-                ),
-              ),
-              // The pin never moves; the map slides under it.
-              Align(
-                alignment: Alignment.center,
-                child: Transform.translate(
-                  offset: const Offset(0, -44),
-                  child: const FixedPickupPin(),
-                ),
-              ),
-              // The pickup point's name, over the pin.
-              Align(
-                alignment: Alignment.center,
-                child: Transform.translate(
-                  offset: const Offset(0, -112),
-                  child: ConstrainedBox(
-                    constraints: const BoxConstraints(maxWidth: 260),
-                    child: MapChip(address.split(',').first.trim()),
-                  ),
-                ),
-              ),
-              Positioned(
-                top: MediaQuery.of(context).padding.top + SgSpace.s2,
-                left: SgSpace.s4,
-                child: SgMapButton(
-                  icon: SgIcons.back,
-                  label: l.back,
-                  onTap: () => context.pop(),
-                ),
+        Positioned.fill(
+          child: SgMap(
+            initialCenter:
+                mapProvider.pickupLocation?.latLng ??
+                const LatLng(17.385044, 78.4867),
+            initialZoom: 17,
+            onCameraMove: (camera) {
+              if (!camera.byGesture) return;
+              _dragged = true;
+              _updateSnapping(camera.center);
+            },
+            onCameraIdle: _onIdle,
+            polylines: [
+              SgPolyline(
+                id: 'route',
+                points: mapProvider.polylineCoordinates,
+                width: SgColors.routeWidth,
+                color: SgColors.route.withValues(alpha: 0.5),
               ),
             ],
           ),
         ),
-        FareTicketSheet(
-          buttonLabel: l.confirmAndBook,
-          notice: notice,
-          ticket: FareTicket(
-            eyebrow: l.fareTicket,
-            vehicleType: mapProvider.selectedVehicleType,
-            className: vehicleClassName(mapProvider.selectedVehicleType),
-            fareText: chosen?.fareText ?? '',
-            lockText: l.fareLocked,
-            pickupLabel: l.pickupLabel,
-            pickup: address,
-            dropLabel: l.dropLabel,
-            drop: mapProvider.destinationAddress,
-            editLabel: l.edit,
-            // The pin is already draggable: Edit says so.
-            onEditPickup: () => ScaffoldMessenger.of(context)
-              ..hideCurrentSnackBar()
-              ..showSnackBar(SnackBar(content: Text(l.dragToMove))),
-            breakdownLabel: (chosen == null || estimate == null)
-                ? null
-                : l.seeHowWorkedOut(chosen.fareText),
-            onBreakdown: estimate == null
-                ? null
-                : () => showFareBreakdownSheet(context, estimate),
+        // The pin never moves; the map slides under it.
+        Align(
+          alignment: Alignment.center,
+          child: Transform.translate(
+            offset: const Offset(0, -44),
+            child: const FixedPickupPin(),
           ),
-          // Only the fare on the ticket can be booked: nothing while
-          // it is being re-quoted, or when there is no fare to show.
-          onConfirm: (_snappedLocation == null || requoting || chosen == null)
-              ? null
-              : () => context.push('/searching-driver'),
+        ),
+        // The pickup point's name, over the pin.
+        Align(
+          alignment: Alignment.center,
+          child: Transform.translate(
+            offset: const Offset(0, -112),
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 260),
+              child: MapChip(address.split(',').first.trim()),
+            ),
+          ),
+        ),
+        Positioned(
+          top: MediaQuery.of(context).padding.top + SgSpace.s2,
+          left: SgSpace.s4,
+          child: SgMapButton(
+            icon: SgIcons.back,
+            label: l.back,
+            onTap: () => context.pop(),
+          ),
         ),
       ],
+    );
+    final sheet = FareTicketSheet(
+      buttonLabel: l.confirmAndBook,
+      notice: notice,
+      ticket: FareTicket(
+        eyebrow: l.fareTicket,
+        vehicleType: mapProvider.selectedVehicleType,
+        className: vehicleClassName(mapProvider.selectedVehicleType),
+        fareText: chosen?.fareText ?? '',
+        lockText: l.fareLocked,
+        pickupLabel: l.pickupLabel,
+        pickup: address,
+        dropLabel: l.dropLabel,
+        drop: mapProvider.destinationAddress,
+        editLabel: l.edit,
+        // The pin is already draggable: Edit says so.
+        onEditPickup: () => ScaffoldMessenger.of(context)
+          ..hideCurrentSnackBar()
+          ..showSnackBar(SnackBar(content: Text(l.dragToMove))),
+        breakdownLabel: (chosen == null || estimate == null)
+            ? null
+            : l.seeHowWorkedOut(chosen.fareText),
+        onBreakdown: estimate == null
+            ? null
+            : () => showFareBreakdownSheet(context, estimate),
+      ),
+      // Only the fare on the ticket can be booked: nothing while
+      // it is being re-quoted, or when there is no fare to show.
+      onConfirm: (_snappedLocation == null || requoting || chosen == null)
+          ? null
+          : () => context.push('/searching-driver'),
+    );
+    // Tablet: the map on the left, the ticket as a 440 panel on the right.
+    if (sgIsTablet(context)) {
+      return SgMapSplit(map: mapStack, sheet: sheet);
+    }
+    // Phone: the ticket under the map; it scrolls rather than overflow
+    // (landscape, a large text size), and the map keeps at least a strip.
+    return LayoutBuilder(
+      builder: (context, box) => Column(
+        children: [
+          Expanded(child: mapStack),
+          ConstrainedBox(
+            constraints: BoxConstraints(maxHeight: box.maxHeight * 0.8),
+            child: SingleChildScrollView(child: sheet),
+          ),
+        ],
+      ),
     );
   }
 }

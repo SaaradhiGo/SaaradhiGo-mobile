@@ -14,7 +14,7 @@ void main() {
         estimatedMinutes: 20,
         now: start.add(const Duration(minutes: 5)),
       )!;
-      expect(clockText(e.at), '9:20 pm');
+      expect(clockText(e.at), '9:20 pm');
       expect(e.minutesLeft, 15);
       expect(e.progress, closeTo(0.25, 1e-9));
       expect(e.overdue, isFalse);
@@ -95,7 +95,7 @@ void main() {
       ),
     );
     expect(find.byKey(const Key('plate_in')), findsOneWidget);
-    expect(find.text('IND'), findsOneWidget);
+    // The IND strip is drawn without lettering (6px type was under the floor).
     expect(find.text('TS 09 QT 0059'), findsOneWidget);
     expect(find.byKey(const Key('plate_plain')), findsOneWidget);
     expect(find.text('482913'), findsOneWidget);

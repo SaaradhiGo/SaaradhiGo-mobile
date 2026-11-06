@@ -1,6 +1,6 @@
-/// The map drawn when there is no Google Maps key: pure black, a faint street
-/// grid in the map-* tokens, the badge, and the app's own route and pins.
-/// It makes no claim to be a real map.
+/// The map drawn when there is no Google Maps key: a plain surface in the
+/// basemap's land colour, the faint badge, and the app's own route and pins.
+/// No streets are drawn: it must never pass for a real map.
 library;
 
 import 'dart:math' as math;
@@ -54,7 +54,7 @@ class _PlaceholderMapState extends State<_PlaceholderMap> {
         child: Stack(
           fit: StackFit.expand,
           children: [
-            const CustomPaint(painter: _GroundPainter()),
+            CustomPaint(painter: const _GroundPainter()),
             Center(
               child: Opacity(
                 opacity: 0.05,
@@ -90,96 +90,14 @@ class _GroundPainter extends CustomPainter {
 
   @override
   void paint(Canvas canvas, Size size) {
-    canvas.drawRect(Offset.zero & size, Paint()..color = SgColors.bg000);
-    canvas.save();
-    canvas.translate(size.width / 2, size.height / 2);
-    canvas.rotate(-0.14);
-    canvas.translate(-size.width / 2, -size.height / 2);
-    final reach = size.longestSide * 1.4;
-    final street = Paint()
-      ..color = SgColors.mapStreet
-      ..strokeWidth = 2.5
-      ..style = PaintingStyle.stroke;
-    for (var x = -reach; x < reach; x += 44) {
-      canvas.drawLine(Offset(x, -reach), Offset(x, reach), street);
-    }
-    for (var y = -reach; y < reach; y += 52) {
-      canvas.drawLine(Offset(-reach, y), Offset(reach, y), street);
-    }
-    final arterial = Paint()
-      ..color = SgColors.mapArterial
-      ..strokeWidth = 6
-      ..style = PaintingStyle.stroke
-      ..strokeCap = StrokeCap.round;
-    for (final fy in [0.22, 0.52, 0.8]) {
-      final p = Path()
-        ..moveTo(-40, size.height * fy)
-        ..cubicTo(
-          size.width * .3,
-          size.height * (fy - .05),
-          size.width * .6,
-          size.height * (fy + .06),
-          size.width + 40,
-          size.height * fy,
-        );
-      canvas.drawPath(p, arterial);
-    }
-    for (final fx in [0.25, 0.7]) {
-      final p = Path()
-        ..moveTo(size.width * fx, -40)
-        ..cubicTo(
-          size.width * (fx + .08),
-          size.height * .3,
-          size.width * (fx - .08),
-          size.height * .65,
-          size.width * fx,
-          size.height + 40,
-        );
-      canvas.drawPath(p, arterial);
-    }
-    // Roads stay neutral grey: gold is only ever the route.
-    final highway = Paint()
-      ..color = SgColors.mapArterial
-      ..strokeWidth = 9
-      ..style = PaintingStyle.stroke
-      ..strokeCap = StrokeCap.round;
-    canvas.drawPath(
-      Path()
-        ..moveTo(-40, size.height * .95)
-        ..quadraticBezierTo(
-          size.width * .45,
-          size.height * .3,
-          size.width + 40,
-          -20,
-        ),
-      highway,
+    canvas.drawRect(
+      Offset.zero & size,
+      Paint()..color = SgColors.isDark ? SgColors.bg000 : SgColors.mapLandLight,
     );
-    canvas.drawRRect(
-      RRect.fromRectAndRadius(
-        Rect.fromLTWH(
-          size.width * .55,
-          size.height * .6,
-          size.width * .3,
-          size.height * .09,
-        ),
-        const Radius.circular(14),
-      ),
-      Paint()..color = SgColors.mapPark,
-    );
-    canvas.drawOval(
-      Rect.fromLTWH(
-        size.width * .08,
-        size.height * .38,
-        size.width * .26,
-        size.height * .07,
-      ),
-      Paint()..color = SgColors.mapWater,
-    );
-    canvas.restore();
   }
 
   @override
-  bool shouldRepaint(_GroundPainter old) => false;
+  bool shouldRepaint(_GroundPainter old) => true;
 }
 
 class _OverlayPainter extends CustomPainter {
@@ -251,12 +169,12 @@ class _OverlayPainter extends CustomPainter {
         continue;
       }
       final w = line.width.clamp(4.0, 5.0);
-      final gold = line.color == SgColors.gold500;
+      final gold = SgColors.isDark && line.color == SgColors.route;
       if (gold) {
         canvas.drawPath(
           path,
           Paint()
-            ..color = SgColors.gold500.withValues(alpha: 0.22)
+            ..color = SgColors.route.withValues(alpha: 0.22)
             ..style = PaintingStyle.stroke
             ..strokeWidth = w * 3
             ..strokeCap = StrokeCap.round
@@ -291,29 +209,42 @@ class _OverlayPainter extends CustomPainter {
         c,
         9,
         Paint()
-          ..color = SgColors.bg000
+          ..color = SgColors.isDark ? SgColors.bg000 : SgColors.white
           ..style = PaintingStyle.stroke
           ..strokeWidth = 2,
       );
     } else if (icon is SgSvgMarker && icon.asset.contains('dropoff')) {
+      // Dark: a gold square, black centre. Light: an ink square, marigold
+      // centre.
+      final square = SgColors.isDark ? SgColors.brandGold : SgColors.ink;
+      final centre = SgColors.isDark ? SgColors.bg000 : SgColors.gold500;
       canvas.drawCircle(
         c,
         22,
-        Paint()..color = SgColors.gold500.withValues(alpha: 0.18),
+        Paint()..color = square.withValues(alpha: 0.14),
       );
+      if (!SgColors.isDark) {
+        canvas.drawRRect(
+          RRect.fromRectAndRadius(
+            Rect.fromCenter(center: c, width: 24, height: 24),
+            const Radius.circular(6),
+          ),
+          Paint()..color = SgColors.white,
+        );
+      }
       canvas.drawRRect(
         RRect.fromRectAndRadius(
           Rect.fromCenter(center: c, width: 20, height: 20),
           const Radius.circular(5),
         ),
-        Paint()..color = SgColors.gold500,
+        Paint()..color = square,
       );
       canvas.drawRRect(
         RRect.fromRectAndRadius(
-          Rect.fromCenter(center: c, width: 6, height: 6),
+          Rect.fromCenter(center: c, width: 7, height: 7),
           const Radius.circular(1.5),
         ),
-        Paint()..color = SgColors.bg000,
+        Paint()..color = centre,
       );
     } else if (icon is SgCarMarker) {
       canvas.save();

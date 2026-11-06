@@ -126,10 +126,10 @@ Widget chooseFrame({
               icon: SgSvgMarker('assets/markers/dropoff.svg'),
             ),
           ],
-          polylines: const [
+          polylines: [
             SgPolyline(
               id: 'route',
-              color: SgColors.gold500,
+              color: SgColors.route,
               width: 4.5,
               points: [
                 LatLng(17.40, 78.37),

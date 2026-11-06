@@ -9,10 +9,16 @@ class AppLocalizationsEn extends AppLocalizations {
   AppLocalizationsEn([String locale = 'en']) : super(locale);
 
   @override
+  String get themeSwitchToDark => 'Switch to dark theme';
+
+  @override
+  String get themeSwitchToLight => 'Switch to light theme';
+
+  @override
   String get appearance => 'Appearance';
 
   @override
-  String get themeDark => 'Dark';
+  String get themeDark => 'Dark (black and gold)';
 
   @override
   String get themeLight => 'Light';

@@ -38,7 +38,11 @@ class HomeHeader extends StatelessWidget {
     required this.name,
     required this.onAccount,
     this.avatarUrl,
+    this.onToggleTheme,
   });
+
+  /// The sun/moon button (owner decision 2). Null hides it (tests).
+  final VoidCallback? onToggleTheme;
 
   final String languageShort;
   final VoidCallback onLanguage;
@@ -49,8 +53,20 @@ class HomeHeader extends StatelessWidget {
   @override
   Widget build(BuildContext context) => Row(
     children: [
-      const SgBrandLockup(badgeSize: 32),
+      // The lockup gives way first on a narrow phone, so the controls keep
+      // their 48 targets.
+      const Flexible(
+        child: FittedBox(
+          fit: BoxFit.scaleDown,
+          alignment: Alignment.centerLeft,
+          child: SgBrandLockup(badgeSize: 32),
+        ),
+      ),
       const Spacer(),
+      if (onToggleTheme != null) ...[
+        SgThemeToggle(onTap: onToggleTheme!),
+        const SizedBox(width: SgSpace.s1),
+      ],
       Semantics(
         button: true,
         label: sgStrings(context).language,
@@ -161,7 +177,7 @@ class HomeFromToCard extends StatelessWidget {
                     style: SgText.caption.copyWith(
                       color: SgColors.pickup,
                       fontWeight: FontWeight.w700,
-                      fontSize: 13,
+                      fontSize: SgText.px(13),
                     ),
                   ),
                 ),
@@ -260,7 +276,7 @@ class HomeClassChip extends StatelessWidget {
                     style: SgText.caption.copyWith(
                       color: vehicleIconColour(type),
                       fontWeight: FontWeight.w700,
-                      fontSize: 13,
+                      fontSize: SgText.px(13),
                     ),
                   ),
                 ),
@@ -269,7 +285,7 @@ class HomeClassChip extends StatelessWidget {
             const SizedBox(height: 2),
             Text(
               fareText,
-              style: SgText.fare.copyWith(fontSize: 18, height: 22 / 18),
+              style: SgText.fare.copyWith(fontSize: SgText.px(18), height: 22 / 18),
             ),
           ],
         ),
@@ -356,7 +372,7 @@ class HomeFareCard extends StatelessWidget {
                 ],
               )
             else if (loading)
-              const SizedBox(
+              SizedBox(
                 height: 64,
                 child: Center(
                   child: SizedBox(
@@ -467,7 +483,7 @@ class SgTabBar extends StatelessWidget {
                         Text(
                           items[i].label,
                           style: SgText.caption.copyWith(
-                            fontSize: 12,
+                            fontSize: SgText.px(12),
                             height: 16 / 12,
                             fontWeight: FontWeight.w700,
                             color: i == selected
@@ -485,4 +501,43 @@ class SgTabBar extends StatelessWidget {
       ),
     ),
   );
+}
+
+/// The sun/moon button in the home header: a sun when dark shows (tap for
+/// light), a moon when light shows (tap for dark). 48 by 48.
+class SgThemeToggle extends StatelessWidget {
+  const SgThemeToggle({super.key, required this.onTap});
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final l = sgStrings(context);
+    final dark = SgColors.isDark;
+    final label = dark ? l.themeSwitchToLight : l.themeSwitchToDark;
+    return Tooltip(
+      message: label,
+      excludeFromSemantics: true,
+      child: Semantics(
+        button: true,
+        label: label,
+        excludeSemantics: true,
+        child: InkWell(
+          key: const Key('home_theme_toggle'),
+          onTap: onTap,
+          customBorder: const CircleBorder(),
+          child: SizedBox(
+            width: kSgTouch,
+            height: kSgTouch,
+            child: Center(
+              child: SgIcon(
+                dark ? SgIcons.sun : SgIcons.moon,
+                size: 24,
+                color: SgColors.ink,
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
 }

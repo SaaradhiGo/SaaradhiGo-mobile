@@ -39,6 +39,23 @@ class SgSvgMarker extends SgMarkerIcon {
   String get key => 'svg:$asset@$size';
 }
 
+/// The pickup marker for the active theme. Light: a #0D7762 circle with a
+/// white ring. Dark: the pin as built.
+SgSvgMarker get sgPickupIcon => SgSvgMarker(
+  SgColors.isDark ? 'assets/markers/pickup.svg' : 'assets/markers/pickup-light.svg',
+);
+
+/// The drop marker for the active theme. Light: an ink square with a
+/// marigold centre. Dark: the gold pin as built.
+SgSvgMarker get sgDropIcon => SgSvgMarker(
+  SgColors.isDark ? 'assets/markers/dropoff.svg' : 'assets/markers/dropoff-light.svg',
+);
+
+/// Where the journey markers sit on their point: the pins by the foot of the
+/// stick, the light circle and square by their centre.
+Offset get sgJourneyAnchor =>
+    SgColors.isDark ? const Offset(0.5, 1.0) : const Offset(0.5, 0.5);
+
 /// A Material icon in one colour (the cars).
 class SgIconMarker extends SgMarkerIcon {
   const SgIconMarker(this.icon, this.color, {double size = 32}) : super(size);

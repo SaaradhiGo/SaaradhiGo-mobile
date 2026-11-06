@@ -40,8 +40,7 @@ class SgSosPill extends StatelessWidget {
                 'SOS',
                 style: SgText.body.copyWith(
                   color: SgColors.onDanger,
-                  fontWeight: FontWeight.w800,
-                  letterSpacing: 1,
+                  fontWeight: FontWeight.w700,
                 ),
               ),
             ],
@@ -64,10 +63,9 @@ class SgNumberPlate extends StatelessWidget {
     final text = Text(
       formatPlate(number),
       style: SgText.fare.copyWith(
-        fontSize: 16,
+        fontSize: SgText.px(16),
         height: 20 / 16,
         color: indian ? SgColors.black : SgColors.ink,
-        letterSpacing: 1.2,
       ),
     );
     if (!indian) {
@@ -102,15 +100,9 @@ class SgNumberPlate extends StatelessWidget {
               color: SgColors.plateBlue,
               alignment: Alignment.bottomCenter,
               padding: const EdgeInsets.only(bottom: 2),
-              child: Text(
-                'IND',
-                style: SgText.label.copyWith(
-                  fontSize: 6,
-                  height: 1,
-                  letterSpacing: 0,
-                  color: SgColors.white,
-                ),
-              ),
+              // The IND strip is drawn, not lettered: 6px type is under
+              // the 13px floor, and the plate number beside it is the text.
+              child: const SizedBox.shrink(),
             ),
             Padding(
               padding: const EdgeInsets.symmetric(
@@ -157,7 +149,7 @@ class SgPinPanel extends StatelessWidget {
             children: [
               Text(
                 label.toUpperCase(),
-                style: SgText.label.copyWith(color: SgColors.gold500),
+                style: SgText.label.copyWith(color: SgColors.brandGold),
               ),
               const SizedBox(height: 2),
               Text(
@@ -171,9 +163,9 @@ class SgPinPanel extends StatelessWidget {
           pin,
           key: const Key('ride_pin'),
           style: SgText.fare.copyWith(
-            fontSize: 38,
+            fontSize: SgText.px(38),
             height: 1,
-            color: SgColors.gold500,
+            color: SgColors.brandGold,
             letterSpacing: 6,
           ),
         ),
@@ -360,7 +352,7 @@ class ArrivingT2Sheet extends StatelessWidget {
             Text(
               eta!,
               key: const Key('arriving_eta'),
-              style: SgText.fare.copyWith(fontSize: 52, height: 1),
+              style: SgText.fare.copyWith(fontSize: SgText.px(52), height: 1),
             ),
           Text(
             headline,
@@ -451,7 +443,8 @@ class ArrivalEstimate {
 /// "9:41 pm".
 String clockText(DateTime t) {
   final h = t.hour % 12 == 0 ? 12 : t.hour % 12;
-  return '$h:${t.minute.toString().padLeft(2, '0')} ${t.hour < 12 ? 'am' : 'pm'}';
+  // A no-break space: "2:24" and "pm" never split across lines.
+  return '$h:${t.minute.toString().padLeft(2, '0')} ${t.hour < 12 ? 'am' : 'pm'}';
 }
 
 /// On trip (screen 8).
@@ -485,7 +478,7 @@ class OnTripSheet extends StatelessWidget {
             arrivalLine,
             key: const Key('trip_arrival'),
             style: SgText.heading.copyWith(
-              fontSize: 44,
+              fontSize: SgText.px(44),
               height: 46 / 44,
               fontFeatures: const [FontFeature.tabularFigures()],
             ),
@@ -555,7 +548,7 @@ class LockedFare extends StatelessWidget {
             style: SgText.caption.copyWith(
               color: SgColors.success,
               fontWeight: FontWeight.w700,
-              fontSize: 12,
+              fontSize: SgText.px(12),
             ),
           ),
         ],
@@ -641,7 +634,10 @@ class ReceiptTiles extends StatelessWidget {
               alignment: Alignment.centerLeft,
               child: Text(
                 value,
-                style: SgText.fare.copyWith(fontSize: 32, height: 36 / 32),
+                style: SgText.fare.copyWith(
+                  fontSize: SgText.px(32),
+                  height: 36 / 32,
+                ),
               ),
             ),
           ],

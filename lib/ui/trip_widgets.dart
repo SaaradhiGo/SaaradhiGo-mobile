@@ -79,7 +79,7 @@ class SgBadge extends StatelessWidget {
         const SizedBox(width: SgSpace.s1),
         Text(
           label.toUpperCase(),
-          style: SgText.label.copyWith(color: color, letterSpacing: 0.66),
+          style: SgText.label.copyWith(color: color),
         ),
       ],
     ),
@@ -101,10 +101,9 @@ class SgPlate extends StatelessWidget {
     child: Text(
       formatPlate(number),
       style: SgText.fare.copyWith(
-        fontSize: 14,
+        fontSize: SgText.px(14),
         height: 20 / 14,
         color: SgColors.onGold,
-        letterSpacing: 1.1,
       ),
     ),
   );
@@ -272,8 +271,8 @@ class SgPinBoxes extends StatelessWidget {
             child: Text(
               digits[i],
               style: SgText.fare.copyWith(
-                fontSize: 20,
-                fontWeight: FontWeight.w800,
+                fontSize: SgText.px(20),
+                fontWeight: FontWeight.w700,
               ),
             ),
           ),
@@ -376,7 +375,7 @@ class SgDriverCard extends StatelessWidget {
                         driver.name,
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
-                        style: SgText.title.copyWith(fontSize: 16),
+                        style: SgText.title.copyWith(fontSize: SgText.px(16)),
                       ),
                     ),
                     if (driver.rating != null) ...[
@@ -469,7 +468,7 @@ class SgActionsRow extends StatelessWidget {
                     child: Text(
                       a.label,
                       style: SgText.caption.copyWith(
-                        fontSize: 12,
+                        fontSize: SgText.px(12),
                         height: 16 / 12,
                         fontWeight: FontWeight.w600,
                       ),
@@ -542,7 +541,7 @@ class SgLockedFareCard extends StatelessWidget {
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
                 style: SgText.body.copyWith(
-                  fontSize: 16,
+                  fontSize: SgText.px(16),
                   fontWeight: FontWeight.w700,
                 ),
               ),
@@ -594,7 +593,7 @@ class SgStars extends StatelessWidget {
           onPressed: onChanged == null ? null : () => onChanged!(i),
           icon: SgStar(
             size: 52,
-            color: i <= score ? SgColors.gold500 : SgColors.bg300,
+            color: i <= score ? SgColors.gold500 : SgColors.lineStrong,
           ),
         ),
     ],
@@ -602,7 +601,7 @@ class SgStars extends StatelessWidget {
 }
 
 Widget _title(String t) =>
-    Text(t, style: SgText.heading.copyWith(fontSize: 22, height: 28 / 22));
+    Text(t, style: SgText.heading.copyWith(fontSize: SgText.px(22), height: 28 / 22));
 
 Widget _displayLine(String t) =>
     Text(t, textAlign: TextAlign.center, style: SgText.display);
@@ -864,7 +863,7 @@ class ArrivingSheet extends StatelessWidget {
                     Text(
                       headline,
                       style: SgText.heading.copyWith(
-                        fontSize: 22,
+                        fontSize: SgText.px(22),
                         height: 28 / 22,
                       ),
                     ),
@@ -937,7 +936,7 @@ class LiveTripSheet extends StatelessWidget {
           headline,
           maxLines: 2,
           overflow: TextOverflow.ellipsis,
-          style: SgText.heading.copyWith(fontSize: 22, height: 28 / 22),
+          style: SgText.heading.copyWith(fontSize: SgText.px(22), height: 28 / 22),
         ),
         const SizedBox(height: SgSpace.s3),
         SgDriverCard(driver: driver, compact: true),
@@ -962,11 +961,11 @@ class TripArrivedHeader extends StatelessWidget {
         child: Container(
           width: 56,
           height: 56,
-          decoration: const BoxDecoration(
+          decoration: BoxDecoration(
             color: SgColors.gold500,
             shape: BoxShape.circle,
           ),
-          child: const Center(
+          child: Center(
             child: SgIcon(SgIcons.check, size: 28, color: SgColors.onGold),
           ),
         ),
@@ -1026,9 +1025,8 @@ class TripCompleteView extends StatelessWidget {
                     Text(
                       fareText!,
                       style: SgText.fare.copyWith(
-                        fontSize: 34,
+                        fontSize: SgText.px(34),
                         height: 40 / 34,
-                        letterSpacing: -0.7,
                       ),
                     ),
                   ],

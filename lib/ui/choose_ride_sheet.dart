@@ -246,7 +246,7 @@ class ChooseRideSheet extends StatelessWidget {
               Expanded(
                 child: Text(
                   l.waysToGo(options.length),
-                  style: SgText.heading.copyWith(fontSize: 24, height: 28 / 24),
+                  style: SgText.heading.copyWith(fontSize: SgText.px(24), height: 28 / 24),
                 ),
               ),
               if (summary != null)
@@ -362,7 +362,7 @@ class SgTag extends StatelessWidget {
         text,
         style: SgText.caption.copyWith(
           color: c,
-          fontSize: 12,
+          fontSize: SgText.px(12),
           height: 16 / 12,
           fontWeight: FontWeight.w700,
         ),

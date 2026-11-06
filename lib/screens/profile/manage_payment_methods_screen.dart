@@ -7,6 +7,7 @@ import 'package:intl/intl.dart';
 import '../../providers/wallet_provider.dart';
 
 import '../../ui/sg_tokens.dart';
+import '../../ui/sg_text.dart';
 
 class ManagePaymentMethodsScreen extends StatelessWidget {
   const ManagePaymentMethodsScreen({super.key});
@@ -35,9 +36,8 @@ class ManagePaymentMethodsScreen extends StatelessWidget {
           'Payment Methods',
           style: TextStyle(
             color: SgColors.ink,
-            fontSize: 18,
+            fontSize: SgText.px(18),
             fontWeight: FontWeight.w600,
-            letterSpacing: 0.5,
           ),
         ),
         centerTitle: true,
@@ -56,9 +56,8 @@ class ManagePaymentMethodsScreen extends StatelessWidget {
                 'SAVED METHODS',
                 style: TextStyle(
                   color: SgColors.inkMuted,
-                  fontSize: 12,
+                  fontSize: SgText.px(12),
                   fontWeight: FontWeight.w500,
-                  letterSpacing: 1.5,
                 ),
               ),
               const SizedBox(height: 16),
@@ -90,7 +89,6 @@ class ManagePaymentMethodsScreen extends StatelessWidget {
                   ),
                   textStyle: TextStyle(
                     fontWeight: FontWeight.w600,
-                    letterSpacing: 0.5,
                   ),
                 ),
               ),
@@ -163,15 +161,14 @@ class _PaymentTile extends StatelessWidget {
                     title,
                     style: TextStyle(
                       color: SgColors.ink,
-                      fontSize: 16,
+                      fontSize: SgText.px(16),
                       fontWeight: FontWeight.w700,
-                      letterSpacing: -0.2,
                     ),
                   ),
                   const SizedBox(height: 2),
                   RichText(
                     text: TextSpan(
-                      style: TextStyle(color: SgColors.inkMuted, fontSize: 13),
+                      style: TextStyle(color: SgColors.inkMuted, fontSize: SgText.px(13)),
                       children: [
                         if (isWallet) const TextSpan(text: 'Balance: '),
                         if (isWallet)

@@ -3,6 +3,7 @@
 library;
 
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 
 import '../core/vehicle_classes.dart';
@@ -173,138 +174,144 @@ class FareTicket extends StatelessWidget {
   final String? breakdownLabel;
   final VoidCallback? onBreakdown;
 
-  /// Height of the part above the tear line.
-  static const _top = 196.0;
-
+  /// The tear line sits under the class row, the fare and the lock note,
+  /// wherever they end at this type scale and text size: the part above it is
+  /// measured, not fixed (it was a fixed 196, which left an empty band once
+  /// the type adapted, and could clip at a large text size).
   @override
-  Widget build(BuildContext context) => Container(
-    key: const Key('fare_ticket'),
-    decoration: ShapeDecoration(
-      color: SgColors.bg200,
-      shape: TicketShape(
-        tearAt: _top,
-        side: BorderSide(color: SgColors.goldLine, width: 1),
-      ),
-    ),
-    child: Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        SizedBox(
-          height: _top,
-          child: Padding(
-            padding: const EdgeInsets.fromLTRB(
-              SgSpace.s5,
-              SgSpace.s4,
-              SgSpace.s5,
-              SgSpace.s3,
-            ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
+  Widget build(BuildContext context) =>
+      _TearMeasure(builder: (top, onTop) => _build(context, top, onTop));
+
+  Widget _build(BuildContext context, double top, ValueChanged<double> onTop) =>
+      Container(
+        key: const Key('fare_ticket'),
+        decoration: ShapeDecoration(
+          color: SgColors.bg200,
+          shape: TicketShape(
+            tearAt: top,
+            side: BorderSide(color: SgColors.goldLine, width: 1),
+          ),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            _HeightReporter(
+              onHeight: onTop,
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(
+                  SgSpace.s5,
+                  SgSpace.s4,
+                  SgSpace.s5,
+                  SgSpace.s3,
+                ),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Expanded(child: SgEyebrow(eyebrow)),
-                    SgClassChip(type: vehicleType, label: className),
+                    Row(
+                      children: [
+                        Expanded(child: SgEyebrow(eyebrow)),
+                        SgClassChip(type: vehicleType, label: className),
+                      ],
+                    ),
+                    const SizedBox(height: SgSpace.s4),
+                    FittedBox(
+                      fit: BoxFit.scaleDown,
+                      alignment: Alignment.centerLeft,
+                      child: Text(
+                        fareText,
+                        key: const Key('ticket_fare'),
+                        style: SgText.fareXl,
+                      ),
+                    ),
+                    const SizedBox(height: SgSpace.s2),
+                    Row(
+                      children: [
+                        SgIcon(SgIcons.lock, size: 16, color: SgColors.success),
+                        const SizedBox(width: SgSpace.s2),
+                        Expanded(
+                          child: Text(
+                            lockText,
+                            style: SgText.caption.copyWith(
+                              color: SgColors.success,
+                              fontWeight: FontWeight.w700,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
                   ],
                 ),
-                const Spacer(),
-                FittedBox(
-                  fit: BoxFit.scaleDown,
-                  alignment: Alignment.centerLeft,
-                  child: Text(
-                    fareText,
-                    key: const Key('ticket_fare'),
-                    style: SgText.fareXl,
-                  ),
-                ),
-                const SizedBox(height: SgSpace.s2),
-                Row(
-                  children: [
-                    SgIcon(SgIcons.lock, size: 16, color: SgColors.success),
-                    const SizedBox(width: SgSpace.s2),
-                    Expanded(
+              ),
+            ),
+            const Padding(
+              padding: EdgeInsets.symmetric(horizontal: SgSpace.s5),
+              child: TearLine(),
+            ),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(
+                SgSpace.s5,
+                SgSpace.s2,
+                SgSpace.s3,
+                SgSpace.s2,
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  _Stop(
+                    dot: SgColors.pickup,
+                    label: pickupLabel,
+                    text: pickup,
+                    textKey: const Key('pickup_address'),
+                    action: TextButton(
+                      key: const Key('ticket_edit_pickup'),
+                      onPressed: onEditPickup,
+                      style: TextButton.styleFrom(
+                        minimumSize: const Size(kSgTouch, kSgTouch),
+                      ),
                       child: Text(
-                        lockText,
-                        style: SgText.caption.copyWith(
-                          color: SgColors.success,
+                        editLabel,
+                        style: SgText.body.copyWith(
+                          color: SgColors.goldText,
                           fontWeight: FontWeight.w700,
                         ),
                       ),
                     ),
-                  ],
-                ),
-              ],
-            ),
-          ),
-        ),
-        const Padding(
-          padding: EdgeInsets.symmetric(horizontal: SgSpace.s5),
-          child: TearLine(),
-        ),
-        Padding(
-          padding: const EdgeInsets.fromLTRB(
-            SgSpace.s5,
-            SgSpace.s2,
-            SgSpace.s3,
-            SgSpace.s2,
-          ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              _Stop(
-                dot: SgColors.pickup,
-                label: pickupLabel,
-                text: pickup,
-                textKey: const Key('pickup_address'),
-                action: TextButton(
-                  key: const Key('ticket_edit_pickup'),
-                  onPressed: onEditPickup,
-                  style: TextButton.styleFrom(
-                    minimumSize: const Size(kSgTouch, kSgTouch),
                   ),
-                  child: Text(
-                    editLabel,
-                    style: SgText.body.copyWith(
-                      color: SgColors.goldText,
-                      fontWeight: FontWeight.w700,
+                  if (drop != null && drop!.isNotEmpty)
+                    _Stop(
+                      dot: SgColors.gold500,
+                      square: true,
+                      label: dropLabel,
+                      text: drop!,
                     ),
-                  ),
-                ),
-              ),
-              if (drop != null && drop!.isNotEmpty)
-                _Stop(
-                  dot: SgColors.gold500,
-                  square: true,
-                  label: dropLabel,
-                  text: drop!,
-                ),
-              if (breakdownLabel != null && onBreakdown != null)
-                Align(
-                  alignment: Alignment.centerLeft,
-                  child: TextButton(
-                    key: const Key('ticket_breakdown'),
-                    onPressed: onBreakdown,
-                    style: TextButton.styleFrom(
-                      minimumSize: const Size(0, kSgTouch),
-                      padding: EdgeInsets.zero,
-                    ),
-                    child: Text(
-                      breakdownLabel!,
-                      style: SgText.body.copyWith(
-                        color: SgColors.goldText,
-                        fontWeight: FontWeight.w700,
-                        decoration: TextDecoration.underline,
-                        decorationColor: SgColors.goldText,
+                  if (breakdownLabel != null && onBreakdown != null)
+                    Align(
+                      alignment: Alignment.centerLeft,
+                      child: TextButton(
+                        key: const Key('ticket_breakdown'),
+                        onPressed: onBreakdown,
+                        style: TextButton.styleFrom(
+                          minimumSize: const Size(0, kSgTouch),
+                          padding: EdgeInsets.zero,
+                        ),
+                        child: Text(
+                          breakdownLabel!,
+                          style: SgText.body.copyWith(
+                            color: SgColors.goldText,
+                            fontWeight: FontWeight.w700,
+                            decoration: TextDecoration.underline,
+                            decorationColor: SgColors.goldText,
+                          ),
+                        ),
                       ),
                     ),
-                  ),
-                ),
-            ],
-          ),
+                ],
+              ),
+            ),
+          ],
         ),
-      ],
-    ),
-  );
+      );
 }
 
 class _Stop extends StatelessWidget {
@@ -457,7 +464,7 @@ class SgChecklistRow extends StatelessWidget {
                       ),
                     ),
                   )
-                : const Padding(
+                : Padding(
                     padding: EdgeInsets.all(4),
                     child: CircularProgressIndicator(
                       strokeWidth: 2.5,
@@ -470,7 +477,7 @@ class SgChecklistRow extends StatelessWidget {
             child: Text(
               item.text,
               style: SgText.body.copyWith(
-                fontWeight: done ? FontWeight.w600 : FontWeight.w800,
+                fontWeight: done ? FontWeight.w600 : FontWeight.w700,
                 color: done ? SgColors.inkMuted : SgColors.ink,
               ),
             ),
@@ -536,4 +543,55 @@ class FindingChecklistSheet extends StatelessWidget {
       ),
     ),
   );
+}
+
+/// Holds the measured height of the ticket's upper part, so the tear line and
+/// its notches sit exactly under it.
+class _TearMeasure extends StatefulWidget {
+  const _TearMeasure({required this.builder});
+  final Widget Function(double top, ValueChanged<double> onTop) builder;
+
+  @override
+  State<_TearMeasure> createState() => _TearMeasureState();
+}
+
+class _TearMeasureState extends State<_TearMeasure> {
+  double _top = 160;
+
+  void _onTop(double h) {
+    if ((h - _top).abs() < 0.5) return;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) setState(() => _top = h);
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) => widget.builder(_top, _onTop);
+}
+
+/// Reports its child's laid-out height.
+class _HeightReporter extends SingleChildRenderObjectWidget {
+  const _HeightReporter({required this.onHeight, super.child});
+  final ValueChanged<double> onHeight;
+
+  @override
+  RenderObject createRenderObject(BuildContext context) =>
+      _RenderHeightReporter(onHeight);
+
+  @override
+  void updateRenderObject(
+    BuildContext context,
+    _RenderHeightReporter renderObject,
+  ) => renderObject.onHeight = onHeight;
+}
+
+class _RenderHeightReporter extends RenderProxyBox {
+  _RenderHeightReporter(this.onHeight);
+  ValueChanged<double> onHeight;
+
+  @override
+  void performLayout() {
+    super.performLayout();
+    onHeight(size.height);
+  }
 }

@@ -16,6 +16,7 @@ import 'package:flutter/material.dart';
 import '../services/rating_service.dart';
 
 import '../ui/sg_tokens.dart';
+import '../ui/sg_text.dart';
 
 /// Shows the sheet and returns true when the trip ends up rated (including
 /// when it was already rated), so the caller can stop prompting for it.
@@ -144,7 +145,7 @@ class _RateTripSheetState extends State<RateTripSheet> {
                   : 'How was your trip?',
               style: TextStyle(
                 color: SgColors.ink,
-                fontSize: 18,
+                fontSize: SgText.px(18),
                 fontWeight: FontWeight.w600,
               ),
               textAlign: TextAlign.center,

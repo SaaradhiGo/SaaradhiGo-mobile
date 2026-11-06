@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../../core/app_config.dart';
 
 import '../../ui/sg_tokens.dart';
+import '../../ui/sg_text.dart';
 
 /// Shown instead of the app when a release build was compiled wrong.
 ///
@@ -43,7 +44,7 @@ class MisconfiguredBuildScreen extends StatelessWidget {
                     textAlign: TextAlign.center,
                     style: TextStyle(
                       color: SgColors.ink,
-                      fontSize: 22,
+                      fontSize: SgText.px(22),
                       fontWeight: FontWeight.w600,
                     ),
                   ),
@@ -53,7 +54,7 @@ class MisconfiguredBuildScreen extends StatelessWidget {
                     textAlign: TextAlign.center,
                     style: TextStyle(
                       color: SgColors.inkMuted,
-                      fontSize: 15,
+                      fontSize: SgText.px(15),
                       height: 1.45,
                     ),
                   ),
@@ -62,7 +63,7 @@ class MisconfiguredBuildScreen extends StatelessWidget {
                     'This build will not run so it cannot be mistaken for a '
                     'working one.',
                     textAlign: TextAlign.center,
-                    style: TextStyle(color: SgColors.inkSubtle, fontSize: 13),
+                    style: TextStyle(color: SgColors.inkSubtle, fontSize: SgText.px(13)),
                   ),
                 ],
               ),
@@ -110,9 +111,8 @@ class EnvironmentBadge extends StatelessWidget {
                       AppConfig.environmentLabel,
                       style: TextStyle(
                         color: SgColors.ink,
-                        fontSize: 10,
+                        fontSize: SgText.px(10),
                         fontWeight: FontWeight.w700,
-                        letterSpacing: 0.5,
                       ),
                     ),
                   ),

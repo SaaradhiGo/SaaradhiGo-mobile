@@ -36,49 +36,90 @@ class SgText {
     devanagari,
   ].where((f) => f != sans).toList(growable: false);
 
+  /// The size class's factor (Tier 1): every style is multiplied by it.
+  /// Only [SgSizeScope] sets it, from the shortest side of the window.
+  static double scale = 1.0;
+
+  /// True on a phone narrower than 360 (the compact class).
+  static bool get compact => scale < 1.0;
+
+  /// The size class for a window's shortest side, in logical pixels.
+  static double scaleFor(double shortestSide) => shortestSide < 360
+      ? 0.92
+      : shortestSide >= 600
+      ? 1.12
+      : 1.0;
+
+  /// A size off the type scale, for the few styles built by hand. [n] snaps
+  /// to the nearest role (nothing under 13) and is multiplied by [scale].
+  static double px(double n) {
+    final double base;
+    if (n <= 13) {
+      base = 13;
+    } else if (n < 15) {
+      base = 14;
+    } else if (n < 17) {
+      base = 16;
+    } else if (n < 18) {
+      base = 17;
+    } else if (n < 22) {
+      base = 18;
+    } else if (n <= 30) {
+      base = 24;
+    } else if (n < 40) {
+      base = n; // Display figures (the PIN, a total) keep their size.
+    } else {
+      return compact ? 40 : 44 * scale; // The big-fare role.
+    }
+    return base * scale;
+  }
+
   static TextStyle _style(
     double size,
     double height,
     double weight, {
     Color? color,
-    double spacingEm = 0,
     bool figures = false,
-  }) => TextStyle(
-    fontFamily: sans,
-    fontFamilyFallback: fallback,
-    fontSize: size,
-    height: height / size,
-    fontWeight: FontWeight.values[((weight / 100).round() - 1).clamp(0, 8)],
-    fontVariations: [FontVariation('wght', weight)],
-    letterSpacing: spacingEm * size,
-    color: color ?? SgColors.ink,
-    fontFeatures: figures ? const [FontFeature.tabularFigures()] : null,
-  );
+  }) {
+    final s = size * scale;
+    return TextStyle(
+      fontFamily: sans,
+      fontFamilyFallback: fallback,
+      fontSize: s,
+      height: height / size,
+      fontWeight: FontWeight.values[((weight / 100).round() - 1).clamp(0, 8)],
+      fontVariations: [FontVariation('wght', weight)],
+      color: color ?? SgColors.ink,
+      fontFeatures: figures ? const [FontFeature.tabularFigures()] : null,
+    );
+  }
 
-  /// "Where to?" -- one per screen. Phone size.
-  static TextStyle get display => _style(34, 36, 800, spacingEm: -0.03);
-  static TextStyle get heading => _style(26, 30, 800);
-  static TextStyle get title => _style(17, 22, 800);
+  /// The screen title ("Where to?"): one per screen.
+  static TextStyle get screenTitle => _style(24, 30, 700);
+
+  /// A section title, a sheet title, a row's main line when it leads.
+  static TextStyle get sectionTitle => _style(18, 24, 600);
+
+  static TextStyle get display => screenTitle;
+  static TextStyle get heading => screenTitle;
+  static TextStyle get title => sectionTitle;
   static TextStyle get body => _style(16, 22, 500);
   static TextStyle get caption => _style(14, 20, 500, color: SgColors.inkMuted);
 
-  /// Uppercase the string where it is used; a TextStyle cannot.
-  ///
-  /// Letter-spaced in Latin only: spacing pulls Telugu and Devanagari
-  /// conjuncts apart.
-  static TextStyle get label => _style(
-    13,
-    18,
-    700,
-    color: SgColors.inkSubtle,
-    spacingEm: language == 'en' ? 0.14 : 0,
-  );
-  static TextStyle get fareXl => _style(56, 56, 800, figures: true);
-  static TextStyle get fare => _style(22, 24, 800, figures: true);
-  static TextStyle get driverEarning => _style(96, 92, 800, figures: true);
+  /// Short labels and eyebrows. Never letter-spaced (it pulled Telugu and
+  /// Devanagari conjuncts apart and read as heavy caps).
+  static TextStyle get label => _style(13, 18, 600, color: SgColors.inkSubtle);
+
+  /// The big fare: 44, or 40 in the compact class.
+  static TextStyle get fareXl => compact
+      ? _style(40 / scale, 44 / scale, 700, figures: true)
+      : _style(44, 48, 700, figures: true);
+
+  /// A fare in a row.
+  static TextStyle get fare => _style(18, 22, 700, figures: true);
 
   /// The label on a button.
-  static TextStyle get button => _style(16, 22, 700, color: SgColors.onGold);
+  static TextStyle get button => _style(17, 22, 600, color: SgColors.onGold);
 
   /// "Saaradhi Go" beside the badge in headers.
   static TextStyle brandLockup(double size) => TextStyle(
@@ -87,9 +128,43 @@ class SgText {
     height: 1.1,
     fontWeight: FontWeight.w600,
     fontVariations: const [FontVariation('wght', 600)],
-    color: SgColors.goldText,
+    color: SgColors.logo,
   );
 }
+
+/// Sets [SgText.scale] from the window's shortest side and rebuilds the
+/// subtree when the size class changes (a resize, a fold, a tablet window).
+class SgSizeScope extends StatefulWidget {
+  const SgSizeScope({super.key, required this.child});
+  final Widget child;
+
+  @override
+  State<SgSizeScope> createState() => _SgSizeScopeState();
+}
+
+class _SgSizeScopeState extends State<SgSizeScope> {
+  double? _last;
+
+  @override
+  Widget build(BuildContext context) {
+    final scale = SgText.scaleFor(MediaQuery.sizeOf(context).shortestSide);
+    SgText.scale = scale;
+    if (_last != null && _last != scale) {
+      void dirty(Element e) {
+        e.markNeedsBuild();
+        e.visitChildren(dirty);
+      }
+
+      (context as Element).visitChildren(dirty);
+    }
+    _last = scale;
+    return widget.child;
+  }
+}
+
+/// Phone or tablet, by the shortest side (the tablet size class).
+bool sgIsTablet(BuildContext context) =>
+    MediaQuery.sizeOf(context).shortestSide >= 600;
 
 /// The app theme for one palette.
 ThemeData sgTheme(SgPalette p) {

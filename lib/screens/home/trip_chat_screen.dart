@@ -8,6 +8,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import '../../services/chat_service.dart';
 
 import '../../ui/sg_tokens.dart';
+import '../../ui/sg_text.dart';
 
 /// In-trip chat screen.
 ///
@@ -127,7 +128,7 @@ class _TripChatScreenState extends State<TripChatScreen> {
         children: [
           Expanded(
             child: _loading
-                ? const Center(
+                ? Center(
                     child: CircularProgressIndicator(color: SgColors.gold500),
                   )
                 : ListView.builder(
@@ -219,7 +220,7 @@ class _Bubble extends StatelessWidget {
             style: TextStyle(
               color: SgColors.inkMuted,
               fontStyle: FontStyle.italic,
-              fontSize: 12,
+              fontSize: SgText.px(12),
             ),
           ),
         ),
@@ -243,14 +244,14 @@ class _Bubble extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(body, style: TextStyle(color: fg, fontSize: 14)),
+            Text(body, style: TextStyle(color: fg, fontSize: SgText.px(14))),
             if (createdAt != null) ...[
               const SizedBox(height: 4),
               Text(
                 _formatTime(createdAt!),
                 style: TextStyle(
                   color: fg.withValues(alpha: 0.6),
-                  fontSize: 10,
+                  fontSize: SgText.px(10),
                 ),
               ),
             ],

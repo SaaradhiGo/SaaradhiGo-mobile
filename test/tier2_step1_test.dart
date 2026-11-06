@@ -25,12 +25,12 @@ void main() {
     final te = arb('te');
     final hi = arb('hi');
     expect([te['themeDark'], te['themeLight'], te['themeAutomatic']], [
-      'డార్క్',
+      'డార్క్ (నలుపు, బంగారు)',
       'లైట్',
       'ఆటోమేటిక్',
     ]);
     expect([hi['themeDark'], hi['themeLight'], hi['themeAutomatic']], [
-      'डार्क',
+      'डार्क (काला और सुनहरा)',
       'लाइट',
       'ऑटोमैटिक',
     ]);

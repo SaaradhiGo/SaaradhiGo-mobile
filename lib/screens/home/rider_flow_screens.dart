@@ -15,6 +15,7 @@
 //
 // Deleting them is a reasonable future change; doing it silently as part of a
 // lint cleanup is not, which is why this comment exists instead.
+import '../../ui/sg_layout.dart';
 import '../../core/pricing/quote_lock.dart';
 import '../../core/market/market_config_store.dart';
 import '../components/market_overlays.dart';
@@ -648,7 +649,10 @@ class _AlternativeRow extends StatelessWidget {
                 style: SgText.caption,
               ),
             ),
-            Text(option.fareText, style: SgText.fare.copyWith(fontSize: 18)),
+            Text(
+              option.fareText,
+              style: SgText.fare.copyWith(fontSize: SgText.px(18)),
+            ),
             const SizedBox(width: SgSpace.s2),
           ],
         ),
@@ -891,6 +895,11 @@ class _FullMapTrackingScreenState extends State<FullMapTrackingScreen> {
   bool _isNavigated = false;
   MapProvider? _mapProvider;
 
+  /// The trip's planned route (`planned_route_polyline` on the trip detail,
+  /// backend #170), drawn as the route on trip. Null until it arrives, and
+  /// when the server has none: no line is invented.
+  List<LatLng>? _plannedRoute;
+
   @override
   void initState() {
     super.initState();
@@ -899,7 +908,29 @@ class _FullMapTrackingScreenState extends State<FullMapTrackingScreen> {
       _mapProvider = context.read<MapProvider>();
       _mapProvider?.addListener(_handleStateChange);
       _handleStateChange(); // Initial check
+      _loadPlannedRoute();
     });
+  }
+
+  /// The trip the route was asked for; asked again only for a new trip id
+  /// (the id can arrive after this screen opens).
+  String? _routeAskedFor;
+
+  Future<void> _loadPlannedRoute() async {
+    final tripId = _mapProvider?.tripId;
+    if (tripId == null || tripId == _routeAskedFor) return;
+    _routeAskedFor = tripId;
+    final token = (await SharedPreferences.getInstance()).getString(
+      'access_token',
+    );
+    if (token == null || token.isEmpty) return;
+    try {
+      final body = await RideService().getTripStatus(token, tripId);
+      final data = body?['data'];
+      final line = data is Map ? data['planned_route_polyline'] : null;
+      final points = decodePlannedRoute(line);
+      if (mounted && points != null) setState(() => _plannedRoute = points);
+    } catch (_) {}
   }
 
   @override
@@ -909,6 +940,7 @@ class _FullMapTrackingScreenState extends State<FullMapTrackingScreen> {
   }
 
   void _handleStateChange() {
+    if (_plannedRoute == null) _loadPlannedRoute();
     if (!mounted || _isNavigated) return;
 
     final mapProvider = _mapProvider;
@@ -1037,6 +1069,7 @@ class _FullMapTrackingScreenState extends State<FullMapTrackingScreen> {
               }
             },
             forceInProgress: true,
+            plannedRoute: _plannedRoute,
             // Always visible on a live trip.
             topRight: SgSosPill(
               key: const ValueKey('tracking_sos_pill'),
@@ -1082,6 +1115,50 @@ class _FullMapTrackingScreenState extends State<FullMapTrackingScreen> {
       },
     );
   }
+}
+
+/// The fare a receipt shows, by the server's own settlement rule
+/// (`trip.final_fare or trip.estimated_fare`): the final fare when there is
+/// one, then the completion frame's total, then the estimate. Null when none
+/// is there -- never a made-up ₹0.
+String? receiptFareRaw(Map<dynamic, dynamic>? ride) {
+  if (ride == null) return null;
+  for (final k in const ['final_fare', 'total_fare', 'estimated_fare']) {
+    final v = ride[k];
+    if (v != null && double.tryParse(v.toString()) != null) {
+      return v.toString();
+    }
+  }
+  return null;
+}
+
+/// Decodes an encoded polyline (Google's format, as the server stores
+/// `planned_route_polyline`). Null for nothing usable.
+List<LatLng>? decodePlannedRoute(Object? encoded) {
+  if (encoded is! String || encoded.isEmpty) return null;
+  final out = <LatLng>[];
+  var i = 0, lat = 0, lng = 0;
+  int next() {
+    var shift = 0, result = 0, b = 0;
+    do {
+      if (i >= encoded.length) throw const FormatException('cut short');
+      b = encoded.codeUnitAt(i++) - 63;
+      result |= (b & 0x1f) << shift;
+      shift += 5;
+    } while (b >= 0x20);
+    return (result & 1) != 0 ? ~(result >> 1) : (result >> 1);
+  }
+
+  try {
+    while (i < encoded.length) {
+      lat += next();
+      lng += next();
+      out.add(LatLng(lat / 1e5, lng / 1e5));
+    }
+  } on FormatException {
+    return null;
+  }
+  return out.length >= 2 ? out : null;
 }
 
 class RidePaymentSummaryScreen extends StatefulWidget {
@@ -1627,11 +1704,13 @@ class _RidePaymentSummaryScreenState extends State<RidePaymentSummaryScreen> {
         final endedBySupport = isOpsEnded(rideMap);
         // A trip support ended is charged for the distance driven, capped at the
         // quote: its own final fare, from the trip detail, not the quote.
-        final totalFareStr = (endedBySupport && _receipt?['final_fare'] != null)
+        final Object? totalFareStr =
+            (endedBySupport && _receipt?['final_fare'] != null)
             ? _receipt!['final_fare']
-            : (rideData?['total_fare'] ??
-                  rideData?['estimated_fare'] ??
-                  '0.00');
+            : receiptFareRaw(rideMap);
+        // No fare in anything the app holds: the receipt shows no amount
+        // rather than ₹0, and only cash is offered.
+        final fareKnown = totalFareStr != null;
         final totalFare = double.tryParse(totalFareStr.toString()) ?? 0.0;
         // The server sends an ISO 4217 CODE, not a symbol. Interpolating it
         // directly rendered a rider's fare as "INR169.02" -- verified against
@@ -1663,158 +1742,166 @@ class _RidePaymentSummaryScreenState extends State<RidePaymentSummaryScreen> {
             ? (double.tryParse(charge.payable ?? '') ?? totalFare)
             : totalFare;
 
-        _fareText = exactMoney(payTotal, currencyCode);
+        _fareText = fareKnown ? exactMoney(payTotal, currencyCode) : null;
         final walletShort = walletProvider.balance < payTotal;
         return Scaffold(
           backgroundColor: SgColors.bg000,
           body: SafeArea(
-            child: ListView(
-              padding: const EdgeInsets.fromLTRB(
-                SgSpace.s4,
-                SgSpace.s2,
-                SgSpace.s4,
-                SgSpace.s5,
-              ),
-              children: [
-                Align(
-                  alignment: Alignment.centerLeft,
-                  child: SgMapButton(
-                    icon: SgIcons.back,
-                    label: sgStrings(context).back,
-                    onTap: () => context.pop(),
-                  ),
+            child: SgReadableWidth(
+              child: ListView(
+                padding: const EdgeInsets.fromLTRB(
+                  SgSpace.s4,
+                  SgSpace.s2,
+                  SgSpace.s4,
+                  SgSpace.s5,
                 ),
-                const SizedBox(height: SgSpace.s3),
-                TripArrivedHeader(
-                  detailLine: tripDetailLine(
-                    _dropName,
-                    _openedAt,
-                    _durationText,
-                  ),
-                ),
-                const SizedBox(height: SgSpace.s5),
-                ..._receiptTop(
-                  context,
-                  quotedRaw: rideData?['estimated_fare'],
-                  cost: payTotal,
-                  currencyCode: currencyCode,
-                  promo: charge.notCharged
-                      ? null
-                      : double.tryParse(charge.discount ?? ''),
-                  breakdown: TripChargeCard(
-                    fare: totalFareStr.toString(),
-                    currencyCode: currencyCode,
-                    charge: charge,
-                    endedBySupport: endedBySupport,
-                    distanceDriven: distanceDriven,
-                  ),
-                  plain: charge.notCharged || endedBySupport,
-                ),
-                if (_confirming != null) ...[
-                  const SizedBox(height: SgSpace.s3),
-                  Text(
-                    _confirming!,
-                    key: const Key('payment_confirming'),
-                    textAlign: TextAlign.center,
-                    style: SgText.body.copyWith(
-                      color: SgColors.goldText,
-                      fontWeight: FontWeight.w600,
+                children: [
+                  Align(
+                    alignment: Alignment.centerLeft,
+                    child: SgMapButton(
+                      icon: SgIcons.back,
+                      label: sgStrings(context).back,
+                      onTap: () => context.pop(),
                     ),
                   ),
-                ],
-                const SizedBox(height: SgSpace.s5),
-                if (charge.notCharged)
-                  NotChargedPanel(
-                    message: _notChargedMessage,
-                    onContinue: _continueWhenNotCharged,
-                  )
-                else ...[
-                  _buildPaymentOption(
-                    id: 'cash',
-                    title: sgStrings(context).payWithCashTitle,
-                    subtitle: sgStrings(context).handToDriver,
-                    icon: SgIcons.cash,
-                    isSelected: _selectedPaymentMethod == 'cash',
-                    onTap: () =>
-                        setState(() => _selectedPaymentMethod = 'cash'),
-                  ),
                   const SizedBox(height: SgSpace.s3),
-                  _buildPaymentOption(
-                    id: 'wallet',
-                    title: sgStrings(context).payFromWallet,
-                    subtitle: walletShort
-                        ? sgStrings(context).notEnoughBalance
-                        : 'Current Balance: ${MarketConfigStore.instance.current.currencySymbol}${walletProvider.balance.toStringAsFixed(2)}',
-                    icon: SgIcons.wallet,
-                    isSelected: _selectedPaymentMethod == 'wallet',
-                    onTap: () =>
-                        setState(() => _selectedPaymentMethod = 'wallet'),
-                  ),
-                  const SizedBox(height: SgSpace.s3),
-                  _buildPaymentOption(
-                    id: 'upi_card',
-                    title: sgStrings(context).payViaUpiCard,
-                    icon: SgIcons.cash,
-                    isSelected: _selectedPaymentMethod == 'upi_card',
-                    onTap: () =>
-                        setState(() => _selectedPaymentMethod = 'upi_card'),
+                  TripArrivedHeader(
+                    detailLine: tripDetailLine(
+                      _dropName,
+                      _openedAt,
+                      _durationText,
+                    ),
                   ),
                   const SizedBox(height: SgSpace.s5),
-                  if (_selectedPaymentMethod == 'cash')
-                    Padding(
-                      padding: const EdgeInsets.only(bottom: SgSpace.s3),
-                      child: Text(
-                        sgStrings(context).payingCash(
-                          exactMoney(payTotal, currencyCode),
-                          _driverFirst(rideData, context),
-                        ),
-                        key: const Key('receipt_cash_note'),
-                        style: SgText.body.copyWith(color: SgColors.inkMuted),
+                  if (fareKnown)
+                    ..._receiptTop(
+                      context,
+                      quotedRaw: rideData?['estimated_fare'],
+                      cost: payTotal,
+                      currencyCode: currencyCode,
+                      promo: charge.notCharged
+                          ? null
+                          : double.tryParse(charge.discount ?? ''),
+                      breakdown: TripChargeCard(
+                        fare: totalFareStr.toString(),
+                        currencyCode: currencyCode,
+                        charge: charge,
+                        endedBySupport: endedBySupport,
+                        distanceDriven: distanceDriven,
+                      ),
+                      plain: charge.notCharged || endedBySupport,
+                    ),
+                  if (_confirming != null) ...[
+                    const SizedBox(height: SgSpace.s3),
+                    Text(
+                      _confirming!,
+                      key: const Key('payment_confirming'),
+                      textAlign: TextAlign.center,
+                      style: SgText.body.copyWith(
+                        color: SgColors.goldText,
+                        fontWeight: FontWeight.w600,
                       ),
                     ),
-                  SgPrimaryButton(
-                    key: const Key('pay_button'),
-                    label: _isProcessing
-                        ? 'Processing'
-                        : sgStrings(context).payBy(
+                  ],
+                  const SizedBox(height: SgSpace.s5),
+                  if (charge.notCharged)
+                    NotChargedPanel(
+                      message: _notChargedMessage,
+                      onContinue: _continueWhenNotCharged,
+                    )
+                  else ...[
+                    _buildPaymentOption(
+                      id: 'cash',
+                      title: sgStrings(context).payWithCashTitle,
+                      subtitle: sgStrings(context).handToDriver,
+                      icon: SgIcons.cash,
+                      isSelected: _selectedPaymentMethod == 'cash',
+                      onTap: () =>
+                          setState(() => _selectedPaymentMethod = 'cash'),
+                    ),
+                    const SizedBox(height: SgSpace.s3),
+                    if (fareKnown) ...[
+                      _buildPaymentOption(
+                        id: 'wallet',
+                        title: sgStrings(context).payFromWallet,
+                        subtitle: walletShort
+                            ? sgStrings(context).notEnoughBalance
+                            : 'Current Balance: ${MarketConfigStore.instance.current.currencySymbol}${walletProvider.balance.toStringAsFixed(2)}',
+                        icon: SgIcons.wallet,
+                        isSelected: _selectedPaymentMethod == 'wallet',
+                        onTap: () =>
+                            setState(() => _selectedPaymentMethod = 'wallet'),
+                      ),
+                      const SizedBox(height: SgSpace.s3),
+                      _buildPaymentOption(
+                        id: 'upi_card',
+                        title: sgStrings(context).payViaUpiCard,
+                        icon: SgIcons.cash,
+                        isSelected: _selectedPaymentMethod == 'upi_card',
+                        onTap: () =>
+                            setState(() => _selectedPaymentMethod = 'upi_card'),
+                      ),
+                    ],
+                    const SizedBox(height: SgSpace.s5),
+                    if (fareKnown && _selectedPaymentMethod == 'cash')
+                      Padding(
+                        padding: const EdgeInsets.only(bottom: SgSpace.s3),
+                        child: Text(
+                          sgStrings(context).payingCash(
                             exactMoney(payTotal, currencyCode),
-                            paymentMethodLabel(
-                              sgStrings(context),
-                              _selectedPaymentMethod,
-                            ),
+                            _driverFirst(rideData, context),
                           ),
-                    onPressed: _isProcessing
-                        ? null
-                        : () => _selectedPaymentMethod == 'cash'
-                              ? _payWithCash(payTotal, currencyCode, rideData)
-                              : _processPayment(
+                          key: const Key('receipt_cash_note'),
+                          style: SgText.body.copyWith(color: SgColors.inkMuted),
+                        ),
+                      ),
+                    SgPrimaryButton(
+                      key: const Key('pay_button'),
+                      label: _isProcessing
+                          ? 'Processing'
+                          : !fareKnown
+                          ? sgStrings(context).payWithCashTitle
+                          : sgStrings(context).payBy(
+                              exactMoney(payTotal, currencyCode),
+                              paymentMethodLabel(
+                                sgStrings(context),
+                                _selectedPaymentMethod,
+                              ),
+                            ),
+                      onPressed: _isProcessing
+                          ? null
+                          : () =>
+                                (!fareKnown || _selectedPaymentMethod == 'cash')
+                                ? _payWithCash(payTotal, currencyCode, rideData)
+                                : _processPayment(
+                                    payTotal,
+                                    walletProvider,
+                                    rideData,
+                                  ),
+                    ),
+                    const SizedBox(height: SgSpace.s2),
+                    if (_selectedPaymentMethod != 'cash')
+                      Center(
+                        child: TextButton(
+                          onPressed: _isProcessing
+                              ? null
+                              : () => _payWithCash(
                                   payTotal,
-                                  walletProvider,
+                                  currencyCode,
                                   rideData,
                                 ),
-                  ),
-                  const SizedBox(height: SgSpace.s2),
-                  if (_selectedPaymentMethod != 'cash')
-                    Center(
-                      child: TextButton(
-                        onPressed: _isProcessing
-                            ? null
-                            : () => _payWithCash(
-                                payTotal,
-                                currencyCode,
-                                rideData,
-                              ),
-                        child: Text(
-                          sgStrings(context).payCashInstead,
-                          style: SgText.body.copyWith(
-                            color: SgColors.inkMuted,
-                            decoration: TextDecoration.underline,
+                          child: Text(
+                            sgStrings(context).payCashInstead,
+                            style: SgText.body.copyWith(
+                              color: SgColors.inkMuted,
+                              decoration: TextDecoration.underline,
+                            ),
                           ),
                         ),
                       ),
-                    ),
+                  ],
                 ],
-              ],
+              ),
             ),
           ),
         );
@@ -1956,7 +2043,7 @@ class _RidePaymentSummaryScreenState extends State<RidePaymentSummaryScreen> {
                     Text(
                       title,
                       style: SgText.body.copyWith(
-                        fontSize: 16,
+                        fontSize: SgText.px(16),
                         fontWeight: FontWeight.w700,
                       ),
                     ),
@@ -2063,7 +2150,11 @@ class _DarkMapScaffold extends StatefulWidget {
     this.pulse = false,
     this.mapBottom = 300,
     this.topRight,
+    this.plannedRoute,
   });
+
+  /// The server's planned route for the trip, drawn on trip when present.
+  final List<LatLng>? plannedRoute;
 
   /// Top right over the map: the SOS pill on the trip screens.
   final Widget? topRight;
@@ -2218,7 +2309,8 @@ class _DarkMapScaffoldState extends State<_DarkMapScaffold>
                 point:
                     mapProvider.precisePickupLocation ??
                     mapProvider.pickupLocation!.latLng,
-                icon: const SgSvgMarker('assets/markers/pickup.svg'),
+                icon: sgPickupIcon,
+                anchor: sgJourneyAnchor,
                 label: sgStrings(context).pickupLabel,
               ),
             );
@@ -2231,7 +2323,8 @@ class _DarkMapScaffoldState extends State<_DarkMapScaffold>
               SgMarker(
                 id: 'drop',
                 point: mapProvider.dropLocation!.latLng,
-                icon: const SgSvgMarker('assets/markers/dropoff.svg'),
+                icon: sgDropIcon,
+                anchor: sgJourneyAnchor,
                 label: sgStrings(context).dropLabel,
               ),
             );
@@ -2271,15 +2364,23 @@ class _DarkMapScaffoldState extends State<_DarkMapScaffold>
           }
 
           // Gold is the trip; the way to the pickup is a quiet dotted line.
+          final planned = widget.plannedRoute;
           final polylines = <SgPolyline>[
-            if (!widget.searching &&
+            if (isInProgress && planned != null && planned.length >= 2)
+              SgPolyline(
+                id: 'route',
+                points: planned,
+                color: SgColors.route,
+                width: SgColors.routeWidth,
+              )
+            else if (!widget.searching &&
                 mapProvider.polylineCoordinates.isNotEmpty &&
                 (isInProgress || mapProvider.driverLocation != null))
               SgPolyline(
                 id: 'route',
                 points: mapProvider.polylineCoordinates,
-                color: isInProgress ? SgColors.gold500 : SgColors.inkMuted,
-                width: isInProgress ? 4.5 : 3,
+                color: isInProgress ? SgColors.route : SgColors.inkMuted,
+                width: isInProgress ? SgColors.routeWidth : 3,
                 dotted: !isInProgress,
               ),
           ];
@@ -2293,7 +2394,10 @@ class _DarkMapScaffoldState extends State<_DarkMapScaffold>
                     mapProvider.pickupLocation?.latLng ??
                     const LatLng(17.385044, 78.4867));
 
-          return Stack(
+          // Tablet: the map on the left, the sheet as a 440 panel beside it.
+          final tablet = sgIsTablet(context);
+          final mapBottom = tablet ? 0.0 : widget.mapBottom;
+          final mapStack = Stack(
             children: [
               SgMap(
                 initialCenter: initialCenter,
@@ -2301,7 +2405,7 @@ class _DarkMapScaffoldState extends State<_DarkMapScaffold>
                 markers: markers,
                 polylines: polylines,
                 // The sheet covers the lower part of the map.
-                padding: EdgeInsets.only(bottom: widget.mapBottom, top: 96),
+                padding: EdgeInsets.only(bottom: mapBottom, top: 96),
                 onMapCreated: (c) {
                   _mapController = c;
                   _fitDriverAndTarget();
@@ -2310,7 +2414,7 @@ class _DarkMapScaffoldState extends State<_DarkMapScaffold>
               if (widget.pulse)
                 Positioned(
                   top: 96,
-                  bottom: widget.mapBottom,
+                  bottom: mapBottom,
                   left: 0,
                   right: 0,
                   child: const PulseRings(),
@@ -2330,13 +2434,22 @@ class _DarkMapScaffoldState extends State<_DarkMapScaffold>
                   right: SgSpace.s4,
                   child: widget.topRight!,
                 ),
+            ],
+          );
+          final sheet = Semantics(
+            container: true,
+            label: widget.title,
+            child: widget.sheet ?? SgSheetSurface(child: widget.bottom!),
+          );
+          if (tablet) return SgMapSplit(map: mapStack, sheet: sheet);
+          // Phone: the sheet floats over the map and scrolls when it is
+          // taller than the room (landscape, a large text size).
+          return Stack(
+            children: [
+              Positioned.fill(child: mapStack),
               Align(
                 alignment: Alignment.bottomCenter,
-                child: Semantics(
-                  container: true,
-                  label: widget.title,
-                  child: widget.sheet ?? SgSheetSurface(child: widget.bottom!),
-                ),
+                child: SgScrollingSheet(child: sheet),
               ),
             ],
           );
@@ -2515,9 +2628,8 @@ class _MiniTile extends StatelessWidget {
             label,
             style: TextStyle(
               color: SgColors.ink,
-              fontSize: 18,
+              fontSize: SgText.px(18),
               fontWeight: FontWeight.w600,
-              letterSpacing: -0.2,
             ),
           ),
         ],
@@ -2543,7 +2655,7 @@ class _HelpSearchField extends StatelessWidget {
         textAlignVertical: TextAlignVertical.center,
         style: TextStyle(
           color: SgColors.ink,
-          fontSize: 16,
+          fontSize: SgText.px(16),
           fontWeight: FontWeight.w500,
         ),
         decoration: InputDecoration(
@@ -2558,7 +2670,7 @@ class _HelpSearchField extends StatelessWidget {
           hintText: sgStrings(context).searchForHelp,
           hintStyle: TextStyle(
             color: SgColors.inkMuted,
-            fontSize: 16,
+            fontSize: SgText.px(16),
             fontWeight: FontWeight.w500,
           ),
         ),
@@ -2607,10 +2719,9 @@ class _ContactTile extends StatelessWidget {
                   title,
                   style: TextStyle(
                     color: SgColors.ink,
-                    fontSize: 16,
+                    fontSize: SgText.px(16),
                     fontWeight: FontWeight.w600,
                     height: 1.1,
-                    letterSpacing: -0.3,
                   ),
                 ),
                 const SizedBox(height: 4),
@@ -2618,7 +2729,7 @@ class _ContactTile extends StatelessWidget {
                   subtitle,
                   style: TextStyle(
                     color: SgColors.inkMuted,
-                    fontSize: 12,
+                    fontSize: SgText.px(12),
                     fontWeight: FontWeight.w500,
                     height: 1.1,
                   ),
@@ -2645,9 +2756,8 @@ class _HelpSectionLabel extends StatelessWidget {
       text.toUpperCase(),
       style: TextStyle(
         color: SgColors.inkMuted,
-        fontSize: 14,
+        fontSize: SgText.px(14),
         fontWeight: FontWeight.w500,
-        letterSpacing: 2.4,
       ),
     );
   }

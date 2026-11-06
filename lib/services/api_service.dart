@@ -465,6 +465,21 @@ class ApiService implements AuthApiClient {
 
   /// Keep the rider's chosen language on the account (Night 2 field
   /// `preferred_language`), via PATCH /auth/update/. Fire and forget.
+  /// Keep the rider's chosen theme on the account (`preferred_theme`:
+  /// light | dark | auto), the same way as the language. An error (a server
+  /// that does not know the field yet) is ignored.
+  Future<void> patchPreferredTheme(String wire) async {
+    try {
+      await authedRequest(
+        (headers) => _client.patch(
+          Uri.parse('$baseUrl${AppConfig.authUpdate}'),
+          headers: headers,
+          body: jsonEncode({'preferred_theme': wire}),
+        ),
+      );
+    } catch (_) {}
+  }
+
   Future<void> patchPreferredLanguage(String code) async {
     try {
       await authedRequest(

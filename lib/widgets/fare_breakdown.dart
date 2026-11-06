@@ -20,6 +20,7 @@ import 'package:flutter/material.dart';
 import '../utils/money.dart';
 
 import '../ui/sg_tokens.dart';
+import '../ui/sg_text.dart';
 
 /// Formats a money value that may arrive as a String, an int or a double.
 ///
@@ -85,7 +86,7 @@ class FareLine extends StatelessWidget {
                       note!,
                       style: TextStyle(
                         color: SgColors.inkMuted,
-                        fontSize: 12,
+                        fontSize: SgText.px(12),
                         fontWeight: FontWeight.w400,
                       ),
                     ),
@@ -276,7 +277,7 @@ class FareBreakdown extends StatelessWidget {
               'Fare details',
               style: TextStyle(
                 color: SgColors.ink,
-                fontSize: 16,
+                fontSize: SgText.px(16),
                 fontWeight: FontWeight.w700,
               ),
             ),
@@ -291,7 +292,7 @@ class FareBreakdown extends StatelessWidget {
             'waiting time does.',
             style: TextStyle(
               color: SgColors.inkMuted,
-              fontSize: 12,
+              fontSize: SgText.px(12),
               fontWeight: FontWeight.w400,
             ),
           ),

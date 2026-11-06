@@ -112,7 +112,7 @@ class _WalletScreenState extends State<WalletScreen> {
                 _buildFilterChips(),
                 const SizedBox(height: 16),
                 if (provider.isLoading && provider.transactions.isEmpty)
-                  const Center(
+                  Center(
                     child: Padding(
                       padding: EdgeInsets.all(40.0),
                       child: CircularProgressIndicator(color: SgColors.gold500),
@@ -282,7 +282,7 @@ class _WalletBalanceCard extends StatelessWidget {
           ),
           const SizedBox(height: 8),
           isLoading && balance == 0
-              ? const SizedBox(
+              ? SizedBox(
                   height: 40,
                   child: Center(
                     child: CircularProgressIndicator(
@@ -293,7 +293,7 @@ class _WalletBalanceCard extends StatelessWidget {
                 )
               : Text(
                   formatter.format(balance),
-                  style: SgText.fare.copyWith(fontSize: 36, height: 44 / 36),
+                  style: SgText.fare.copyWith(fontSize: SgText.px(36), height: 44 / 36),
                 ),
           if (pendingReview != null) ...[
             const SizedBox(height: 8),
@@ -404,7 +404,7 @@ class _WalletTxnCard extends StatelessWidget {
                               overflow: TextOverflow.ellipsis,
                               style: TextStyle(
                                 color: SgColors.ink,
-                                fontSize: 15,
+                                fontSize: SgText.px(15),
                                 fontWeight: FontWeight.w600,
                               ),
                             ),
@@ -425,9 +425,8 @@ class _WalletTxnCard extends StatelessWidget {
                               transaction.status.toUpperCase(),
                               style: TextStyle(
                                 color: getStatusColor(),
-                                fontSize: 9,
+                                fontSize: SgText.px(9),
                                 fontWeight: FontWeight.w700,
-                                letterSpacing: 0.5,
                               ),
                             ),
                           ),
@@ -438,7 +437,7 @@ class _WalletTxnCard extends StatelessWidget {
                         dateStr,
                         style: TextStyle(
                           color: SgColors.inkMuted,
-                          fontSize: 12,
+                          fontSize: SgText.px(12),
                           fontWeight: FontWeight.w500,
                         ),
                       ),
@@ -452,7 +451,7 @@ class _WalletTxnCard extends StatelessWidget {
                     color: transaction.isCredit
                         ? SgColors.success
                         : SgColors.ink,
-                    fontSize: 16,
+                    fontSize: SgText.px(16),
                     fontWeight: FontWeight.w700,
                   ),
                 ),
@@ -479,7 +478,7 @@ class _EmptyTransactionsState extends StatelessWidget {
           'No transactions yet',
           style: TextStyle(
             color: SgColors.inkMuted,
-            fontSize: 16,
+            fontSize: SgText.px(16),
             fontWeight: FontWeight.w500,
           ),
         ),
@@ -506,7 +505,7 @@ class _ErrorState extends StatelessWidget {
             textAlign: TextAlign.center,
             style: TextStyle(
               color: SgColors.danger,
-              fontSize: 14,
+              fontSize: SgText.px(14),
               fontWeight: FontWeight.w500,
             ),
           ),
@@ -590,7 +589,7 @@ class _WalletActionButton extends StatelessWidget {
               label,
               style: TextStyle(
                 color: SgColors.goldText,
-                fontSize: 14,
+                fontSize: SgText.px(14),
                 fontWeight: FontWeight.w600,
               ),
             ),

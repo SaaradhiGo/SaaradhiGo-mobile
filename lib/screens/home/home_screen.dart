@@ -1,4 +1,5 @@
 import '../../utils/position.dart';
+import '../../ui/sg_layout.dart';
 import 'dart:ui';
 
 import 'package:flutter/material.dart';
@@ -645,91 +646,96 @@ class _HomeTab extends StatelessWidget {
         },
         child: SafeArea(
           bottom: false,
-          child: ListView(
-            padding: const EdgeInsets.fromLTRB(
-              SgSpace.s4,
-              SgSpace.s2,
-              SgSpace.s4,
-              SgSpace.s5,
-            ),
-            children: [
-              if (!open) ...[
-                HomeHeader(
-                  languageShort: languageShort(SgAppearance.instance.language),
-                  onLanguage: () => showLanguagePicker(context),
-                  name: auth.fullName,
-                  avatarUrl: auth.avatarUrl,
-                  onAccount: onProfileTap,
-                ),
-                const SizedBox(height: SgSpace.s5),
-                Text(
-                  first.isEmpty ? l.homeHeadline : l.homeHeadlineNamed(first),
-                  key: const Key('home_headline'),
-                  style: SgText.display,
-                ),
-                const SizedBox(height: SgSpace.s4),
-              ],
-              // Keyed: opening the search removes the lines above it, and an
-              // unkeyed field would be rebuilt there, losing focus and the
-              // keyboard.
-              KeyedSubtree(
-                key: const ValueKey('home-search'),
-                child: _LocationCard(
-                  pickupController: pickupController,
-                  dropController: dropController,
-                  pickupFocusNode: pickupFocusNode,
-                  dropFocusNode: dropFocusNode,
-                  onLocationTap: onLocationTap,
-                  isGettingLocation: isGettingLocation,
-                  currentPosition: currentPosition,
-                  onActiveRideTap: onActiveRideTap,
-                  searchOpen: searchOpen,
-                ),
+          child: SgReadableWidth(
+            child: ListView(
+              padding: const EdgeInsets.fromLTRB(
+                SgSpace.s4,
+                SgSpace.s2,
+                SgSpace.s4,
+                SgSpace.s5,
               ),
-              if (!open) ...[
-                if (mapProvider.isTripInProgress) ...[
-                  const SizedBox(height: SgSpace.s3),
-                  _ActiveRideTile(onTap: onActiveRideTap),
+              children: [
+                if (!open) ...[
+                  HomeHeader(
+                    languageShort: languageShort(
+                      SgAppearance.instance.language,
+                    ),
+                    onLanguage: () => showLanguagePicker(context),
+                    onToggleTheme: SgAppearance.instance.toggleTheme,
+                    name: auth.fullName,
+                    avatarUrl: auth.avatarUrl,
+                    onAccount: onProfileTap,
+                  ),
+                  const SizedBox(height: SgSpace.s5),
+                  Text(
+                    first.isEmpty ? l.homeHeadline : l.homeHeadlineNamed(first),
+                    key: const Key('home_headline'),
+                    style: SgText.display,
+                  ),
+                  const SizedBox(height: SgSpace.s4),
                 ],
-                const SizedBox(height: SgSpace.s5),
-                if (places.isNotEmpty || mapProvider.isLoadingHomeData) ...[
-                  SgEyebrow(l.faresFromHere),
-                  const SizedBox(height: SgSpace.s3),
-                ],
-                if (places.isEmpty && mapProvider.isLoadingHomeData)
-                  const Padding(
-                    padding: EdgeInsets.all(SgSpace.s4),
-                    child: Center(
-                      child: SizedBox(
-                        width: 20,
-                        height: 20,
-                        child: CircularProgressIndicator(
-                          strokeWidth: 2,
-                          color: SgColors.gold500,
+                // Keyed: opening the search removes the lines above it, and an
+                // unkeyed field would be rebuilt there, losing focus and the
+                // keyboard.
+                KeyedSubtree(
+                  key: const ValueKey('home-search'),
+                  child: _LocationCard(
+                    pickupController: pickupController,
+                    dropController: dropController,
+                    pickupFocusNode: pickupFocusNode,
+                    dropFocusNode: dropFocusNode,
+                    onLocationTap: onLocationTap,
+                    isGettingLocation: isGettingLocation,
+                    currentPosition: currentPosition,
+                    onActiveRideTap: onActiveRideTap,
+                    searchOpen: searchOpen,
+                  ),
+                ),
+                if (!open) ...[
+                  if (mapProvider.isTripInProgress) ...[
+                    const SizedBox(height: SgSpace.s3),
+                    _ActiveRideTile(onTap: onActiveRideTap),
+                  ],
+                  const SizedBox(height: SgSpace.s5),
+                  if (places.isNotEmpty || mapProvider.isLoadingHomeData) ...[
+                    SgEyebrow(l.faresFromHere),
+                    const SizedBox(height: SgSpace.s3),
+                  ],
+                  if (places.isEmpty && mapProvider.isLoadingHomeData)
+                    Padding(
+                      padding: EdgeInsets.all(SgSpace.s4),
+                      child: Center(
+                        child: SizedBox(
+                          width: 20,
+                          height: 20,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2,
+                            color: SgColors.gold500,
+                          ),
                         ),
                       ),
+                    )
+                  else
+                    _HomeFares(
+                      here: here,
+                      places: places,
+                      fallback: l.tapToSeeFares,
+                      onOpen: (place, type) {
+                        if (type != null) {
+                          context.read<MapProvider>().selectVehicleType(type);
+                        }
+                        _goTo(
+                          context,
+                          '${place.to.latitude},${place.to.longitude}',
+                          dropName: place.address ?? place.name,
+                        );
+                      },
                     ),
-                  )
-                else
-                  _HomeFares(
-                    here: here,
-                    places: places,
-                    fallback: l.tapToSeeFares,
-                    onOpen: (place, type) {
-                      if (type != null) {
-                        context.read<MapProvider>().selectVehicleType(type);
-                      }
-                      _goTo(
-                        context,
-                        '${place.to.latitude},${place.to.longitude}',
-                        dropName: place.address ?? place.name,
-                      );
-                    },
-                  ),
-                const SizedBox(height: SgSpace.s4),
-                FareLockLine(l.fareLockLine),
+                  const SizedBox(height: SgSpace.s4),
+                  FareLockLine(l.fareLockLine),
+                ],
               ],
-            ],
+            ),
           ),
         ),
       ),
@@ -1031,7 +1037,7 @@ class _LocationCardState extends State<_LocationCard> {
             Divider(height: SgSpace.s4, color: SgColors.line),
             if (_isPickupFocused) _buildCurrentLocationOption(),
             if (mapProvider.isLoadingSuggestions)
-              const Padding(
+              Padding(
                 padding: EdgeInsets.all(SgSpace.s4),
                 child: Center(
                   child: SizedBox(
@@ -1211,7 +1217,7 @@ class _LocationCardState extends State<_LocationCard> {
               ),
             ),
             if (widget.isGettingLocation)
-              const Padding(
+              Padding(
                 padding: EdgeInsets.all(SgSpace.s3),
                 child: SizedBox(
                   width: 18,
@@ -1293,11 +1299,11 @@ class _ActiveRideTile extends StatelessWidget {
               Container(
                 width: 48,
                 height: 48,
-                decoration: const BoxDecoration(
+                decoration: BoxDecoration(
                   color: SgColors.gold500,
                   shape: BoxShape.circle,
                 ),
-                child: const Icon(Icons.directions_car, color: SgColors.onGold),
+                child: Icon(Icons.directions_car, color: SgColors.onGold),
               ),
               const SizedBox(width: 14),
               Expanded(
@@ -1310,7 +1316,7 @@ class _ActiveRideTile extends StatelessWidget {
                           'Ongoing Ride',
                           style: TextStyle(
                             color: SgColors.goldText,
-                            fontSize: 14,
+                            fontSize: SgText.px(14),
                             fontWeight: FontWeight.w700,
                           ),
                         ),
@@ -1328,7 +1334,7 @@ class _ActiveRideTile extends StatelessWidget {
                             'LIVE',
                             style: TextStyle(
                               color: SgColors.ink,
-                              fontSize: 9,
+                              fontSize: SgText.px(9),
                               fontWeight: FontWeight.bold,
                             ),
                           ),
@@ -1342,7 +1348,7 @@ class _ActiveRideTile extends StatelessWidget {
                       overflow: TextOverflow.ellipsis,
                       style: TextStyle(
                         color: SgColors.ink,
-                        fontSize: 17,
+                        fontSize: SgText.px(17),
                         fontWeight: FontWeight.w600,
                       ),
                     ),

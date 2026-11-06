@@ -7,6 +7,7 @@ import 'package:provider/provider.dart';
 import '../../providers/auth_provider.dart';
 
 import '../../ui/sg_tokens.dart';
+import '../../ui/sg_text.dart';
 
 class PrivacySecurityScreen extends StatefulWidget {
   const PrivacySecurityScreen({super.key});
@@ -54,8 +55,9 @@ class _PrivacySecurityScreenState extends State<PrivacySecurityScreen> {
           child: BackdropFilter(
             filter: ImageFilter.blur(sigmaX: 12, sigmaY: 12),
             child: Container(
-              height: 84,
-              padding: const EdgeInsets.fromLTRB(24, 12, 24, 24),
+              // Grows with the text size rather than clip the labels.
+              constraints: const BoxConstraints(minHeight: 84),
+              padding: const EdgeInsets.fromLTRB(24, 12, 24, 12),
               decoration: BoxDecoration(
                 color: SgColors.bg100.withValues(alpha: 0.90),
                 border: Border(top: BorderSide(color: SgColors.line)),
@@ -128,9 +130,8 @@ class _PrivacySecurityScreenState extends State<PrivacySecurityScreen> {
                       textAlign: TextAlign.center,
                       style: TextStyle(
                         color: SgColors.ink,
-                        fontSize: 26,
+                        fontSize: SgText.px(26),
                         fontWeight: FontWeight.w700,
-                        letterSpacing: -0.4,
                       ),
                     ),
                   ),
@@ -234,9 +235,8 @@ class _PrivacySectionLabel extends StatelessWidget {
         text.toUpperCase(),
         style: TextStyle(
           color: SgColors.inkMuted,
-          fontSize: 14,
+          fontSize: SgText.px(14),
           fontWeight: FontWeight.w600,
-          letterSpacing: 1.4,
         ),
       ),
     );
@@ -308,9 +308,8 @@ class _PrivacyActionRow extends StatelessWidget {
                       title,
                       style: TextStyle(
                         color: SgColors.ink,
-                        fontSize: 16,
+                        fontSize: SgText.px(16),
                         fontWeight: FontWeight.w600,
-                        letterSpacing: -0.2,
                       ),
                     ),
                     const SizedBox(height: 4),
@@ -318,7 +317,7 @@ class _PrivacyActionRow extends StatelessWidget {
                       subtitle,
                       style: TextStyle(
                         color: SgColors.inkMuted,
-                        fontSize: 12,
+                        fontSize: SgText.px(12),
                         fontWeight: FontWeight.w500,
                         height: 1.25,
                       ),
@@ -364,9 +363,8 @@ class _PrivacyToggleRow extends StatelessWidget {
                   title,
                   style: TextStyle(
                     color: SgColors.ink,
-                    fontSize: 16,
+                    fontSize: SgText.px(16),
                     fontWeight: FontWeight.w600,
-                    letterSpacing: -0.2,
                   ),
                 ),
                 const SizedBox(height: 4),
@@ -374,7 +372,7 @@ class _PrivacyToggleRow extends StatelessWidget {
                   subtitle,
                   style: TextStyle(
                     color: SgColors.inkMuted,
-                    fontSize: 12,
+                    fontSize: SgText.px(12),
                     fontWeight: FontWeight.w500,
                     height: 1.25,
                   ),
@@ -427,6 +425,7 @@ class _PrivacyNavItem extends StatelessWidget {
         onTap: onTap,
         borderRadius: BorderRadius.circular(10),
         child: Column(
+          mainAxisSize: MainAxisSize.min,
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             Icon(icon, color: color, size: 24, shadows: shadows),
@@ -435,9 +434,8 @@ class _PrivacyNavItem extends StatelessWidget {
               label,
               style: TextStyle(
                 color: color,
-                fontSize: 10,
+                fontSize: SgText.px(10),
                 fontWeight: FontWeight.w500,
-                letterSpacing: 0.2,
                 shadows: shadows,
               ),
             ),

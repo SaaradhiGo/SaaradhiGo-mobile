@@ -100,6 +100,18 @@ abstract class AppLocalizations {
     Locale('te'),
   ];
 
+  /// Home header sun/moon button, shown in the light theme
+  ///
+  /// In en, this message translates to:
+  /// **'Switch to dark theme'**
+  String get themeSwitchToDark;
+
+  /// Home header sun/moon button, shown in the dark theme
+  ///
+  /// In en, this message translates to:
+  /// **'Switch to light theme'**
+  String get themeSwitchToLight;
+
   /// Account row and sheet title: choose the colour theme.
   ///
   /// In en, this message translates to:
@@ -109,7 +121,7 @@ abstract class AppLocalizations {
   /// Theme option: dark.
   ///
   /// In en, this message translates to:
-  /// **'Dark'**
+  /// **'Dark (black and gold)'**
   String get themeDark;
 
   /// Theme option: light.

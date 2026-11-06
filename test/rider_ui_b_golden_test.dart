@@ -30,7 +30,7 @@ const _carAt = LatLng(17.395, 78.375);
 
 const _pickup = SgMarker(
     id: 'pickup', point: tripPickup, icon: SgSvgMarker('assets/markers/pickup.svg'));
-const _car = SgMarker(
+final _car = SgMarker(
     id: 'driver',
     point: _carAt,
     icon: SgIconMarker(Icons.directions_car, SgColors.gold500, size: 34),
@@ -84,7 +84,7 @@ void main() {
       tester,
       tripFrame(
         sheetHeight: 470,
-        markers: const [_pickup, _car],
+        markers: [_pickup, _car],
         polylines: [
           SgPolyline(id: 'to', points: [_carAt, tripPickup], color: SgColors.inkMuted, width: 3, dotted: true),
         ],

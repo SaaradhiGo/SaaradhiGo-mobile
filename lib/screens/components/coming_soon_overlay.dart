@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'market_overlays.dart';
 
 import '../../ui/sg_tokens.dart';
+import '../../ui/sg_text.dart';
 
 class ComingSoonOverlay extends StatelessWidget {
   const ComingSoonOverlay({super.key});
@@ -54,7 +55,7 @@ class ComingSoonOverlay extends StatelessWidget {
                   style: TextStyle(
                     color: SgColors.ink,
                     fontWeight: FontWeight.bold,
-                    fontSize: 24,
+                    fontSize: SgText.px(24),
                     height: 1.2,
                   ),
                   textAlign: TextAlign.center,
@@ -64,7 +65,7 @@ class ComingSoonOverlay extends StatelessWidget {
                   'Our services are currently available only in ${_areaNames(context)}.\nWe\'ll expand to your location soon!',
                   style: TextStyle(
                     color: SgColors.inkMuted,
-                    fontSize: 16,
+                    fontSize: SgText.px(16),
                     height: 1.5,
                   ),
                   textAlign: TextAlign.center,
@@ -77,7 +78,7 @@ class ComingSoonOverlay extends StatelessWidget {
                     style: TextStyle(
                       color: SgColors.onGold,
                       fontWeight: FontWeight.bold,
-                      fontSize: 16,
+                      fontSize: SgText.px(16),
                     ),
                   ),
                 ),

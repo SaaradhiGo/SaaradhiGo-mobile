@@ -24,7 +24,7 @@ class SyncOverlay extends StatelessWidget {
                 style: TextStyle(
                   color: SgColors.ink,
                   fontFamily: SgText.sans,
-                  fontSize: 16,
+                  fontSize: SgText.px(16),
                   fontWeight: FontWeight.w500,
                 ),
               ),

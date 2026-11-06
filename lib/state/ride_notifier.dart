@@ -414,6 +414,7 @@ class RideNotifier extends Notifier<RideState> {
       if (dData['driver_rating'] != null)
         mergedResponse['driver_rating'] = dData['driver_rating'];
     }
+    _mergeMoney(mergedResponse, statusData['data']);
 
     state = state.copyWith(
       // The trip id arrives as this method's parameter and used to be dropped
@@ -461,6 +462,13 @@ class RideNotifier extends Notifier<RideState> {
       await clearState();
       return;
     }
+    // Backend #181: `is_active: false` is the server saying this trip is not
+    // in progress. Only a completed trip is kept (the receipt recovery,
+    // `recovery: recently_completed`); anything else is never shown live.
+    if (tripData['is_active'] == false && tripStatus != 'completed') {
+      await clearState();
+      return;
+    }
 
     final mapped = rideStatusFromBackendCode(tripStatus);
     if (mapped == null) {
@@ -490,6 +498,7 @@ class RideNotifier extends Notifier<RideState> {
     if (tripData['otp'] != null) mergedResponse['otp'] = tripData['otp'];
     if (tripData['driver_rating'] != null)
       mergedResponse['driver_rating'] = tripData['driver_rating'];
+    _mergeMoney(mergedResponse, tripData);
 
     state = state.copyWith(
       // Same defect as syncStateFromBackend: tripId was parsed into a local,
@@ -502,6 +511,29 @@ class RideNotifier extends Notifier<RideState> {
       isSyncing: false,
     );
     _saveState();
+  }
+
+  /// The trip's money fields, from a recovery answer. Recovery kept only the
+  /// driver details, so a completed trip recovered after a restart showed a
+  /// receipt of ₹0 (QA, 2026-11-06): the fare was in the payload all along.
+  static const _moneyKeys = [
+    'final_fare',
+    'estimated_fare',
+    'rider_payable',
+    'promo_discount',
+    'promo_code',
+    'currency',
+    'payment_status',
+    // The on-trip arrival line ("Arriving about HH:MM").
+    'started_at',
+    'estimated_duration_min',
+  ];
+
+  static void _mergeMoney(Map<String, dynamic> into, dynamic trip) {
+    if (trip is! Map) return;
+    for (final k in _moneyKeys) {
+      if (trip[k] != null) into[k] = trip[k];
+    }
   }
 
   void _saveState() {

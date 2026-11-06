@@ -9,10 +9,16 @@ class AppLocalizationsHi extends AppLocalizations {
   AppLocalizationsHi([String locale = 'hi']) : super(locale);
 
   @override
+  String get themeSwitchToDark => 'डार्क थीम पर जाएँ';
+
+  @override
+  String get themeSwitchToLight => 'लाइट थीम पर जाएँ';
+
+  @override
   String get appearance => 'रूप';
 
   @override
-  String get themeDark => 'डार्क';
+  String get themeDark => 'डार्क (काला और सुनहरा)';
 
   @override
   String get themeLight => 'लाइट';

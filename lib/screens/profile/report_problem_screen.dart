@@ -18,6 +18,7 @@ import '../../services/models/support_ticket.dart';
 import '../../services/support_service.dart';
 
 import '../../ui/sg_tokens.dart';
+import '../../ui/sg_text.dart';
 
 class ReportProblemScreen extends StatefulWidget {
   const ReportProblemScreen({
@@ -122,7 +123,7 @@ class _ReportProblemScreenState extends State<ReportProblemScreen> {
               'Thanks — we have it',
               style: TextStyle(
                 color: SgColors.ink,
-                fontSize: 20,
+                fontSize: SgText.px(20),
                 fontWeight: FontWeight.w600,
               ),
             ),
@@ -164,7 +165,7 @@ class _ReportProblemScreenState extends State<ReportProblemScreen> {
               'What went wrong?',
               style: TextStyle(
                 color: SgColors.ink,
-                fontSize: 18,
+                fontSize: SgText.px(18),
                 fontWeight: FontWeight.w600,
               ),
             ),
@@ -218,7 +219,7 @@ class _ReportProblemScreenState extends State<ReportProblemScreen> {
               const SizedBox(height: 8),
               Text(
                 'This will be attached to trip #${widget.tripId}.',
-                style: TextStyle(color: SgColors.inkMuted, fontSize: 12),
+                style: TextStyle(color: SgColors.inkMuted, fontSize: SgText.px(12)),
               ),
             ],
             if (_error != null) ...[
