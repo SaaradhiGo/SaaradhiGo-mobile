@@ -170,8 +170,9 @@ void main() {
       );
       await tester.pump();
       expect(find.text('5 min · 4 seats'), findsOneWidget);
+      await tester.drag(find.byType(Scrollable).first, const Offset(0, -2000));
+      await tester.pumpAndSettle();
       expect(find.text('No drivers nearby · 6 seats'), findsOneWidget);
-      await tester.ensureVisible(find.byKey(const Key('ride_row_suv')));
       await tester.pump();
       await tester.tap(find.byKey(const Key('ride_row_suv')));
       expect(picked, ['suv']);

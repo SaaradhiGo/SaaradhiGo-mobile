@@ -36,7 +36,7 @@ class ManagePaymentMethodsScreen extends StatelessWidget {
           'Payment Methods',
           style: TextStyle(
             color: SgColors.ink,
-            fontSize: SgText.px(18),
+            fontSize: SgText.sizeTitle,
             fontWeight: FontWeight.w600,
           ),
         ),
@@ -56,8 +56,8 @@ class ManagePaymentMethodsScreen extends StatelessWidget {
                 'SAVED METHODS',
                 style: TextStyle(
                   color: SgColors.inkMuted,
-                  fontSize: SgText.px(12),
-                  fontWeight: FontWeight.w500,
+                  fontSize: SgText.sizeSmall,
+                  fontWeight: FontWeight.w600,
                 ),
               ),
               const SizedBox(height: 16),
@@ -87,9 +87,7 @@ class ManagePaymentMethodsScreen extends StatelessWidget {
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(16),
                   ),
-                  textStyle: TextStyle(
-                    fontWeight: FontWeight.w600,
-                  ),
+                  textStyle: TextStyle(fontWeight: FontWeight.w600),
                 ),
               ),
             ],
@@ -161,14 +159,17 @@ class _PaymentTile extends StatelessWidget {
                     title,
                     style: TextStyle(
                       color: SgColors.ink,
-                      fontSize: SgText.px(16),
-                      fontWeight: FontWeight.w700,
+                      fontSize: SgText.sizeBody,
+                      fontWeight: FontWeight.w600,
                     ),
                   ),
                   const SizedBox(height: 2),
                   RichText(
                     text: TextSpan(
-                      style: TextStyle(color: SgColors.inkMuted, fontSize: SgText.px(13)),
+                      style: TextStyle(
+                        color: SgColors.inkMuted,
+                        fontSize: SgText.sizeSmall,
+                      ),
                       children: [
                         if (isWallet) const TextSpan(text: 'Balance: '),
                         if (isWallet)
@@ -176,7 +177,7 @@ class _PaymentTile extends StatelessWidget {
                             text: subtitle.split(': ').last,
                             style: TextStyle(
                               color: SgColors.goldText,
-                              fontWeight: FontWeight.w500,
+                              fontWeight: FontWeight.w600,
                             ),
                           )
                         else

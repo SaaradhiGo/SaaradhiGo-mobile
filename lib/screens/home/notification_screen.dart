@@ -53,7 +53,7 @@ class _NotificationScreenState extends State<NotificationScreen> {
         elevation: 0,
         title: Text(
           'Notifications',
-          style: TextStyle(color: SgColors.ink, fontWeight: FontWeight.bold),
+          style: TextStyle(color: SgColors.ink, fontWeight: FontWeight.w600),
         ),
         leading: IconButton(
           icon: Icon(Icons.arrow_back, color: SgColors.ink),
@@ -143,7 +143,7 @@ class _NotificationScreenState extends State<NotificationScreen> {
               'Could not load notifications',
               style: TextStyle(
                 color: SgColors.ink,
-                fontSize: SgText.px(18),
+                fontSize: SgText.sizeTitle,
                 fontWeight: FontWeight.w600,
               ),
               textAlign: TextAlign.center,
@@ -179,7 +179,10 @@ class _NotificationScreenState extends State<NotificationScreen> {
           const SizedBox(height: 16),
           Text(
             'No notifications yet',
-            style: TextStyle(color: SgColors.inkMuted, fontSize: SgText.px(16)),
+            style: TextStyle(
+              color: SgColors.inkMuted,
+              fontSize: SgText.sizeBody,
+            ),
           ),
         ],
       ),
@@ -247,9 +250,9 @@ class _NotificationTile extends StatelessWidget {
                             style: TextStyle(
                               color: SgColors.ink,
                               fontWeight: notification.isRead
-                                  ? FontWeight.w500
-                                  : FontWeight.bold,
-                              fontSize: SgText.px(15),
+                                  ? FontWeight.w400
+                                  : FontWeight.w600,
+                              fontSize: SgText.sizeBody,
                             ),
                           ),
                         ),
@@ -257,7 +260,7 @@ class _NotificationTile extends StatelessWidget {
                           DateFormat('hh:mm a').format(notification.createdAt),
                           style: TextStyle(
                             color: SgColors.inkSubtle,
-                            fontSize: SgText.px(12),
+                            fontSize: SgText.sizeSmall,
                           ),
                         ),
                       ],
@@ -269,14 +272,17 @@ class _NotificationTile extends StatelessWidget {
                         color: notification.isRead
                             ? SgColors.inkSubtle
                             : SgColors.inkMuted,
-                        fontSize: SgText.px(14),
+                        fontSize: SgText.sizeSmall,
                         height: 1.4,
                       ),
                     ),
                     const SizedBox(height: 8),
                     Text(
                       DateFormat('MMM dd, yyyy').format(notification.createdAt),
-                      style: TextStyle(color: SgColors.inkSubtle, fontSize: SgText.px(11)),
+                      style: TextStyle(
+                        color: SgColors.inkSubtle,
+                        fontSize: SgText.sizeSmall,
+                      ),
                     ),
                   ],
                 ),

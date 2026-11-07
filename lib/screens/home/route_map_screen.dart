@@ -388,7 +388,7 @@ class _RouteMapScreenState extends State<RouteMapScreen> {
                                       sgStrings(context).mapUnavailable,
                                       style: TextStyle(
                                         color: SgColors.ink,
-                                        fontSize: SgText.px(18),
+                                        fontSize: SgText.sizeTitle,
                                         fontWeight: FontWeight.w600,
                                       ),
                                     ),
@@ -397,7 +397,7 @@ class _RouteMapScreenState extends State<RouteMapScreen> {
                                       sgStrings(context).checkConnection,
                                       style: TextStyle(
                                         color: SgColors.inkMuted,
-                                        fontSize: SgText.px(14),
+                                        fontSize: SgText.sizeSmall,
                                       ),
                                     ),
                                     const SizedBox(height: 24),
@@ -581,9 +581,9 @@ class _RouteMapScreenState extends State<RouteMapScreen> {
             title: Text(
               'Cancel Trip?',
               style: TextStyle(
-                fontSize: SgText.px(18),
+                fontSize: SgText.sizeTitle,
                 color: SgColors.ink,
-                fontWeight: FontWeight.bold,
+                fontWeight: FontWeight.w600,
               ),
             ),
             content: Text(

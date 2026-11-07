@@ -106,7 +106,7 @@ class _ReferralScreenState extends State<ReferralScreen> {
       appBar: AppBar(
         title: const Text(
           'Refer & Earn',
-          style: TextStyle(fontWeight: FontWeight.bold),
+          style: TextStyle(fontWeight: FontWeight.w600),
         ),
         centerTitle: true,
         backgroundColor: scheme.surface,
@@ -170,7 +170,7 @@ class _ReferralScreenState extends State<ReferralScreen> {
                 'Your referral code',
                 style: TextStyle(
                   color: scheme.onSurface.withValues(alpha: 0.7),
-                  fontSize: SgText.px(14),
+                  fontSize: SgText.sizeSmall,
                 ),
               ),
               const SizedBox(height: 8),
@@ -178,9 +178,8 @@ class _ReferralScreenState extends State<ReferralScreen> {
                 mine.code,
                 key: const Key('referral_code'),
                 style: TextStyle(
-                  fontSize: SgText.px(32),
-                  fontWeight: FontWeight.w700,
-                  letterSpacing: 4,
+                  fontSize: SgText.sizeDisplay,
+                  fontWeight: FontWeight.w600,
                   color: scheme.primary,
                 ),
               ),
@@ -220,7 +219,7 @@ class _ReferralScreenState extends State<ReferralScreen> {
             key: const Key('referral_offer'),
             style: TextStyle(
               color: scheme.onSurface.withValues(alpha: 0.85),
-              fontSize: SgText.px(15),
+              fontSize: SgText.sizeBody,
               height: 1.4,
             ),
           )
@@ -242,8 +241,8 @@ class _ReferralScreenState extends State<ReferralScreen> {
         Text(
           'Your invites',
           style: TextStyle(
-            fontSize: SgText.px(18),
-            fontWeight: FontWeight.bold,
+            fontSize: SgText.sizeTitle,
+            fontWeight: FontWeight.w600,
             color: scheme.onSurface,
           ),
         ),
@@ -342,14 +341,17 @@ class _ReferralScreenState extends State<ReferralScreen> {
             Text(
               value,
               key: key,
-              style: TextStyle(fontSize: SgText.px(22), fontWeight: FontWeight.bold),
+              style: TextStyle(
+                fontSize: SgText.sizeTitle,
+                fontWeight: FontWeight.w600,
+              ),
             ),
             const SizedBox(height: 2),
             Text(
               label,
               textAlign: TextAlign.center,
               style: TextStyle(
-                fontSize: SgText.px(12),
+                fontSize: SgText.sizeSmall,
                 color: scheme.onSurface.withValues(alpha: 0.7),
               ),
             ),
@@ -397,7 +399,7 @@ class _ReferralScreenState extends State<ReferralScreen> {
                 color: r.pendingReview
                     ? SgColors.goldText
                     : scheme.onSurface.withValues(alpha: 0.75),
-                fontSize: SgText.px(13),
+                fontSize: SgText.sizeSmall,
               ),
             ),
           ],

@@ -123,7 +123,7 @@ class _ReportProblemScreenState extends State<ReportProblemScreen> {
               'Thanks — we have it',
               style: TextStyle(
                 color: SgColors.ink,
-                fontSize: SgText.px(20),
+                fontSize: SgText.sizeTitle,
                 fontWeight: FontWeight.w600,
               ),
             ),
@@ -165,7 +165,7 @@ class _ReportProblemScreenState extends State<ReportProblemScreen> {
               'What went wrong?',
               style: TextStyle(
                 color: SgColors.ink,
-                fontSize: SgText.px(18),
+                fontSize: SgText.sizeTitle,
                 fontWeight: FontWeight.w600,
               ),
             ),
@@ -219,7 +219,10 @@ class _ReportProblemScreenState extends State<ReportProblemScreen> {
               const SizedBox(height: 8),
               Text(
                 'This will be attached to trip #${widget.tripId}.',
-                style: TextStyle(color: SgColors.inkMuted, fontSize: SgText.px(12)),
+                style: TextStyle(
+                  color: SgColors.inkMuted,
+                  fontSize: SgText.sizeSmall,
+                ),
               ),
             ],
             if (_error != null) ...[

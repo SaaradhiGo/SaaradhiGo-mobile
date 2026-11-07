@@ -54,8 +54,8 @@ class ComingSoonOverlay extends StatelessWidget {
                   "We're coming soon to your area!",
                   style: TextStyle(
                     color: SgColors.ink,
-                    fontWeight: FontWeight.bold,
-                    fontSize: SgText.px(24),
+                    fontWeight: FontWeight.w600,
+                    fontSize: SgText.sizeHeading,
                     height: 1.2,
                   ),
                   textAlign: TextAlign.center,
@@ -65,7 +65,7 @@ class ComingSoonOverlay extends StatelessWidget {
                   'Our services are currently available only in ${_areaNames(context)}.\nWe\'ll expand to your location soon!',
                   style: TextStyle(
                     color: SgColors.inkMuted,
-                    fontSize: SgText.px(16),
+                    fontSize: SgText.sizeBody,
                     height: 1.5,
                   ),
                   textAlign: TextAlign.center,
@@ -77,8 +77,8 @@ class ComingSoonOverlay extends StatelessWidget {
                     'OK',
                     style: TextStyle(
                       color: SgColors.onGold,
-                      fontWeight: FontWeight.bold,
-                      fontSize: SgText.px(16),
+                      fontWeight: FontWeight.w600,
+                      fontSize: SgText.sizeBody,
                     ),
                   ),
                 ),

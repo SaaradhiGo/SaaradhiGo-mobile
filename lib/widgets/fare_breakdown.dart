@@ -66,8 +66,8 @@ class FareLine extends StatelessWidget {
   Widget build(BuildContext context) {
     final style = TextStyle(
       color: color,
-      fontSize: bold ? 18 : 15,
-      fontWeight: bold ? FontWeight.w700 : FontWeight.w500,
+      fontSize: bold ? SgText.sizeTitle : SgText.sizeBody,
+      fontWeight: bold ? FontWeight.w600 : FontWeight.w400,
     );
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 6),
@@ -86,7 +86,7 @@ class FareLine extends StatelessWidget {
                       note!,
                       style: TextStyle(
                         color: SgColors.inkMuted,
-                        fontSize: SgText.px(12),
+                        fontSize: SgText.sizeSmall,
                         fontWeight: FontWeight.w400,
                       ),
                     ),
@@ -277,8 +277,8 @@ class FareBreakdown extends StatelessWidget {
               'Fare details',
               style: TextStyle(
                 color: SgColors.ink,
-                fontSize: SgText.px(16),
-                fontWeight: FontWeight.w700,
+                fontSize: SgText.sizeBody,
+                fontWeight: FontWeight.w600,
               ),
             ),
           ),
@@ -292,7 +292,7 @@ class FareBreakdown extends StatelessWidget {
             'waiting time does.',
             style: TextStyle(
               color: SgColors.inkMuted,
-              fontSize: SgText.px(12),
+              fontSize: SgText.sizeSmall,
               fontWeight: FontWeight.w400,
             ),
           ),

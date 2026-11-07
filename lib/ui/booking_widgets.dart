@@ -43,7 +43,7 @@ class SgClassChip extends StatelessWidget {
           label,
           style: SgText.caption.copyWith(
             color: vehicleIconColour(type),
-            fontWeight: FontWeight.w700,
+            fontWeight: FontWeight.w600,
           ),
         ),
       ],
@@ -234,7 +234,7 @@ class FareTicket extends StatelessWidget {
                             lockText,
                             style: SgText.caption.copyWith(
                               color: SgColors.success,
-                              fontWeight: FontWeight.w700,
+                              fontWeight: FontWeight.w600,
                             ),
                           ),
                         ),
@@ -273,7 +273,7 @@ class FareTicket extends StatelessWidget {
                         editLabel,
                         style: SgText.body.copyWith(
                           color: SgColors.goldText,
-                          fontWeight: FontWeight.w700,
+                          fontWeight: FontWeight.w600,
                         ),
                       ),
                     ),
@@ -299,7 +299,7 @@ class FareTicket extends StatelessWidget {
                           breakdownLabel!,
                           style: SgText.body.copyWith(
                             color: SgColors.goldText,
-                            fontWeight: FontWeight.w700,
+                            fontWeight: FontWeight.w600,
                             decoration: TextDecoration.underline,
                             decorationColor: SgColors.goldText,
                           ),
@@ -350,7 +350,7 @@ class _Stop extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             mainAxisSize: MainAxisSize.min,
             children: [
-              Text(label.toUpperCase(), style: SgText.label),
+              Text(label.toUpperCase(), style: SgText.eyebrow),
               Text(
                 text,
                 key: textKey,
@@ -403,7 +403,7 @@ class FareTicketSheet extends StatelessWidget {
                     key: const Key('fare_ticket_notice'),
                     style: SgText.body.copyWith(
                       color: SgColors.goldText,
-                      fontWeight: FontWeight.w700,
+                      fontWeight: FontWeight.w600,
                     ),
                   ),
                 ),
@@ -477,7 +477,7 @@ class SgChecklistRow extends StatelessWidget {
             child: Text(
               item.text,
               style: SgText.body.copyWith(
-                fontWeight: done ? FontWeight.w600 : FontWeight.w700,
+                fontWeight: FontWeight.w600,
                 color: done ? SgColors.inkMuted : SgColors.ink,
               ),
             ),

@@ -90,7 +90,7 @@ class _HistoryScreenState extends State<HistoryScreen> {
                               ),
                               child: Text(
                                 month.toUpperCase(),
-                                style: SgText.label,
+                                style: SgText.eyebrow,
                               ),
                             ),
                           ),
@@ -170,7 +170,7 @@ class _HistoryScreenState extends State<HistoryScreen> {
             Text(
               message,
               textAlign: TextAlign.center,
-              style: TextStyle(color: SgColors.ink, fontSize: SgText.px(16)),
+              style: TextStyle(color: SgColors.ink, fontSize: SgText.sizeBody),
             ),
             const SizedBox(height: 24),
             ElevatedButton(
@@ -189,7 +189,7 @@ class _HistoryScreenState extends State<HistoryScreen> {
               ),
               child: const Text(
                 'Try Again',
-                style: TextStyle(fontWeight: FontWeight.bold),
+                style: TextStyle(fontWeight: FontWeight.w600),
               ),
             ),
           ],
@@ -284,7 +284,7 @@ class _HistoryRideCard extends StatelessWidget {
               ),
               child: Text(
                 sgStrings(context).rideHereAgain,
-                style: SgText.body.copyWith(fontWeight: FontWeight.w700),
+                style: SgText.body.copyWith(fontWeight: FontWeight.w600),
               ),
             ),
           ],

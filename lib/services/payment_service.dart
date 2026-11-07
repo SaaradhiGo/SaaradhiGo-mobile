@@ -175,7 +175,7 @@ class PaymentService {
                   'Initiating secure payment...',
                   style: TextStyle(
                     color: SgColors.white,
-                    fontSize: SgText.px(16),
+                    fontSize: SgText.sizeBody,
                     fontWeight: FontWeight.w600,
                   ),
                 ),

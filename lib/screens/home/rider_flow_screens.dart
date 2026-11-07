@@ -260,7 +260,7 @@ class SetDestinationScreen extends StatelessWidget {
             leading: Icon(Icons.place, color: SgColors.goldText),
             title: Text(
               '1200 Ocean Drive',
-              style: TextStyle(fontWeight: FontWeight.w700),
+              style: TextStyle(fontWeight: FontWeight.w600),
             ),
             subtitle: Text('Miami Beach, FL 33139'),
           ),
@@ -540,7 +540,7 @@ class _SearchingDriverScreenState extends State<SearchingDriverScreen> {
                     key: const Key('no_driver_not_charged'),
                     style: SgText.body.copyWith(
                       color: SgColors.success,
-                      fontWeight: FontWeight.w700,
+                      fontWeight: FontWeight.w600,
                     ),
                   ),
                 ),
@@ -594,7 +594,7 @@ class _SearchingDriverScreenState extends State<SearchingDriverScreen> {
               sgStrings(context).cancelSearchTitle,
               style: TextStyle(
                 color: SgColors.ink,
-                fontWeight: FontWeight.bold,
+                fontWeight: FontWeight.w600,
               ),
             ),
             content: Text(
@@ -651,7 +651,7 @@ class _AlternativeRow extends StatelessWidget {
             ),
             Text(
               option.fareText,
-              style: SgText.fare.copyWith(fontSize: SgText.px(18)),
+              style: SgText.fare.copyWith(fontSize: SgText.sizeTitle),
             ),
             const SizedBox(width: SgSpace.s2),
           ],
@@ -826,7 +826,7 @@ class _DriverFoundScreenState extends State<DriverFoundScreen> {
         backgroundColor: SgColors.bg200,
         title: Text(
           sgStrings(context).ongoingRideTitle,
-          style: TextStyle(color: SgColors.ink, fontWeight: FontWeight.bold),
+          style: TextStyle(color: SgColors.ink, fontWeight: FontWeight.w600),
         ),
         content: Text(
           sgStrings(context).cancelActiveRequestBody,
@@ -986,7 +986,7 @@ class _FullMapTrackingScreenState extends State<FullMapTrackingScreen> {
               'Cancel Ride?',
               style: TextStyle(
                 color: SgColors.ink,
-                fontWeight: FontWeight.bold,
+                fontWeight: FontWeight.w600,
               ),
             ),
             content: Text(
@@ -1957,7 +1957,7 @@ class _RidePaymentSummaryScreenState extends State<RidePaymentSummaryScreen> {
                 l.exactlyQuoted,
                 style: SgText.body.copyWith(
                   color: SgColors.success,
-                  fontWeight: FontWeight.w700,
+                  fontWeight: FontWeight.w600,
                 ),
               ),
             ),
@@ -1989,7 +1989,7 @@ class _RidePaymentSummaryScreenState extends State<RidePaymentSummaryScreen> {
             l.howItAddsUp,
             style: SgText.body.copyWith(
               color: SgColors.goldText,
-              fontWeight: FontWeight.w700,
+              fontWeight: FontWeight.w600,
             ),
           ),
           iconColor: SgColors.goldText,
@@ -2043,8 +2043,8 @@ class _RidePaymentSummaryScreenState extends State<RidePaymentSummaryScreen> {
                     Text(
                       title,
                       style: SgText.body.copyWith(
-                        fontSize: SgText.px(16),
-                        fontWeight: FontWeight.w700,
+                        fontSize: SgText.sizeBody,
+                        fontWeight: FontWeight.w600,
                       ),
                     ),
                     if (subtitle != null) Text(subtitle, style: SgText.caption),
@@ -2498,7 +2498,7 @@ class _VehicleTile extends StatelessWidget {
                   name,
                   style: TextStyle(
                     color: SgColors.ink,
-                    fontWeight: FontWeight.w700,
+                    fontWeight: FontWeight.w600,
                   ),
                 ),
                 Text(eta, style: TextStyle(color: SgColors.inkMuted)),
@@ -2509,7 +2509,7 @@ class _VehicleTile extends StatelessWidget {
             fare,
             style: TextStyle(
               color: SgColors.goldText,
-              fontWeight: FontWeight.w700,
+              fontWeight: FontWeight.w600,
             ),
           ),
         ],
@@ -2576,7 +2576,7 @@ class _PaymentTile extends StatelessWidget {
       ),
       child: ListTile(
         leading: Icon(icon, color: SgColors.goldText),
-        title: Text(title, style: const TextStyle(fontWeight: FontWeight.w700)),
+        title: Text(title, style: const TextStyle(fontWeight: FontWeight.w600)),
         subtitle: Text(subtitle),
         trailing: const Icon(Icons.chevron_right),
       ),
@@ -2628,7 +2628,7 @@ class _MiniTile extends StatelessWidget {
             label,
             style: TextStyle(
               color: SgColors.ink,
-              fontSize: SgText.px(18),
+              fontSize: SgText.sizeTitle,
               fontWeight: FontWeight.w600,
             ),
           ),
@@ -2655,8 +2655,8 @@ class _HelpSearchField extends StatelessWidget {
         textAlignVertical: TextAlignVertical.center,
         style: TextStyle(
           color: SgColors.ink,
-          fontSize: SgText.px(16),
-          fontWeight: FontWeight.w500,
+          fontSize: SgText.sizeBody,
+          fontWeight: FontWeight.w600,
         ),
         decoration: InputDecoration(
           isDense: true,
@@ -2670,8 +2670,8 @@ class _HelpSearchField extends StatelessWidget {
           hintText: sgStrings(context).searchForHelp,
           hintStyle: TextStyle(
             color: SgColors.inkMuted,
-            fontSize: SgText.px(16),
-            fontWeight: FontWeight.w500,
+            fontSize: SgText.sizeBody,
+            fontWeight: FontWeight.w600,
           ),
         ),
       ),
@@ -2719,7 +2719,7 @@ class _ContactTile extends StatelessWidget {
                   title,
                   style: TextStyle(
                     color: SgColors.ink,
-                    fontSize: SgText.px(16),
+                    fontSize: SgText.sizeBody,
                     fontWeight: FontWeight.w600,
                     height: 1.1,
                   ),
@@ -2729,8 +2729,8 @@ class _ContactTile extends StatelessWidget {
                   subtitle,
                   style: TextStyle(
                     color: SgColors.inkMuted,
-                    fontSize: SgText.px(12),
-                    fontWeight: FontWeight.w500,
+                    fontSize: SgText.sizeSmall,
+                    fontWeight: FontWeight.w600,
                     height: 1.1,
                   ),
                 ),
@@ -2754,11 +2754,7 @@ class _HelpSectionLabel extends StatelessWidget {
   Widget build(BuildContext context) {
     return Text(
       text.toUpperCase(),
-      style: TextStyle(
-        color: SgColors.inkMuted,
-        fontSize: SgText.px(14),
-        fontWeight: FontWeight.w500,
-      ),
+      style: SgText.eyebrow.copyWith(color: SgColors.inkMuted),
     );
   }
 }

@@ -320,7 +320,7 @@ class _SafetySheetState extends State<SafetySheet> {
                       l.callEmergency(_emergencyNumber),
                       style: SgText.body.copyWith(
                         color: SgColors.danger,
-                        fontWeight: FontWeight.w700,
+                        fontWeight: FontWeight.w600,
                       ),
                     ),
                     style: OutlinedButton.styleFrom(
@@ -406,7 +406,10 @@ class _ResultBanner extends StatelessWidget {
                           ? 'Marked as a mistake. Our safety team has been told.$reference'
                           : 'Alert sent. Our safety team has been alerted.$reference '
                                 'Keep your phone with you.',
-                      style: TextStyle(color: SgColors.ink, fontSize: SgText.px(13)),
+                      style: TextStyle(
+                        color: SgColors.ink,
+                        fontSize: SgText.sizeSmall,
+                      ),
                     ),
                   ),
                 ),
@@ -448,7 +451,7 @@ class _ResultBanner extends StatelessWidget {
           Text(
             result.message ??
                 'We could not alert our team. Please call $_emergencyNumber.',
-            style: TextStyle(color: SgColors.ink, fontSize: SgText.px(13)),
+            style: TextStyle(color: SgColors.ink, fontSize: SgText.sizeSmall),
           ),
           const SizedBox(height: 8),
           TextButton.icon(

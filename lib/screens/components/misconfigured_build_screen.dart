@@ -44,7 +44,7 @@ class MisconfiguredBuildScreen extends StatelessWidget {
                     textAlign: TextAlign.center,
                     style: TextStyle(
                       color: SgColors.ink,
-                      fontSize: SgText.px(22),
+                      fontSize: SgText.sizeTitle,
                       fontWeight: FontWeight.w600,
                     ),
                   ),
@@ -54,7 +54,7 @@ class MisconfiguredBuildScreen extends StatelessWidget {
                     textAlign: TextAlign.center,
                     style: TextStyle(
                       color: SgColors.inkMuted,
-                      fontSize: SgText.px(15),
+                      fontSize: SgText.sizeBody,
                       height: 1.45,
                     ),
                   ),
@@ -63,7 +63,10 @@ class MisconfiguredBuildScreen extends StatelessWidget {
                     'This build will not run so it cannot be mistaken for a '
                     'working one.',
                     textAlign: TextAlign.center,
-                    style: TextStyle(color: SgColors.inkSubtle, fontSize: SgText.px(13)),
+                    style: TextStyle(
+                      color: SgColors.inkSubtle,
+                      fontSize: SgText.sizeSmall,
+                    ),
                   ),
                 ],
               ),
@@ -111,8 +114,8 @@ class EnvironmentBadge extends StatelessWidget {
                       AppConfig.environmentLabel,
                       style: TextStyle(
                         color: SgColors.ink,
-                        fontSize: SgText.px(10),
-                        fontWeight: FontWeight.w700,
+                        fontSize: SgText.sizeSmall,
+                        fontWeight: FontWeight.w600,
                       ),
                     ),
                   ),

@@ -30,10 +30,7 @@ class SgPageTitle extends StatelessWidget {
     child: Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(
-          title,
-          style: SgText.heading,
-        ),
+        Text(title, style: SgText.heading),
         if (subtitle != null) ...[
           const SizedBox(height: SgSpace.s1),
           Text(
@@ -60,7 +57,12 @@ class SgAvatar extends StatelessWidget {
     final fallback = Center(
       child: initials.isEmpty
           ? SgIcon(SgIcons.user, size: size * 0.45, color: SgColors.ink)
-          : Text(initials, style: SgText.title.copyWith(fontSize: size * 0.36)),
+          : Text(
+              initials,
+              style: (size >= 56
+                  ? SgText.title
+                  : SgText.label.copyWith(color: SgColors.ink)),
+            ),
     );
     final photo = url?.trim() ?? '';
     return Container(

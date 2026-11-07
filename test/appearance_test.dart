@@ -35,10 +35,10 @@ void main() {
     await a.setLanguage('te');
     expect(SgColors.palette, same(SgPalette.light));
     expect(SgColors.bg000, SgPalette.light.bg000);
-    expect(SgText.sans, SgText.telugu);
+    expect(SgText.sans, SgText.latin);
     expect(
       SgText.body.fontFamilyFallback,
-      containsAll([SgText.latin, SgText.devanagari]),
+      containsAll([SgText.telugu, SgText.devanagari]),
     );
 
     final prefs = await SharedPreferences.getInstance();

@@ -246,7 +246,10 @@ class ChooseRideSheet extends StatelessWidget {
               Expanded(
                 child: Text(
                   l.waysToGo(options.length),
-                  style: SgText.heading.copyWith(fontSize: SgText.px(24), height: 28 / 24),
+                  style: SgText.heading.copyWith(
+                    fontSize: SgText.sizeHeading,
+                    height: 28 / 24,
+                  ),
                 ),
               ),
               if (summary != null)
@@ -308,7 +311,7 @@ class ChooseRideSheet extends StatelessWidget {
                 Expanded(
                   child: Text(
                     paymentLabel,
-                    style: SgText.body.copyWith(fontWeight: FontWeight.w700),
+                    style: SgText.body.copyWith(fontWeight: FontWeight.w600),
                   ),
                 ),
                 if (onChangePayment != null)
@@ -322,7 +325,7 @@ class ChooseRideSheet extends StatelessWidget {
                       l.change,
                       style: SgText.body.copyWith(
                         color: SgColors.goldText,
-                        fontWeight: FontWeight.w700,
+                        fontWeight: FontWeight.w600,
                       ),
                     ),
                   ),
@@ -362,9 +365,9 @@ class SgTag extends StatelessWidget {
         text,
         style: SgText.caption.copyWith(
           color: c,
-          fontSize: SgText.px(12),
+          fontSize: SgText.sizeSmall,
           height: 16 / 12,
-          fontWeight: FontWeight.w700,
+          fontWeight: FontWeight.w600,
         ),
       ),
     );

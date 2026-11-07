@@ -145,7 +145,7 @@ class _RateTripSheetState extends State<RateTripSheet> {
                   : 'How was your trip?',
               style: TextStyle(
                 color: SgColors.ink,
-                fontSize: SgText.px(18),
+                fontSize: SgText.sizeTitle,
                 fontWeight: FontWeight.w600,
               ),
               textAlign: TextAlign.center,

@@ -220,7 +220,7 @@ class _Bubble extends StatelessWidget {
             style: TextStyle(
               color: SgColors.inkMuted,
               fontStyle: FontStyle.italic,
-              fontSize: SgText.px(12),
+              fontSize: SgText.sizeSmall,
             ),
           ),
         ),
@@ -244,14 +244,17 @@ class _Bubble extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(body, style: TextStyle(color: fg, fontSize: SgText.px(14))),
+            Text(
+              body,
+              style: TextStyle(color: fg, fontSize: SgText.sizeSmall),
+            ),
             if (createdAt != null) ...[
               const SizedBox(height: 4),
               Text(
                 _formatTime(createdAt!),
                 style: TextStyle(
                   color: fg.withValues(alpha: 0.6),
-                  fontSize: SgText.px(10),
+                  fontSize: SgText.sizeSmall,
                 ),
               ),
             ],

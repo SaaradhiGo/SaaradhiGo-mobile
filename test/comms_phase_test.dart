@@ -270,9 +270,8 @@ void main() {
       await _pumpPrefs(tester, backend);
       expect(find.text('WhatsApp'), findsOneWidget);
 
-      await tester.ensureVisible(
-        find.byKey(const Key('pref_whatsapp_transactional')),
-      );
+      await tester.drag(find.byType(ListView), const Offset(0, -2000));
+      await tester.pumpAndSettle();
       await tester.tap(find.byKey(const Key('pref_whatsapp_transactional')));
       await tester.pumpAndSettle();
 

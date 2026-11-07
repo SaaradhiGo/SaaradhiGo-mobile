@@ -108,7 +108,7 @@ class _AddMoneyScreenState extends State<AddMoneyScreen> {
           'Add Money',
           style: TextStyle(
             color: SgColors.ink,
-            fontSize: SgText.px(18),
+            fontSize: SgText.sizeTitle,
             fontWeight: FontWeight.w600,
           ),
         ),
@@ -128,8 +128,8 @@ class _AddMoneyScreenState extends State<AddMoneyScreen> {
                     'Current Balance',
                     style: TextStyle(
                       color: SgColors.inkMuted,
-                      fontSize: SgText.px(14),
-                      fontWeight: FontWeight.w500,
+                      fontSize: SgText.sizeSmall,
+                      fontWeight: FontWeight.w600,
                     ),
                   ),
                   const SizedBox(height: 8),
@@ -137,8 +137,8 @@ class _AddMoneyScreenState extends State<AddMoneyScreen> {
                     formatter.format(provider.balance),
                     style: TextStyle(
                       color: SgColors.ink,
-                      fontSize: SgText.px(32),
-                      fontWeight: FontWeight.w700,
+                      fontSize: SgText.sizeDisplay,
+                      fontWeight: FontWeight.w600,
                     ),
                   ),
                   const SizedBox(height: 48),
@@ -148,8 +148,8 @@ class _AddMoneyScreenState extends State<AddMoneyScreen> {
                     'Top up amount',
                     style: TextStyle(
                       color: SgColors.inkMuted,
-                      fontSize: SgText.px(14),
-                      fontWeight: FontWeight.w500,
+                      fontSize: SgText.sizeSmall,
+                      fontWeight: FontWeight.w600,
                     ),
                   ),
                   const SizedBox(height: 16),
@@ -158,15 +158,15 @@ class _AddMoneyScreenState extends State<AddMoneyScreen> {
                     keyboardType: TextInputType.number,
                     style: TextStyle(
                       color: SgColors.goldText,
-                      fontSize: SgText.px(40),
-                      fontWeight: FontWeight.w700,
+                      fontSize: SgText.sizeDisplay,
+                      fontWeight: FontWeight.w600,
                     ),
                     decoration: InputDecoration(
                       prefixText: '${marketOf(context).currencySymbol} ',
                       prefixStyle: TextStyle(
                         color: SgColors.goldText,
-                        fontSize: SgText.px(40),
-                        fontWeight: FontWeight.w700,
+                        fontSize: SgText.sizeDisplay,
+                        fontWeight: FontWeight.w600,
                       ),
                       enabledBorder: UnderlineInputBorder(
                         borderSide: BorderSide(color: SgColors.goldLine),
@@ -177,8 +177,8 @@ class _AddMoneyScreenState extends State<AddMoneyScreen> {
                       hintText: '0',
                       hintStyle: TextStyle(
                         color: SgColors.goldText,
-                        fontSize: SgText.px(40),
-                        fontWeight: FontWeight.w700,
+                        fontSize: SgText.sizeDisplay,
+                        fontWeight: FontWeight.w600,
                       ),
                     ),
                   ),
@@ -212,7 +212,7 @@ class _AddMoneyScreenState extends State<AddMoneyScreen> {
                             '+ ${marketOf(context).currencySymbol}$amount',
                             style: TextStyle(
                               color: SgColors.goldText,
-                              fontSize: SgText.px(14),
+                              fontSize: SgText.sizeSmall,
                               fontWeight: FontWeight.w600,
                             ),
                           ),
@@ -252,8 +252,8 @@ class _AddMoneyScreenState extends State<AddMoneyScreen> {
                           : Text(
                               'Proceed to Pay',
                               style: TextStyle(
-                                fontSize: SgText.px(16),
-                                fontWeight: FontWeight.w700,
+                                fontSize: SgText.sizeBody,
+                                fontWeight: FontWeight.w600,
                               ),
                             ),
                     ),

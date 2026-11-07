@@ -77,10 +77,7 @@ class SgBadge extends StatelessWidget {
           decoration: BoxDecoration(color: color, shape: BoxShape.circle),
         ),
         const SizedBox(width: SgSpace.s1),
-        Text(
-          label.toUpperCase(),
-          style: SgText.label.copyWith(color: color),
-        ),
+        Text(label.toUpperCase(), style: SgText.eyebrow.copyWith(color: color)),
       ],
     ),
   );
@@ -101,7 +98,7 @@ class SgPlate extends StatelessWidget {
     child: Text(
       formatPlate(number),
       style: SgText.fare.copyWith(
-        fontSize: SgText.px(14),
+        fontSize: SgText.sizeSmall,
         height: 20 / 14,
         color: SgColors.onGold,
       ),
@@ -271,8 +268,8 @@ class SgPinBoxes extends StatelessWidget {
             child: Text(
               digits[i],
               style: SgText.fare.copyWith(
-                fontSize: SgText.px(20),
-                fontWeight: FontWeight.w700,
+                fontSize: SgText.sizeTitle,
+                fontWeight: FontWeight.w600,
               ),
             ),
           ),
@@ -375,7 +372,7 @@ class SgDriverCard extends StatelessWidget {
                         driver.name,
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
-                        style: SgText.title.copyWith(fontSize: SgText.px(16)),
+                        style: SgText.title.copyWith(fontSize: SgText.sizeBody),
                       ),
                     ),
                     if (driver.rating != null) ...[
@@ -386,7 +383,7 @@ class SgDriverCard extends StatelessWidget {
                         driver.rating!,
                         style: SgText.caption.copyWith(
                           color: SgColors.goldText,
-                          fontWeight: FontWeight.w700,
+                          fontWeight: FontWeight.w600,
                         ),
                       ),
                     ],
@@ -468,7 +465,7 @@ class SgActionsRow extends StatelessWidget {
                     child: Text(
                       a.label,
                       style: SgText.caption.copyWith(
-                        fontSize: SgText.px(12),
+                        fontSize: SgText.sizeSmall,
                         height: 16 / 12,
                         fontWeight: FontWeight.w600,
                       ),
@@ -541,8 +538,8 @@ class SgLockedFareCard extends StatelessWidget {
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
                 style: SgText.body.copyWith(
-                  fontSize: SgText.px(16),
-                  fontWeight: FontWeight.w700,
+                  fontSize: SgText.sizeBody,
+                  fontWeight: FontWeight.w600,
                 ),
               ),
               Text(
@@ -600,8 +597,10 @@ class SgStars extends StatelessWidget {
   );
 }
 
-Widget _title(String t) =>
-    Text(t, style: SgText.heading.copyWith(fontSize: SgText.px(22), height: 28 / 22));
+Widget _title(String t) => Text(
+  t,
+  style: SgText.heading.copyWith(fontSize: SgText.sizeTitle, height: 28 / 22),
+);
 
 Widget _displayLine(String t) =>
     Text(t, textAlign: TextAlign.center, style: SgText.display);
@@ -705,7 +704,7 @@ class MapChip extends StatelessWidget {
             overflow: TextOverflow.ellipsis,
             style: SgText.caption.copyWith(
               color: SgColors.ink,
-              fontWeight: FontWeight.w700,
+              fontWeight: FontWeight.w600,
             ),
           ),
         ),
@@ -784,7 +783,10 @@ class FindingSheet extends StatelessWidget {
         const SizedBox(height: SgSpace.s4),
         fare,
         const SizedBox(height: SgSpace.s3),
-        SgGhostButton(label: sgStrings(context).cancelRequest, onPressed: onCancel),
+        SgGhostButton(
+          label: sgStrings(context).cancelRequest,
+          onPressed: onCancel,
+        ),
       ],
     ),
   );
@@ -816,9 +818,15 @@ class NoDriverSheet extends StatelessWidget {
         const SizedBox(height: SgSpace.s4),
         fare,
         const SizedBox(height: SgSpace.s4),
-        SgPrimaryButton(label: sgStrings(context).tryAgain, onPressed: onTryAgain),
+        SgPrimaryButton(
+          label: sgStrings(context).tryAgain,
+          onPressed: onTryAgain,
+        ),
         const SizedBox(height: SgSpace.s2),
-        SgGhostButton(label: sgStrings(context).changeRide, onPressed: onChangeRide),
+        SgGhostButton(
+          label: sgStrings(context).changeRide,
+          onPressed: onChangeRide,
+        ),
       ],
     ),
   );
@@ -863,7 +871,7 @@ class ArrivingSheet extends StatelessWidget {
                     Text(
                       headline,
                       style: SgText.heading.copyWith(
-                        fontSize: SgText.px(22),
+                        fontSize: SgText.sizeTitle,
                         height: 28 / 22,
                       ),
                     ),
@@ -886,7 +894,10 @@ class ArrivingSheet extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text('RIDE PIN', style: SgText.label),
-                    Text(sgStrings(context).shareOnlyInCar, style: SgText.caption),
+                    Text(
+                      sgStrings(context).shareOnlyInCar,
+                      style: SgText.caption,
+                    ),
                   ],
                 ),
               ),
@@ -936,7 +947,10 @@ class LiveTripSheet extends StatelessWidget {
           headline,
           maxLines: 2,
           overflow: TextOverflow.ellipsis,
-          style: SgText.heading.copyWith(fontSize: SgText.px(22), height: 28 / 22),
+          style: SgText.heading.copyWith(
+            fontSize: SgText.sizeTitle,
+            height: 28 / 22,
+          ),
         ),
         const SizedBox(height: SgSpace.s3),
         SgDriverCard(driver: driver, compact: true),
@@ -1025,7 +1039,7 @@ class TripCompleteView extends StatelessWidget {
                     Text(
                       fareText!,
                       style: SgText.fare.copyWith(
-                        fontSize: SgText.px(34),
+                        fontSize: SgText.sizeDisplay,
                         height: 40 / 34,
                       ),
                     ),
