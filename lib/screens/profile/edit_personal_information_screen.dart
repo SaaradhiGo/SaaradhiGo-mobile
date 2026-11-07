@@ -157,8 +157,8 @@ class _EditPersonalInformationScreenState
               'SET PROFILE PHOTO',
               style: TextStyle(
                 color: SgColors.inkMuted,
-                fontSize: SgText.px(12),
-                fontWeight: FontWeight.bold,
+                fontSize: SgText.sizeSmall,
+                fontWeight: FontWeight.w600,
               ),
             ),
             const SizedBox(height: 24),
@@ -214,8 +214,8 @@ class _EditPersonalInformationScreenState
             label,
             style: TextStyle(
               color: SgColors.ink,
-              fontSize: SgText.px(13),
-              fontWeight: FontWeight.w500,
+              fontSize: SgText.sizeSmall,
+              fontWeight: FontWeight.w600,
             ),
           ),
         ],
@@ -319,11 +319,7 @@ class _EditPersonalInformationScreenState
       padding: const EdgeInsets.only(left: 2, bottom: 8),
       child: Text(
         text.toUpperCase(),
-        style: TextStyle(
-          color: SgColors.inkMuted,
-          fontSize: SgText.px(11),
-          fontWeight: FontWeight.w700,
-        ),
+        style: SgText.eyebrow.copyWith(color: SgColors.inkMuted),
       ),
     );
   }
@@ -380,7 +376,7 @@ class _EditPersonalInformationScreenState
                       textAlign: TextAlign.center,
                       style: TextStyle(
                         color: SgColors.ink,
-                        fontSize: SgText.px(24),
+                        fontSize: SgText.sizeHeading,
                         fontWeight: FontWeight.w600,
                       ),
                     ),
@@ -459,8 +455,8 @@ class _EditPersonalInformationScreenState
                         controller: _fullNameController,
                         style: TextStyle(
                           color: SgColors.ink,
-                          fontSize: SgText.px(19),
-                          fontWeight: FontWeight.w500,
+                          fontSize: SgText.sizeTitle,
+                          fontWeight: FontWeight.w600,
                         ),
                         decoration: InputDecoration(
                           border: InputBorder.none,
@@ -471,7 +467,7 @@ class _EditPersonalInformationScreenState
                           hintText: _fallbackFullName,
                           hintStyle: TextStyle(
                             color: SgColors.inkSubtle,
-                            fontSize: SgText.px(19),
+                            fontSize: SgText.sizeTitle,
                           ),
                         ),
                       ),
@@ -484,8 +480,8 @@ class _EditPersonalInformationScreenState
                         keyboardType: TextInputType.emailAddress,
                         style: TextStyle(
                           color: SgColors.ink,
-                          fontSize: SgText.px(19),
-                          fontWeight: FontWeight.w500,
+                          fontSize: SgText.sizeTitle,
+                          fontWeight: FontWeight.w600,
                         ),
                         decoration: InputDecoration(
                           border: InputBorder.none,
@@ -496,7 +492,7 @@ class _EditPersonalInformationScreenState
                           hintText: _fallbackEmail,
                           hintStyle: TextStyle(
                             color: SgColors.inkSubtle,
-                            fontSize: SgText.px(19),
+                            fontSize: SgText.sizeTitle,
                           ),
                         ),
                       ),
@@ -523,7 +519,7 @@ class _EditPersonalInformationScreenState
                               displayCountryCode,
                               style: TextStyle(
                                 color: SgColors.ink,
-                                fontSize: SgText.px(19),
+                                fontSize: SgText.sizeTitle,
                                 fontWeight: FontWeight.w600,
                               ),
                             ),
@@ -540,8 +536,8 @@ class _EditPersonalInformationScreenState
                                   color: const Color(
                                     0xFFF8FAFC,
                                   ).withValues(alpha: 0.5),
-                                  fontSize: SgText.px(19),
-                                  fontWeight: FontWeight.w500,
+                                  fontSize: SgText.sizeTitle,
+                                  fontWeight: FontWeight.w600,
                                 ),
                               ),
                             ),
@@ -568,8 +564,8 @@ class _EditPersonalInformationScreenState
                           isExpanded: true,
                           style: TextStyle(
                             color: SgColors.ink,
-                            fontSize: SgText.px(19),
-                            fontWeight: FontWeight.w500,
+                            fontSize: SgText.sizeTitle,
+                            fontWeight: FontWeight.w600,
                           ),
                           padding: const EdgeInsets.symmetric(horizontal: 14),
                           items: _genderOptions.map((option) {
@@ -607,8 +603,8 @@ class _EditPersonalInformationScreenState
                         readOnly: true,
                         style: TextStyle(
                           color: SgColors.ink,
-                          fontSize: SgText.px(19),
-                          fontWeight: FontWeight.w500,
+                          fontSize: SgText.sizeTitle,
+                          fontWeight: FontWeight.w600,
                         ),
                         decoration: InputDecoration(
                           border: InputBorder.none,
@@ -619,7 +615,7 @@ class _EditPersonalInformationScreenState
                           hintText: 'YYYY-MM-DD',
                           hintStyle: TextStyle(
                             color: SgColors.inkSubtle,
-                            fontSize: SgText.px(19),
+                            fontSize: SgText.sizeTitle,
                           ),
                           suffixIcon: Icon(
                             Icons.calendar_today,
@@ -637,8 +633,8 @@ class _EditPersonalInformationScreenState
                         keyboardType: TextInputType.phone,
                         style: TextStyle(
                           color: SgColors.ink,
-                          fontSize: SgText.px(19),
-                          fontWeight: FontWeight.w500,
+                          fontSize: SgText.sizeTitle,
+                          fontWeight: FontWeight.w600,
                         ),
                         decoration: InputDecoration(
                           border: InputBorder.none,
@@ -649,7 +645,7 @@ class _EditPersonalInformationScreenState
                           hintText: sgStrings(context).emergencyPhoneHint,
                           hintStyle: TextStyle(
                             color: SgColors.inkSubtle,
-                            fontSize: SgText.px(19),
+                            fontSize: SgText.sizeTitle,
                           ),
                         ),
                       ),
@@ -663,7 +659,7 @@ class _EditPersonalInformationScreenState
                           'RESIDENTIAL ADDRESS',
                           style: TextStyle(
                             color: SgColors.ink,
-                            fontSize: SgText.px(18),
+                            fontSize: SgText.sizeTitle,
                             fontWeight: FontWeight.w600,
                           ),
                         ),
@@ -682,7 +678,7 @@ class _EditPersonalInformationScreenState
                                   controller: _houseNoController,
                                   style: TextStyle(
                                     color: SgColors.ink,
-                                    fontSize: SgText.px(16),
+                                    fontSize: SgText.sizeBody,
                                   ),
                                   decoration: const InputDecoration(
                                     border: InputBorder.none,
@@ -709,7 +705,7 @@ class _EditPersonalInformationScreenState
                                   controller: _streetController,
                                   style: TextStyle(
                                     color: SgColors.ink,
-                                    fontSize: SgText.px(16),
+                                    fontSize: SgText.sizeBody,
                                   ),
                                   decoration: InputDecoration(
                                     border: InputBorder.none,
@@ -743,7 +739,7 @@ class _EditPersonalInformationScreenState
                                   controller: _cityController,
                                   style: TextStyle(
                                     color: SgColors.ink,
-                                    fontSize: SgText.px(16),
+                                    fontSize: SgText.sizeBody,
                                   ),
                                   decoration: InputDecoration(
                                     border: InputBorder.none,
@@ -775,7 +771,7 @@ class _EditPersonalInformationScreenState
                                   keyboardType: TextInputType.number,
                                   style: TextStyle(
                                     color: SgColors.ink,
-                                    fontSize: SgText.px(16),
+                                    fontSize: SgText.sizeBody,
                                   ),
                                   decoration: InputDecoration(
                                     border: InputBorder.none,
@@ -835,8 +831,8 @@ class _EditPersonalInformationScreenState
                   : Text(
                       'Save Changes',
                       style: TextStyle(
-                        fontSize: SgText.px(18),
-                        fontWeight: FontWeight.bold,
+                        fontSize: SgText.sizeTitle,
+                        fontWeight: FontWeight.w600,
                       ),
                     ),
             ),

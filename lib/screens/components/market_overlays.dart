@@ -42,8 +42,8 @@ class UpdateRequiredScreen extends StatelessWidget {
                   key: Key('update_required_title'),
                   style: TextStyle(
                     color: SgColors.ink,
-                    fontSize: SgText.px(24),
-                    fontWeight: FontWeight.bold,
+                    fontSize: SgText.sizeHeading,
+                    fontWeight: FontWeight.w600,
                   ),
                 ),
                 const SizedBox(height: 12),
@@ -51,7 +51,10 @@ class UpdateRequiredScreen extends StatelessWidget {
                   info.message ?? 'Please update the app to continue.',
                   key: const Key('update_required_message'),
                   textAlign: TextAlign.center,
-                  style: TextStyle(color: SgColors.inkMuted, fontSize: SgText.px(16)),
+                  style: TextStyle(
+                    color: SgColors.inkMuted,
+                    fontSize: SgText.sizeBody,
+                  ),
                 ),
                 if (url != null) ...[
                   const SizedBox(height: 28),
@@ -144,7 +147,7 @@ class _NoticeBannerState extends State<NoticeBanner> {
                         color: n.severity == 'warning'
                             ? SgColors.onGold
                             : SgColors.ink,
-                        fontSize: SgText.px(13),
+                        fontSize: SgText.sizeSmall,
                       ),
                     ),
                   ),
@@ -197,7 +200,10 @@ class BookingRefusalCard extends StatelessWidget {
               child: Text(
                 refusal.message,
                 key: const Key('booking_refusal_message'),
-                style: TextStyle(color: SgColors.ink, fontSize: SgText.px(14)),
+                style: TextStyle(
+                  color: SgColors.ink,
+                  fontSize: SgText.sizeSmall,
+                ),
               ),
             ),
             TextButton(

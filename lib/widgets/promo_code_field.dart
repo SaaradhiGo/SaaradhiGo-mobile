@@ -169,23 +169,26 @@ class _PromoCodeFieldState extends State<PromoCodeField> {
                   '${a.code} applied',
                   style: TextStyle(
                     color: SgColors.success,
-                    fontWeight: FontWeight.w700,
-                    fontSize: SgText.px(13),
+                    fontWeight: FontWeight.w600,
+                    fontSize: SgText.sizeSmall,
                   ),
                 ),
                 const SizedBox(height: 2),
                 Text(
                   'Discount -$saved',
                   key: const Key('promo_discount_text'),
-                  style: TextStyle(color: SgColors.ink, fontSize: SgText.px(13)),
+                  style: TextStyle(
+                    color: SgColors.ink,
+                    fontSize: SgText.sizeSmall,
+                  ),
                 ),
                 Text(
                   'You pay $pay',
                   key: const Key('promo_payable_text'),
                   style: TextStyle(
                     color: SgColors.ink,
-                    fontSize: SgText.px(14),
-                    fontWeight: FontWeight.w700,
+                    fontSize: SgText.sizeSmall,
+                    fontWeight: FontWeight.w600,
                   ),
                 ),
               ],
@@ -194,7 +197,10 @@ class _PromoCodeFieldState extends State<PromoCodeField> {
           TextButton(
             key: const Key('promo_remove'),
             onPressed: widget.onRemoved,
-            child: Text(sgStrings(context).remove, style: TextStyle(color: SgColors.goldText)),
+            child: Text(
+              sgStrings(context).remove,
+              style: TextStyle(color: SgColors.goldText),
+            ),
           ),
         ],
       ),
@@ -258,7 +264,7 @@ class _PromoCodeFieldState extends State<PromoCodeField> {
                     )
                   : const Text(
                       'Apply',
-                      style: TextStyle(fontWeight: FontWeight.w700),
+                      style: TextStyle(fontWeight: FontWeight.w600),
                     ),
             ),
           ],
@@ -270,8 +276,8 @@ class _PromoCodeFieldState extends State<PromoCodeField> {
             key: const Key('promo_refusal'),
             style: TextStyle(
               color: SgColors.danger,
-              fontSize: SgText.px(12),
-              fontWeight: FontWeight.w500,
+              fontSize: SgText.sizeSmall,
+              fontWeight: FontWeight.w600,
             ),
           ),
         ],

@@ -138,7 +138,10 @@ class PaymentStatusScreen extends StatelessWidget {
                     Text(
                       exactMoney(amount!, market.currency.code),
                       key: const Key('payment_still_to_pay'),
-                      style: SgText.fareXl.copyWith(fontSize: SgText.px(44), height: 1),
+                      style: SgText.fareXl.copyWith(
+                        fontSize: SgText.sizeDisplay,
+                        height: 1,
+                      ),
                     ),
                   ],
                   const SizedBox(height: SgSpace.s5),
@@ -215,8 +218,8 @@ class PaymentStatusScreen extends StatelessWidget {
     return Text(
       isSuccess ? 'Payment Successful' : 'Payment Failed',
       style: TextStyle(
-        fontSize: SgText.px(28),
-        fontWeight: FontWeight.bold,
+        fontSize: SgText.sizeHeading,
+        fontWeight: FontWeight.w600,
         color: SgColors.ink,
       ),
     );
@@ -226,8 +229,8 @@ class PaymentStatusScreen extends StatelessWidget {
     return Text(
       '${MarketConfigStore.instance.current.currencySymbol}${amount?.toStringAsFixed(2) ?? '0.00'}',
       style: TextStyle(
-        fontSize: SgText.px(36),
-        fontWeight: FontWeight.bold,
+        fontSize: SgText.sizeDisplay,
+        fontWeight: FontWeight.w600,
         color: SgColors.goldText,
       ),
     );
@@ -236,14 +239,14 @@ class PaymentStatusScreen extends StatelessWidget {
   Widget _buildTransactionId() {
     return Text(
       'Transaction ID: ${transactionId ?? "N/A"}',
-      style: TextStyle(fontSize: SgText.px(14), color: SgColors.inkMuted),
+      style: TextStyle(fontSize: SgText.sizeSmall, color: SgColors.inkMuted),
     );
   }
 
   Widget _buildNewBalance() {
     return Text(
       'New Balance: ${MarketConfigStore.instance.current.currencySymbol}${newBalance?.toStringAsFixed(2) ?? "0.00"}',
-      style: TextStyle(fontSize: SgText.px(16), color: SgColors.ink),
+      style: TextStyle(fontSize: SgText.sizeBody, color: SgColors.ink),
     );
   }
 
@@ -253,7 +256,7 @@ class PaymentStatusScreen extends StatelessWidget {
       child: Text(
         message,
         textAlign: TextAlign.center,
-        style: TextStyle(fontSize: SgText.px(16), color: SgColors.inkMuted),
+        style: TextStyle(fontSize: SgText.sizeBody, color: SgColors.inkMuted),
       ),
     );
   }
@@ -273,7 +276,10 @@ class PaymentStatusScreen extends StatelessWidget {
         ),
         child: Text(
           'Go Home',
-          style: TextStyle(fontSize: SgText.px(18), fontWeight: FontWeight.bold),
+          style: TextStyle(
+            fontSize: SgText.sizeTitle,
+            fontWeight: FontWeight.w600,
+          ),
         ),
       ),
     );
@@ -296,7 +302,10 @@ class PaymentStatusScreen extends StatelessWidget {
             ),
             child: Text(
               'Retry',
-              style: TextStyle(fontSize: SgText.px(18), fontWeight: FontWeight.bold),
+              style: TextStyle(
+                fontSize: SgText.sizeTitle,
+                fontWeight: FontWeight.w600,
+              ),
             ),
           ),
         ),
@@ -317,7 +326,10 @@ class PaymentStatusScreen extends StatelessWidget {
             ),
             child: Text(
               'Use UPI/Card',
-              style: TextStyle(fontSize: SgText.px(18), fontWeight: FontWeight.bold),
+              style: TextStyle(
+                fontSize: SgText.sizeTitle,
+                fontWeight: FontWeight.w600,
+              ),
             ),
           ),
         ),

@@ -36,8 +36,8 @@ class PaymentSuccessScreen extends StatelessWidget {
                 'Payment Successful',
                 style: TextStyle(
                   color: SgColors.ink,
-                  fontSize: SgText.px(24),
-                  fontWeight: FontWeight.w700,
+                  fontSize: SgText.sizeHeading,
+                  fontWeight: FontWeight.w600,
                 ),
                 textAlign: TextAlign.center,
               ),
@@ -53,7 +53,7 @@ class PaymentSuccessScreen extends StatelessWidget {
                         : 'Your wallet balance has been updated successfully.',
                     style: TextStyle(
                       color: SgColors.inkMuted,
-                      fontSize: SgText.px(16),
+                      fontSize: SgText.sizeBody,
                       fontWeight: FontWeight.w400,
                       height: 1.5,
                     ),
@@ -92,8 +92,8 @@ class PaymentSuccessScreen extends StatelessWidget {
                       child: Text(
                         hasReturnRoute ? 'Continue to Payment' : 'Back to Home',
                         style: TextStyle(
-                          fontSize: SgText.px(16),
-                          fontWeight: FontWeight.w700,
+                          fontSize: SgText.sizeBody,
+                          fontWeight: FontWeight.w600,
                         ),
                       ),
                     ),

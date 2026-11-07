@@ -108,7 +108,7 @@ class HelpSupportScreen extends StatelessWidget {
                     'Help & Support',
                     style: TextStyle(
                       color: SgColors.ink,
-                      fontSize: SgText.px(20),
+                      fontSize: SgText.sizeTitle,
                       fontWeight: FontWeight.w600,
                     ),
                   ),
@@ -223,8 +223,8 @@ class _HelpNavItem extends StatelessWidget {
               label,
               style: TextStyle(
                 color: color,
-                fontSize: SgText.px(10),
-                fontWeight: FontWeight.w500,
+                fontSize: SgText.sizeSmall,
+                fontWeight: FontWeight.w600,
                 shadows: shadows,
               ),
             ),
@@ -271,8 +271,8 @@ class _HelpSectionLabel extends StatelessWidget {
       text,
       style: TextStyle(
         color: SgColors.ink,
-        fontSize: SgText.px(18),
-        fontWeight: FontWeight.w700,
+        fontSize: SgText.sizeTitle,
+        fontWeight: FontWeight.w600,
       ),
     );
   }
@@ -322,7 +322,7 @@ class _MiniTile extends StatelessWidget {
               label,
               style: TextStyle(
                 color: SgColors.ink,
-                fontSize: SgText.px(14),
+                fontSize: SgText.sizeSmall,
                 fontWeight: FontWeight.w600,
               ),
             ),
@@ -368,13 +368,16 @@ class _ContactTile extends StatelessWidget {
           title,
           style: TextStyle(
             color: SgColors.ink,
-            fontSize: SgText.px(16),
+            fontSize: SgText.sizeBody,
             fontWeight: FontWeight.w600,
           ),
         ),
         subtitle: Text(
           subtitle,
-          style: TextStyle(color: SgColors.inkMuted, fontSize: SgText.px(13)),
+          style: TextStyle(
+            color: SgColors.inkMuted,
+            fontSize: SgText.sizeSmall,
+          ),
         ),
         trailing: Icon(
           Icons.chevron_right,

@@ -230,7 +230,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
         backgroundColor: SgColors.bg200,
         title: Text(
           sgStrings(context).activeRideTitle,
-          style: TextStyle(color: SgColors.ink, fontWeight: FontWeight.bold),
+          style: TextStyle(color: SgColors.ink, fontWeight: FontWeight.w600),
         ),
         content: Text(
           sgStrings(context).activeRideBody,
@@ -253,7 +253,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
               'View Ride',
               style: TextStyle(
                 color: SgColors.goldText,
-                fontWeight: FontWeight.bold,
+                fontWeight: FontWeight.w600,
               ),
             ),
           ),
@@ -1167,7 +1167,7 @@ class _LocationCardState extends State<_LocationCard> {
                     suggestion.mainText,
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
-                    style: SgText.body.copyWith(fontWeight: FontWeight.w700),
+                    style: SgText.body.copyWith(fontWeight: FontWeight.w600),
                   ),
                   if (suggestion.secondaryText.isNotEmpty)
                     Text(
@@ -1316,8 +1316,8 @@ class _ActiveRideTile extends StatelessWidget {
                           'Ongoing Ride',
                           style: TextStyle(
                             color: SgColors.goldText,
-                            fontSize: SgText.px(14),
-                            fontWeight: FontWeight.w700,
+                            fontSize: SgText.sizeSmall,
+                            fontWeight: FontWeight.w600,
                           ),
                         ),
                         const SizedBox(width: 8),
@@ -1334,8 +1334,8 @@ class _ActiveRideTile extends StatelessWidget {
                             'LIVE',
                             style: TextStyle(
                               color: SgColors.ink,
-                              fontSize: SgText.px(9),
-                              fontWeight: FontWeight.bold,
+                              fontSize: SgText.sizeSmall,
+                              fontWeight: FontWeight.w600,
                             ),
                           ),
                         ),
@@ -1348,7 +1348,7 @@ class _ActiveRideTile extends StatelessWidget {
                       overflow: TextOverflow.ellipsis,
                       style: TextStyle(
                         color: SgColors.ink,
-                        fontSize: SgText.px(17),
+                        fontSize: SgText.sizeBody,
                         fontWeight: FontWeight.w600,
                       ),
                     ),

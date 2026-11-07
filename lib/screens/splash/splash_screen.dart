@@ -155,8 +155,8 @@ class _SplashScreenState extends State<SplashScreen> {
                     Text(
                       'Our Inspiration',
                       style: TextStyle(
-                        fontSize: SgText.px(32),
-                        fontWeight: FontWeight.bold,
+                        fontSize: SgText.sizeDisplay,
+                        fontWeight: FontWeight.w600,
                         color: colorScheme.onSurface,
                       ),
                     ),
@@ -165,7 +165,7 @@ class _SplashScreenState extends State<SplashScreen> {
                       "We believe a happy driver provides the best service. That's why we prioritize driver welfare.",
                       textAlign: TextAlign.center,
                       style: TextStyle(
-                        fontSize: SgText.px(16),
+                        fontSize: SgText.sizeBody,
                         color: colorScheme.onSurface.withValues(alpha: 0.7),
                       ),
                     ),
@@ -208,7 +208,7 @@ class _SplashScreenState extends State<SplashScreen> {
                         children: const [
                           Text(
                             'Next',
-                            style: TextStyle(fontWeight: FontWeight.bold),
+                            style: TextStyle(fontWeight: FontWeight.w600),
                           ),
                           SizedBox(width: 8),
                           Icon(Icons.arrow_forward, size: 18),
@@ -260,8 +260,8 @@ class _SplashScreenState extends State<SplashScreen> {
           Text(
             'Built for You',
             style: TextStyle(
-              fontSize: SgText.px(32),
-              fontWeight: FontWeight.bold,
+              fontSize: SgText.sizeDisplay,
+              fontWeight: FontWeight.w600,
               color: colorScheme.onSurface,
             ),
           ),
@@ -272,7 +272,7 @@ class _SplashScreenState extends State<SplashScreen> {
               "From seamless bookings to premium rides, every detail is crafted for your comfort and safety.",
               textAlign: TextAlign.center,
               style: TextStyle(
-                fontSize: SgText.px(16),
+                fontSize: SgText.sizeBody,
                 color: colorScheme.onSurface.withValues(alpha: 0.7),
               ),
             ),
@@ -304,7 +304,10 @@ class _SplashScreenState extends State<SplashScreen> {
                 ),
                 child: Text(
                   'Next',
-                  style: TextStyle(fontSize: SgText.px(18), fontWeight: FontWeight.bold),
+                  style: TextStyle(
+                    fontSize: SgText.sizeTitle,
+                    fontWeight: FontWeight.w600,
+                  ),
                 ),
               ),
             ),
@@ -362,8 +365,8 @@ class _SplashScreenState extends State<SplashScreen> {
               Text(
                 'Better Together',
                 style: TextStyle(
-                  fontSize: SgText.px(32),
-                  fontWeight: FontWeight.bold,
+                  fontSize: SgText.sizeDisplay,
+                  fontWeight: FontWeight.w600,
                   color: colorScheme.onSurface,
                 ),
               ),
@@ -374,7 +377,7 @@ class _SplashScreenState extends State<SplashScreen> {
                   "SaaradhiGo is more than an app; it's a commitment to a transparent and fair mobility ecosystem.",
                   textAlign: TextAlign.center,
                   style: TextStyle(
-                    fontSize: SgText.px(16),
+                    fontSize: SgText.sizeBody,
                     color: colorScheme.onSurface.withValues(alpha: 0.7),
                   ),
                 ),
@@ -400,8 +403,8 @@ class _SplashScreenState extends State<SplashScreen> {
                     child: Text(
                       'Get Started',
                       style: TextStyle(
-                        fontSize: SgText.px(18),
-                        fontWeight: FontWeight.bold,
+                        fontSize: SgText.sizeTitle,
+                        fontWeight: FontWeight.w600,
                       ),
                     ),
                   ),

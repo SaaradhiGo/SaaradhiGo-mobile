@@ -88,7 +88,7 @@ class HomeHeader extends StatelessWidget {
                 const SizedBox(width: SgSpace.s1),
                 Text(
                   languageShort,
-                  style: SgText.body.copyWith(fontWeight: FontWeight.w700),
+                  style: SgText.body.copyWith(fontWeight: FontWeight.w600),
                 ),
               ],
             ),
@@ -176,8 +176,8 @@ class HomeFromToCard extends StatelessWidget {
                     youAreHere!,
                     style: SgText.caption.copyWith(
                       color: SgColors.pickup,
-                      fontWeight: FontWeight.w700,
-                      fontSize: SgText.px(13),
+                      fontWeight: FontWeight.w600,
+                      fontSize: SgText.sizeSmall,
                     ),
                   ),
                 ),
@@ -275,8 +275,8 @@ class HomeClassChip extends StatelessWidget {
                     overflow: TextOverflow.ellipsis,
                     style: SgText.caption.copyWith(
                       color: vehicleIconColour(type),
-                      fontWeight: FontWeight.w700,
-                      fontSize: SgText.px(13),
+                      fontWeight: FontWeight.w600,
+                      fontSize: SgText.sizeSmall,
                     ),
                   ),
                 ),
@@ -285,7 +285,10 @@ class HomeClassChip extends StatelessWidget {
             const SizedBox(height: 2),
             Text(
               fareText,
-              style: SgText.fare.copyWith(fontSize: SgText.px(18), height: 22 / 18),
+              style: SgText.fare.copyWith(
+                fontSize: SgText.sizeTitle,
+                height: 22 / 18,
+              ),
             ),
           ],
         ),
@@ -390,7 +393,7 @@ class HomeFareCard extends StatelessWidget {
                 fallback!,
                 style: SgText.body.copyWith(
                   color: SgColors.goldText,
-                  fontWeight: FontWeight.w700,
+                  fontWeight: FontWeight.w600,
                 ),
               ),
           ],
@@ -483,9 +486,9 @@ class SgTabBar extends StatelessWidget {
                         Text(
                           items[i].label,
                           style: SgText.caption.copyWith(
-                            fontSize: SgText.px(12),
+                            fontSize: SgText.sizeSmall,
                             height: 16 / 12,
-                            fontWeight: FontWeight.w700,
+                            fontWeight: FontWeight.w600,
                             color: i == selected
                                 ? SgColors.goldText
                                 : SgColors.inkSubtle,

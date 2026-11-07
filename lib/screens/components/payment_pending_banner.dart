@@ -38,8 +38,8 @@ class PaymentPendingBanner extends StatelessWidget {
                   'Your last ride is waiting for payment',
                   style: TextStyle(
                     color: SgColors.onGold,
-                    fontWeight: FontWeight.w700,
-                    fontSize: SgText.px(14),
+                    fontWeight: FontWeight.w600,
+                    fontSize: SgText.sizeSmall,
                   ),
                 ),
               ),
@@ -51,7 +51,7 @@ class PaymentPendingBanner extends StatelessWidget {
                 ),
                 child: const Text(
                   'Pay now',
-                  style: TextStyle(fontWeight: FontWeight.w700),
+                  style: TextStyle(fontWeight: FontWeight.w600),
                 ),
               ),
             ],

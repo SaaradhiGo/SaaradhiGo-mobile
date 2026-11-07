@@ -211,8 +211,8 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen> {
               'CHOOSE IMAGE FROM',
               style: TextStyle(
                 color: SgColors.inkMuted,
-                fontSize: SgText.px(11),
-                fontWeight: FontWeight.bold,
+                fontSize: SgText.sizeSmall,
+                fontWeight: FontWeight.w600,
               ),
             ),
             const SizedBox(height: 16),
@@ -222,7 +222,7 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen> {
                 'Camera',
                 style: TextStyle(
                   color: SgColors.ink,
-                  fontWeight: FontWeight.w500,
+                  fontWeight: FontWeight.w600,
                 ),
               ),
               onTap: () {
@@ -239,7 +239,7 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen> {
                 'Gallery',
                 style: TextStyle(
                   color: SgColors.ink,
-                  fontWeight: FontWeight.w500,
+                  fontWeight: FontWeight.w600,
                 ),
               ),
               onTap: () {
@@ -361,8 +361,8 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen> {
         Text(
           label,
           style: TextStyle(
-            fontSize: SgText.px(14),
-            fontWeight: FontWeight.w500,
+            fontSize: SgText.sizeSmall,
+            fontWeight: FontWeight.w600,
             color: colorScheme.onSurface.withValues(alpha: 0.7),
           ),
         ),
@@ -381,7 +381,10 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen> {
             keyboardType: keyboardType,
             readOnly: readOnly,
             onTap: onTap,
-            style: TextStyle(fontSize: SgText.px(16), fontWeight: FontWeight.w500),
+            style: TextStyle(
+              fontSize: SgText.sizeBody,
+              fontWeight: FontWeight.w600,
+            ),
             decoration: InputDecoration(
               hintText: placeholder,
               border: InputBorder.none,
@@ -399,7 +402,7 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen> {
                   : null,
               hintStyle: TextStyle(
                 color: colorScheme.onSurface.withValues(alpha: 0.4),
-                fontWeight: FontWeight.normal,
+                fontWeight: FontWeight.w400,
               ),
             ),
           ),
@@ -417,8 +420,8 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen> {
         Text(
           'City',
           style: TextStyle(
-            fontSize: SgText.px(14),
-            fontWeight: FontWeight.w500,
+            fontSize: SgText.sizeSmall,
+            fontWeight: FontWeight.w600,
             color: colorScheme.onSurface.withValues(alpha: 0.7),
           ),
         ),
@@ -474,7 +477,10 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen> {
       appBar: AppBar(
         title: Text(
           'Complete Profile',
-          style: TextStyle(fontWeight: FontWeight.bold, fontSize: SgText.px(20)),
+          style: TextStyle(
+            fontWeight: FontWeight.w600,
+            fontSize: SgText.sizeTitle,
+          ),
         ),
         centerTitle: true,
         backgroundColor: colorScheme.surface,
@@ -594,8 +600,8 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen> {
                 Text(
                   'Gender',
                   style: TextStyle(
-                    fontSize: SgText.px(14),
-                    fontWeight: FontWeight.w500,
+                    fontSize: SgText.sizeSmall,
+                    fontWeight: FontWeight.w600,
                     color: colorScheme.onSurface.withValues(alpha: 0.7),
                   ),
                 ),
@@ -633,7 +639,7 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen> {
                             child: Text(
                               gender,
                               style: TextStyle(
-                                fontWeight: FontWeight.bold,
+                                fontWeight: FontWeight.w600,
                                 color: isSelected
                                     ? colorScheme.onPrimary
                                     : colorScheme.onSurface.withValues(
@@ -684,8 +690,8 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen> {
                     Text(
                       'Safety First',
                       style: TextStyle(
-                        fontSize: SgText.px(18),
-                        fontWeight: FontWeight.bold,
+                        fontSize: SgText.sizeTitle,
+                        fontWeight: FontWeight.w600,
                         color: colorScheme.primary,
                       ),
                     ),
@@ -702,7 +708,7 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen> {
                 Text(
                   'Used only in case of emergencies during your ride.',
                   style: TextStyle(
-                    fontSize: SgText.px(12),
+                    fontSize: SgText.sizeSmall,
                     color: colorScheme.onSurface.withValues(alpha: 0.5),
                   ),
                 ),
@@ -718,8 +724,8 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen> {
                     Text(
                       'Residential Address',
                       style: TextStyle(
-                        fontSize: SgText.px(18),
-                        fontWeight: FontWeight.bold,
+                        fontSize: SgText.sizeTitle,
+                        fontWeight: FontWeight.w600,
                       ),
                     ),
                   ],
@@ -824,8 +830,8 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen> {
                                 Text(
                                   'Save & Continue',
                                   style: TextStyle(
-                                    fontSize: SgText.px(18),
-                                    fontWeight: FontWeight.bold,
+                                    fontSize: SgText.sizeTitle,
+                                    fontWeight: FontWeight.w600,
                                   ),
                                 ),
                                 const SizedBox(width: 8),

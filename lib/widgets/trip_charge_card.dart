@@ -71,8 +71,8 @@ class TripChargeCard extends StatelessWidget {
               textAlign: TextAlign.center,
               style: TextStyle(
                 color: _gold,
-                fontSize: SgText.px(14),
-                fontWeight: FontWeight.w700,
+                fontSize: SgText.sizeSmall,
+                fontWeight: FontWeight.w600,
               ),
             ),
             if (distanceDriven != null) ...[
@@ -80,7 +80,7 @@ class TripChargeCard extends StatelessWidget {
               Text(
                 'Distance driven: $distanceDriven',
                 key: const Key('ops_ended_distance'),
-                style: TextStyle(color: _muted, fontSize: SgText.px(13)),
+                style: TextStyle(color: _muted, fontSize: SgText.sizeSmall),
               ),
             ],
             const SizedBox(height: 14),
@@ -89,8 +89,8 @@ class TripChargeCard extends StatelessWidget {
             charge.notCharged ? 'Your ride' : fareTitle,
             style: TextStyle(
               color: _muted,
-              fontSize: SgText.px(11),
-              fontWeight: FontWeight.w700,
+              fontSize: SgText.sizeSmall,
+              fontWeight: FontWeight.w600,
             ),
           ),
           const SizedBox(height: 8),
@@ -100,8 +100,8 @@ class TripChargeCard extends StatelessWidget {
               key: const Key('not_charged_label'),
               style: TextStyle(
                 color: SgColors.ink,
-                fontSize: SgText.px(40),
-                fontWeight: FontWeight.w700,
+                fontSize: SgText.sizeDisplay,
+                fontWeight: FontWeight.w600,
               ),
             )
           else ...[
@@ -110,8 +110,10 @@ class TripChargeCard extends StatelessWidget {
               key: const Key('fare_amount'),
               style: TextStyle(
                 color: SgColors.ink,
-                fontSize: charge.hasPromo ? 22 : 40,
-                fontWeight: FontWeight.w700,
+                fontSize: charge.hasPromo
+                    ? SgText.sizeTitle
+                    : SgText.sizeDisplay,
+                fontWeight: FontWeight.w600,
                 decoration: charge.hasPromo ? TextDecoration.lineThrough : null,
                 decorationColor: _muted,
               ),
@@ -125,20 +127,23 @@ class TripChargeCard extends StatelessWidget {
                 key: const Key('promo_discount_line'),
                 style: TextStyle(
                   color: SgColors.success,
-                  fontSize: SgText.px(14),
+                  fontSize: SgText.sizeSmall,
                   fontWeight: FontWeight.w600,
                 ),
               ),
               if (payableText != null) ...[
                 const SizedBox(height: 6),
-                Text(sgStrings(context).youPay, style: TextStyle(color: _muted, fontSize: SgText.px(13))),
+                Text(
+                  sgStrings(context).youPay,
+                  style: TextStyle(color: _muted, fontSize: SgText.sizeSmall),
+                ),
                 Text(
                   payableText,
                   key: const Key('you_pay_amount'),
                   style: TextStyle(
                     color: SgColors.ink,
-                    fontSize: SgText.px(40),
-                    fontWeight: FontWeight.w700,
+                    fontSize: SgText.sizeDisplay,
+                    fontWeight: FontWeight.w600,
                   ),
                 ),
               ],
@@ -148,7 +153,7 @@ class TripChargeCard extends StatelessWidget {
             const SizedBox(height: 8),
             Text(
               'Covered by your promo',
-              style: TextStyle(color: _muted, fontSize: SgText.px(13)),
+              style: TextStyle(color: _muted, fontSize: SgText.sizeSmall),
             ),
           ],
         ],
@@ -175,7 +180,10 @@ class NotChargedPanel extends StatelessWidget {
         Text(
           message,
           textAlign: TextAlign.center,
-          style: TextStyle(color: SgColors.inkMuted, fontSize: SgText.px(14)),
+          style: TextStyle(
+            color: SgColors.inkMuted,
+            fontSize: SgText.sizeSmall,
+          ),
         ),
         const SizedBox(height: 24),
         SizedBox(
@@ -193,7 +201,10 @@ class NotChargedPanel extends StatelessWidget {
             ),
             child: Text(
               'Continue',
-              style: TextStyle(fontSize: SgText.px(16), fontWeight: FontWeight.w700),
+              style: TextStyle(
+                fontSize: SgText.sizeBody,
+                fontWeight: FontWeight.w600,
+              ),
             ),
           ),
         ),

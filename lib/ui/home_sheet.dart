@@ -229,7 +229,7 @@ class _Place extends StatelessWidget {
                   data.name,
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
-                  style: SgText.body.copyWith(fontWeight: FontWeight.w700),
+                  style: SgText.body.copyWith(fontWeight: FontWeight.w600),
                 ),
                 if (data.address.isNotEmpty)
                   Text(
@@ -246,7 +246,7 @@ class _Place extends StatelessWidget {
               data.distance!,
               style: SgText.caption.copyWith(
                 color: SgColors.inkSubtle,
-                fontSize: SgText.px(12),
+                fontSize: SgText.sizeSmall,
               ),
             ),
         ],

@@ -293,7 +293,10 @@ class _WalletBalanceCard extends StatelessWidget {
                 )
               : Text(
                   formatter.format(balance),
-                  style: SgText.fare.copyWith(fontSize: SgText.px(36), height: 44 / 36),
+                  style: SgText.fare.copyWith(
+                    fontSize: SgText.sizeDisplay,
+                    height: 44 / 36,
+                  ),
                 ),
           if (pendingReview != null) ...[
             const SizedBox(height: 8),
@@ -332,7 +335,7 @@ class _WalletMonthLabel extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Text(label.toUpperCase(), style: SgText.label);
+    return Text(label.toUpperCase(), style: SgText.eyebrow);
   }
 }
 
@@ -404,7 +407,7 @@ class _WalletTxnCard extends StatelessWidget {
                               overflow: TextOverflow.ellipsis,
                               style: TextStyle(
                                 color: SgColors.ink,
-                                fontSize: SgText.px(15),
+                                fontSize: SgText.sizeBody,
                                 fontWeight: FontWeight.w600,
                               ),
                             ),
@@ -423,10 +426,8 @@ class _WalletTxnCard extends StatelessWidget {
                             ),
                             child: Text(
                               transaction.status.toUpperCase(),
-                              style: TextStyle(
+                              style: SgText.eyebrow.copyWith(
                                 color: getStatusColor(),
-                                fontSize: SgText.px(9),
-                                fontWeight: FontWeight.w700,
                               ),
                             ),
                           ),
@@ -437,8 +438,8 @@ class _WalletTxnCard extends StatelessWidget {
                         dateStr,
                         style: TextStyle(
                           color: SgColors.inkMuted,
-                          fontSize: SgText.px(12),
-                          fontWeight: FontWeight.w500,
+                          fontSize: SgText.sizeSmall,
+                          fontWeight: FontWeight.w600,
                         ),
                       ),
                     ],
@@ -451,8 +452,8 @@ class _WalletTxnCard extends StatelessWidget {
                     color: transaction.isCredit
                         ? SgColors.success
                         : SgColors.ink,
-                    fontSize: SgText.px(16),
-                    fontWeight: FontWeight.w700,
+                    fontSize: SgText.sizeBody,
+                    fontWeight: FontWeight.w600,
                   ),
                 ),
               ],
@@ -478,8 +479,8 @@ class _EmptyTransactionsState extends StatelessWidget {
           'No transactions yet',
           style: TextStyle(
             color: SgColors.inkMuted,
-            fontSize: SgText.px(16),
-            fontWeight: FontWeight.w500,
+            fontSize: SgText.sizeBody,
+            fontWeight: FontWeight.w600,
           ),
         ),
       ],
@@ -505,15 +506,18 @@ class _ErrorState extends StatelessWidget {
             textAlign: TextAlign.center,
             style: TextStyle(
               color: SgColors.danger,
-              fontSize: SgText.px(14),
-              fontWeight: FontWeight.w500,
+              fontSize: SgText.sizeSmall,
+              fontWeight: FontWeight.w600,
             ),
           ),
         ),
         const SizedBox(height: 16),
         TextButton(
           onPressed: () => context.read<WalletProvider>().refreshWallet(),
-          child: Text(sgStrings(context).retry, style: TextStyle(color: SgColors.goldText)),
+          child: Text(
+            sgStrings(context).retry,
+            style: TextStyle(color: SgColors.goldText),
+          ),
         ),
       ],
     );
@@ -548,7 +552,7 @@ class _FilterChip extends StatelessWidget {
         child: Text(
           label,
           style: SgText.body.copyWith(
-            fontWeight: FontWeight.w700,
+            fontWeight: FontWeight.w600,
             color: isSelected ? SgColors.ink : SgColors.inkMuted,
           ),
         ),
@@ -589,7 +593,7 @@ class _WalletActionButton extends StatelessWidget {
               label,
               style: TextStyle(
                 color: SgColors.goldText,
-                fontSize: SgText.px(14),
+                fontSize: SgText.sizeSmall,
                 fontWeight: FontWeight.w600,
               ),
             ),

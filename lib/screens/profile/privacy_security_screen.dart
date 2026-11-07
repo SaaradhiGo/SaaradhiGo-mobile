@@ -130,8 +130,8 @@ class _PrivacySecurityScreenState extends State<PrivacySecurityScreen> {
                       textAlign: TextAlign.center,
                       style: TextStyle(
                         color: SgColors.ink,
-                        fontSize: SgText.px(26),
-                        fontWeight: FontWeight.w700,
+                        fontSize: SgText.sizeHeading,
+                        fontWeight: FontWeight.w600,
                       ),
                     ),
                   ),
@@ -172,7 +172,9 @@ class _PrivacySecurityScreenState extends State<PrivacySecurityScreen> {
                           title: sgStrings(context).changePassword,
                           subtitle:
                               'Update your password regularly to keep your account safe.',
-                          onTap: () => _showComingSoon(sgStrings(context).changePassword),
+                          onTap: () => _showComingSoon(
+                            sgStrings(context).changePassword,
+                          ),
                         ),
                       ],
                     ),
@@ -188,7 +190,9 @@ class _PrivacySecurityScreenState extends State<PrivacySecurityScreen> {
                           title: sgStrings(context).locationPermissions,
                           subtitle:
                               'Control when SaaradhiGo can access your location.',
-                          onTap: () => _showComingSoon(sgStrings(context).locationPermissions),
+                          onTap: () => _showComingSoon(
+                            sgStrings(context).locationPermissions,
+                          ),
                         ),
                         const _PrivacyDivider(),
                         _PrivacyActionRow(
@@ -207,7 +211,8 @@ class _PrivacySecurityScreenState extends State<PrivacySecurityScreen> {
                           title: sgStrings(context).manageMyData,
                           subtitle:
                               'Download or delete your account data securely.',
-                          onTap: () => _showComingSoon(sgStrings(context).manageMyData),
+                          onTap: () =>
+                              _showComingSoon(sgStrings(context).manageMyData),
                         ),
                       ],
                     ),
@@ -233,11 +238,7 @@ class _PrivacySectionLabel extends StatelessWidget {
       padding: const EdgeInsets.only(left: 2),
       child: Text(
         text.toUpperCase(),
-        style: TextStyle(
-          color: SgColors.inkMuted,
-          fontSize: SgText.px(14),
-          fontWeight: FontWeight.w600,
-        ),
+        style: SgText.eyebrow.copyWith(color: SgColors.inkMuted),
       ),
     );
   }
@@ -308,7 +309,7 @@ class _PrivacyActionRow extends StatelessWidget {
                       title,
                       style: TextStyle(
                         color: SgColors.ink,
-                        fontSize: SgText.px(16),
+                        fontSize: SgText.sizeBody,
                         fontWeight: FontWeight.w600,
                       ),
                     ),
@@ -317,8 +318,8 @@ class _PrivacyActionRow extends StatelessWidget {
                       subtitle,
                       style: TextStyle(
                         color: SgColors.inkMuted,
-                        fontSize: SgText.px(12),
-                        fontWeight: FontWeight.w500,
+                        fontSize: SgText.sizeSmall,
+                        fontWeight: FontWeight.w600,
                         height: 1.25,
                       ),
                     ),
@@ -363,7 +364,7 @@ class _PrivacyToggleRow extends StatelessWidget {
                   title,
                   style: TextStyle(
                     color: SgColors.ink,
-                    fontSize: SgText.px(16),
+                    fontSize: SgText.sizeBody,
                     fontWeight: FontWeight.w600,
                   ),
                 ),
@@ -372,8 +373,8 @@ class _PrivacyToggleRow extends StatelessWidget {
                   subtitle,
                   style: TextStyle(
                     color: SgColors.inkMuted,
-                    fontSize: SgText.px(12),
-                    fontWeight: FontWeight.w500,
+                    fontSize: SgText.sizeSmall,
+                    fontWeight: FontWeight.w600,
                     height: 1.25,
                   ),
                 ),
@@ -434,8 +435,8 @@ class _PrivacyNavItem extends StatelessWidget {
               label,
               style: TextStyle(
                 color: color,
-                fontSize: SgText.px(10),
-                fontWeight: FontWeight.w500,
+                fontSize: SgText.sizeSmall,
+                fontWeight: FontWeight.w600,
                 shadows: shadows,
               ),
             ),

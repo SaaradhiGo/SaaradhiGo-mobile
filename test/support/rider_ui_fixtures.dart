@@ -261,8 +261,14 @@ Future<void> loadSgFonts() async {
     await loader.load();
   }
 
-  await load('NotoSans', ['NotoSans.ttf']);
-  await load('NotoSansTelugu', ['NotoSansTelugu.ttf']);
-  await load('NotoSansDevanagari', ['NotoSansDevanagari.ttf']);
+  await load('Inter', ['Inter-Regular.ttf', 'Inter-SemiBold.ttf']);
+  await load('NotoSansTelugu', [
+    'NotoSansTelugu-Regular.ttf',
+    'NotoSansTelugu-SemiBold.ttf',
+  ]);
+  await load('NotoSansDevanagari', [
+    'NotoSansDevanagari-Regular.ttf',
+    'NotoSansDevanagari-SemiBold.ttf',
+  ]);
   await load('Cinzel', ['Cinzel-SemiBold.ttf']);
 }

@@ -21,15 +21,18 @@ class CancelledOverlay extends StatelessWidget {
                 'Ride Cancelled',
                 style: TextStyle(
                   color: SgColors.ink,
-                  fontWeight: FontWeight.bold,
+                  fontWeight: FontWeight.w600,
                   fontFamily: SgText.sans,
-                  fontSize: SgText.px(24),
+                  fontSize: SgText.sizeHeading,
                 ),
               ),
               SizedBox(height: 8),
               Text(
                 'Returning to home...',
-                style: TextStyle(color: SgColors.inkSubtle, fontSize: SgText.px(14)),
+                style: TextStyle(
+                  color: SgColors.inkSubtle,
+                  fontSize: SgText.sizeSmall,
+                ),
               ),
             ],
           ),

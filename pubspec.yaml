@@ -75,17 +75,26 @@ flutter:
     - assets/brand/
     - assets/vehicles/
   fonts:
-    # Noto Sans (OFL, assets/fonts/OFL-NotoSans.txt): variable, wdth pinned to 100,
-    # wght 400-700. The family is chosen by locale (lib/ui/sg_text.dart).
-    - family: NotoSans
+    # Inter 400 and 600 (OFL, assets/fonts/OFL-Inter.txt) for all text; Noto Sans
+    # Telugu and Devanagari 400/600 static instances (OFL-NotoSans.txt) as fallbacks.
+    - family: Inter
       fonts:
-        - asset: assets/fonts/NotoSans.ttf
+        - asset: assets/fonts/Inter-Regular.ttf
+          weight: 400
+        - asset: assets/fonts/Inter-SemiBold.ttf
+          weight: 600
     - family: NotoSansTelugu
       fonts:
-        - asset: assets/fonts/NotoSansTelugu.ttf
+        - asset: assets/fonts/NotoSansTelugu-Regular.ttf
+          weight: 400
+        - asset: assets/fonts/NotoSansTelugu-SemiBold.ttf
+          weight: 600
     - family: NotoSansDevanagari
       fonts:
-        - asset: assets/fonts/NotoSansDevanagari.ttf
+        - asset: assets/fonts/NotoSansDevanagari-Regular.ttf
+          weight: 400
+        - asset: assets/fonts/NotoSansDevanagari-SemiBold.ttf
+          weight: 600
     # Cinzel 600 (OFL, assets/fonts/OFL-Cinzel.txt): "Saaradhi Go" beside the
     # badge only.
     - family: Cinzel

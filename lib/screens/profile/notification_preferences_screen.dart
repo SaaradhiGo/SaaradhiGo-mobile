@@ -147,7 +147,7 @@ class _NotificationPreferencesScreenState
               heading,
               style: Theme.of(
                 context,
-              ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700),
+              ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w600),
             ),
           ),
           if (note != null)
@@ -155,7 +155,10 @@ class _NotificationPreferencesScreenState
               padding: const EdgeInsets.fromLTRB(16, 0, 16, 4),
               child: Text(
                 note,
-                style: TextStyle(color: scheme.onSurfaceVariant, fontSize: SgText.px(13)),
+                style: TextStyle(
+                  color: scheme.onSurfaceVariant,
+                  fontSize: SgText.sizeSmall,
+                ),
               ),
             ),
           ...rows,
@@ -235,7 +238,7 @@ class _NotificationPreferencesScreenState
       appBar: AppBar(
         title: const Text(
           'Notification preferences',
-          style: TextStyle(fontWeight: FontWeight.bold),
+          style: TextStyle(fontWeight: FontWeight.w600),
         ),
         centerTitle: true,
         backgroundColor: scheme.surface,

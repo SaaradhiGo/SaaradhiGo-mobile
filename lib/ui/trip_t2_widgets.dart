@@ -40,7 +40,7 @@ class SgSosPill extends StatelessWidget {
                 'SOS',
                 style: SgText.body.copyWith(
                   color: SgColors.onDanger,
-                  fontWeight: FontWeight.w700,
+                  fontWeight: FontWeight.w600,
                 ),
               ),
             ],
@@ -69,7 +69,7 @@ class SgNumberPlate extends StatelessWidget {
     final text = Text(
       formatPlate(number),
       style: SgText.fare.copyWith(
-        fontSize: SgText.px(16),
+        fontSize: SgText.sizeBody,
         height: 20 / 16,
         color: indian ? SgColors.black : SgColors.ink,
       ),
@@ -155,7 +155,7 @@ class SgPinPanel extends StatelessWidget {
             children: [
               Text(
                 label.toUpperCase(),
-                style: SgText.label.copyWith(color: SgColors.brandGold),
+                style: SgText.eyebrow.copyWith(color: SgColors.brandGold),
               ),
               const SizedBox(height: 2),
               Text(
@@ -169,10 +169,9 @@ class SgPinPanel extends StatelessWidget {
           pin,
           key: const Key('ride_pin'),
           style: SgText.fare.copyWith(
-            fontSize: SgText.px(38),
+            fontSize: SgText.sizeDisplay,
             height: 1,
             color: SgColors.brandGold,
-            letterSpacing: 6,
           ),
         ),
       ],
@@ -240,7 +239,7 @@ class SgDriverRow extends StatelessWidget {
                     rating!,
                     style: SgText.caption.copyWith(
                       color: SgColors.goldText,
-                      fontWeight: FontWeight.w700,
+                      fontWeight: FontWeight.w600,
                     ),
                   ),
                 ],
@@ -307,7 +306,7 @@ class SgIconButtonWide extends StatelessWidget {
                   overflow: TextOverflow.ellipsis,
                   style: SgText.body.copyWith(
                     color: c,
-                    fontWeight: FontWeight.w700,
+                    fontWeight: FontWeight.w600,
                   ),
                 ),
               ),
@@ -358,7 +357,10 @@ class ArrivingT2Sheet extends StatelessWidget {
             Text(
               eta!,
               key: const Key('arriving_eta'),
-              style: SgText.fare.copyWith(fontSize: SgText.px(52), height: 1),
+              style: SgText.fare.copyWith(
+                fontSize: SgText.sizeDisplay,
+                height: 1,
+              ),
             ),
           Text(
             headline,
@@ -484,7 +486,7 @@ class OnTripSheet extends StatelessWidget {
             arrivalLine,
             key: const Key('trip_arrival'),
             style: SgText.heading.copyWith(
-              fontSize: SgText.px(44),
+              fontSize: SgText.sizeDisplay,
               height: 46 / 44,
               fontFeatures: const [FontFeature.tabularFigures()],
             ),
@@ -553,8 +555,8 @@ class LockedFare extends StatelessWidget {
             locked,
             style: SgText.caption.copyWith(
               color: SgColors.success,
-              fontWeight: FontWeight.w700,
-              fontSize: SgText.px(12),
+              fontWeight: FontWeight.w600,
+              fontSize: SgText.sizeSmall,
             ),
           ),
         ],
@@ -633,7 +635,7 @@ class ReceiptTiles extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(label.toUpperCase(), style: SgText.label),
+            Text(label.toUpperCase(), style: SgText.eyebrow),
             const SizedBox(height: SgSpace.s2),
             FittedBox(
               fit: BoxFit.scaleDown,
@@ -641,7 +643,7 @@ class ReceiptTiles extends StatelessWidget {
               child: Text(
                 value,
                 style: SgText.fare.copyWith(
-                  fontSize: SgText.px(32),
+                  fontSize: SgText.sizeDisplay,
                   height: 36 / 32,
                 ),
               ),

@@ -128,8 +128,8 @@ class _HoldToSendButtonState extends State<HoldToSendButton>
                           _hold.value > 0 ? 'Keep holding' : widget.label,
                           style: TextStyle(
                             color: SgColors.ink,
-                            fontSize: SgText.px(16),
-                            fontWeight: FontWeight.w700,
+                            fontSize: SgText.sizeBody,
+                            fontWeight: FontWeight.w600,
                           ),
                         ),
                       ),

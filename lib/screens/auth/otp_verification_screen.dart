@@ -242,7 +242,7 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen> {
                           l.changeNumber,
                           style: SgText.body.copyWith(
                             color: SgColors.goldText,
-                            fontWeight: FontWeight.w700,
+                            fontWeight: FontWeight.w600,
                           ),
                         ),
                       ),
@@ -266,7 +266,7 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen> {
                                 l.verifyResend,
                                 style: SgText.body.copyWith(
                                   color: SgColors.goldText,
-                                  fontWeight: FontWeight.w700,
+                                  fontWeight: FontWeight.w600,
                                 ),
                               ),
                             )
@@ -392,7 +392,10 @@ class OtpBoxes extends StatelessWidget {
                       ),
                       child: Text(
                         i < code.length ? code[i] : '',
-                        style: SgText.fare.copyWith(fontSize: SgText.px(26), height: 1),
+                        style: SgText.fare.copyWith(
+                          fontSize: SgText.sizeHeading,
+                          height: 1,
+                        ),
                       ),
                     ),
                   ),

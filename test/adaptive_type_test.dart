@@ -175,52 +175,76 @@ void main() {
       expect(SgText.scaleFor(600), 1.12);
     });
 
-    test('base sizes and weights, times the factor', () {
+    test('five sizes, two weights, in every size class', () {
+      const regular = {
+        'display': 40.0,
+        'heading': 28.0,
+        'title': 20.0,
+        'body': 16.0,
+        'small': 14.0,
+      };
       for (final f in [0.92, 1.0, 1.12]) {
         SgText.scale = f;
-        expect(SgText.screenTitle.fontSize, closeTo(24 * f, 1e-9));
-        expect(SgText.sectionTitle.fontSize, closeTo(18 * f, 1e-9));
-        expect(SgText.body.fontSize, closeTo(16 * f, 1e-9));
-        expect(SgText.caption.fontSize, closeTo(14 * f, 1e-9));
-        expect(SgText.label.fontSize, closeTo(13 * f, 1e-9));
-        expect(SgText.button.fontSize, closeTo(17 * f, 1e-9));
+        final compact = f < 1;
+        final tablet = f > 1;
+        double want(String k, [double? c]) =>
+            compact ? (c ?? regular[k]!) : regular[k]! * (tablet ? f : 1);
+        expect(SgText.display.fontSize, closeTo(want('display', 32), 1e-9));
+        expect(SgText.heading.fontSize, closeTo(want('heading', 22), 1e-9));
+        expect(SgText.title.fontSize, closeTo(want('title'), 1e-9));
+        expect(SgText.body.fontSize, closeTo(want('body'), 1e-9));
+        expect(SgText.small.fontSize, closeTo(want('small'), 1e-9));
+        expect(SgText.label.fontSize, closeTo(want('small'), 1e-9));
+        expect(SgText.button.fontSize, closeTo(want('body'), 1e-9));
+        expect(SgText.fare.fontSize, closeTo(want('title'), 1e-9));
+        expect(SgText.fareXl.fontSize, closeTo(want('display', 32), 1e-9));
         for (final s in [
-          SgText.screenTitle,
-          SgText.sectionTitle,
+          SgText.display,
+          SgText.heading,
+          SgText.title,
           SgText.body,
-          SgText.caption,
+          SgText.small,
           SgText.label,
           SgText.button,
           SgText.fare,
           SgText.fareXl,
         ]) {
-          expect([
-            FontWeight.w400,
-            FontWeight.w500,
-            FontWeight.w600,
-            FontWeight.w700,
-          ], contains(s.fontWeight));
+          expect([FontWeight.w400, FontWeight.w600], contains(s.fontWeight));
+          expect(s.fontSize! >= 14, isTrue);
           expect(s.letterSpacing ?? 0, 0);
+          expect(s.fontFamily, 'Inter');
         }
+        expect(
+          SgText.eyebrow.letterSpacing,
+          closeTo(0.04 * want('small'), 1e-9),
+        );
       }
-      SgText.scale = 0.92;
-      expect(SgText.fareXl.fontSize, 40);
-      SgText.scale = 1.0;
-      expect(SgText.fareXl.fontSize, 44);
     });
 
-    test('hand-built sizes snap to the scale, never under 13', () {
+    test('every Material text slot lands on one of the five sizes', () {
       SgText.scale = 1.0;
-      expect(SgText.px(6), 13);
-      expect(SgText.px(11), 13);
-      expect(SgText.px(12), 13);
-      expect(SgText.px(14), 14);
-      expect(SgText.px(15), 16);
-      expect(SgText.px(19), 18);
-      expect(SgText.px(26), 24);
-      expect(SgText.px(52), 44);
-      SgText.scale = 1.12;
-      expect(SgText.px(16), closeTo(16 * 1.12, 1e-9));
+      final t = sgTheme(SgPalette.dark).textTheme;
+      final sizes = {
+        for (final s in [
+          t.displayLarge,
+          t.displayMedium,
+          t.displaySmall,
+          t.headlineLarge,
+          t.headlineMedium,
+          t.headlineSmall,
+          t.titleLarge,
+          t.titleMedium,
+          t.titleSmall,
+          t.bodyLarge,
+          t.bodyMedium,
+          t.bodySmall,
+          t.labelLarge,
+          t.labelMedium,
+          t.labelSmall,
+        ])
+          s!.fontSize,
+      };
+      expect(sizes, {40.0, 28.0, 20.0, 16.0, 14.0});
     });
   });
 
