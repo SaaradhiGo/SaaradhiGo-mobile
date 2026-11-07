@@ -2,7 +2,7 @@
 //
 // * One scale in logical pixels, times the size class's factor (compact 0.92
 //   under 360, regular 1.0, tablet 1.12 from 600).
-// * Weights 500, 600 and 700 only; nothing under 13.
+// * Weights 400 to 700 only; nothing under 13.
 // * The main rider screens hold at 320 wide with a 1.3x text size: text
 //   wraps or the sheet scrolls, and nothing overflows.
 
@@ -195,6 +195,7 @@ void main() {
           SgText.fareXl,
         ]) {
           expect([
+            FontWeight.w400,
             FontWeight.w500,
             FontWeight.w600,
             FontWeight.w700,
