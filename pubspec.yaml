@@ -75,17 +75,17 @@ flutter:
     - assets/brand/
     - assets/vehicles/
   fonts:
-    # Anek (OFL, assets/fonts/OFL-Anek.txt): variable, wdth pinned to 100,
-    # wght 500-800. The family is chosen by locale (lib/ui/sg_text.dart).
-    - family: AnekLatin
+    # Noto Sans (OFL, assets/fonts/OFL-NotoSans.txt): variable, wdth pinned to 100,
+    # wght 400-700. The family is chosen by locale (lib/ui/sg_text.dart).
+    - family: NotoSans
       fonts:
-        - asset: assets/fonts/AnekLatin.ttf
-    - family: AnekTelugu
+        - asset: assets/fonts/NotoSans.ttf
+    - family: NotoSansTelugu
       fonts:
-        - asset: assets/fonts/AnekTelugu.ttf
-    - family: AnekDevanagari
+        - asset: assets/fonts/NotoSansTelugu.ttf
+    - family: NotoSansDevanagari
       fonts:
-        - asset: assets/fonts/AnekDevanagari.ttf
+        - asset: assets/fonts/NotoSansDevanagari.ttf
     # Cinzel 600 (OFL, assets/fonts/OFL-Cinzel.txt): "Saaradhi Go" beside the
     # badge only.
     - family: Cinzel

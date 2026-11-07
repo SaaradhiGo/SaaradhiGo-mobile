@@ -1,4 +1,4 @@
-/// Type: Anek for the interface (the Latin, Telugu or Devanagari family by the
+/// Type: Noto Sans for the interface (the Latin, Telugu or Devanagari family by the
 /// active locale, the other two as fallbacks), Cinzel 600 for the
 /// "Saaradhi Go" lettering beside the badge and nothing else. Every font is
 /// bundled (assets/fonts); nothing is fetched at runtime.
@@ -11,9 +11,9 @@ import 'sg_tokens.dart';
 class SgText {
   SgText._();
 
-  static const latin = 'AnekLatin';
-  static const telugu = 'AnekTelugu';
-  static const devanagari = 'AnekDevanagari';
+  static const latin = 'NotoSans';
+  static const telugu = 'NotoSansTelugu';
+  static const devanagari = 'NotoSansDevanagari';
 
   /// Brand lettering only. Never a heading or body text.
   static const brand = 'Cinzel';
@@ -28,7 +28,7 @@ class SgText {
     _ => latin,
   };
 
-  /// The other two Anek families, so a mixed string (a Telugu place name in an
+  /// The other two Noto Sans families, so a mixed string (a Telugu place name in an
   /// English UI) still renders.
   static List<String> get fallback => [
     latin,
@@ -95,7 +95,7 @@ class SgText {
   }
 
   /// The screen title ("Where to?"): one per screen.
-  static TextStyle get screenTitle => _style(24, 30, 700);
+  static TextStyle get screenTitle => _style(24, 30, 600);
 
   /// A section title, a sheet title, a row's main line when it leads.
   static TextStyle get sectionTitle => _style(18, 24, 600);
@@ -103,8 +103,8 @@ class SgText {
   static TextStyle get display => screenTitle;
   static TextStyle get heading => screenTitle;
   static TextStyle get title => sectionTitle;
-  static TextStyle get body => _style(16, 22, 500);
-  static TextStyle get caption => _style(14, 20, 500, color: SgColors.inkMuted);
+  static TextStyle get body => _style(16, 22, 400);
+  static TextStyle get caption => _style(14, 20, 400, color: SgColors.inkMuted);
 
   /// Short labels and eyebrows. Never letter-spaced (it pulled Telugu and
   /// Devanagari conjuncts apart and read as heavy caps).
@@ -116,7 +116,7 @@ class SgText {
       : _style(44, 48, 700, figures: true);
 
   /// A fare in a row.
-  static TextStyle get fare => _style(18, 22, 700, figures: true);
+  static TextStyle get fare => _style(18, 22, 600, figures: true);
 
   /// The label on a button.
   static TextStyle get button => _style(17, 22, 600, color: SgColors.onGold);

@@ -59,7 +59,13 @@ class SgNumberPlate extends StatelessWidget {
   final bool indian;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context) => FittedBox(
+    fit: BoxFit.scaleDown,
+    alignment: Alignment.centerLeft,
+    child: _plate(),
+  );
+
+  Widget _plate() {
     final text = Text(
       formatPlate(number),
       style: SgText.fare.copyWith(

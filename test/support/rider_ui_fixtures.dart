@@ -261,8 +261,8 @@ Future<void> loadSgFonts() async {
     await loader.load();
   }
 
-  await load('AnekLatin', ['AnekLatin.ttf']);
-  await load('AnekTelugu', ['AnekTelugu.ttf']);
-  await load('AnekDevanagari', ['AnekDevanagari.ttf']);
+  await load('NotoSans', ['NotoSans.ttf']);
+  await load('NotoSansTelugu', ['NotoSansTelugu.ttf']);
+  await load('NotoSansDevanagari', ['NotoSansDevanagari.ttf']);
   await load('Cinzel', ['Cinzel-SemiBold.ttf']);
 }
