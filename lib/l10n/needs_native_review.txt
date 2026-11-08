@@ -1,0 +1,8 @@
+Telugu and Hindi drafts that need a native speaker's review.
+Each key is also marked "needs native review" in app_te.arb and app_hi.arb.
+
+Signed-in designs, 2026-11-08 (home, account):
+searchADestination, menu, accountYourTrips, accountTripsHint, accountSavedPlaces,
+accountNoSavedPlaces, accountPayment, accountTheme, accountHelp, accountSignOut,
+accountDelete, deleteAccountTitle, deleteAccountBody, deleteAccountConfirm,
+deleteAccountFailed

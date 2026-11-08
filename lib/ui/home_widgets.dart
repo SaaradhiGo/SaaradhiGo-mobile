@@ -120,6 +120,7 @@ class HomeFromToCard extends StatelessWidget {
     required this.to,
     this.youAreHere,
     this.results,
+    this.compact = false,
   });
 
   final Widget from;
@@ -131,87 +132,95 @@ class HomeFromToCard extends StatelessWidget {
   /// Search results, under the fields while one has focus.
   final Widget? results;
 
+  /// The closed home sheet: only the destination field (design
+  /// rider-app-home). The pickup row shows while searching.
+  final bool compact;
+
   @override
   Widget build(BuildContext context) => Container(
-    decoration: BoxDecoration(
-      color: SgColors.bg100,
-      borderRadius: BorderRadius.circular(SgRadius.lg),
-      border: Border.all(color: SgColors.line),
-    ),
-    padding: const EdgeInsets.fromLTRB(
-      SgSpace.s4,
-      SgSpace.s2,
-      SgSpace.s3,
-      SgSpace.s3,
-    ),
+    decoration: compact
+        ? const BoxDecoration()
+        : BoxDecoration(
+            color: SgColors.bg100,
+            borderRadius: BorderRadius.circular(SgRadius.lg),
+            border: Border.all(color: SgColors.line),
+          ),
+    padding: compact
+        ? EdgeInsets.zero
+        : const EdgeInsets.fromLTRB(
+            SgSpace.s3,
+            SgSpace.s2,
+            SgSpace.s3,
+            SgSpace.s3,
+          ),
     child: Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        SizedBox(
-          height: 52,
-          child: Row(
-            children: [
-              Container(
-                width: 12,
-                height: 12,
-                decoration: BoxDecoration(
-                  color: SgColors.pickup,
-                  shape: BoxShape.circle,
-                ),
-              ),
-              const SizedBox(width: SgSpace.s3),
-              Expanded(child: from),
-              if (youAreHere != null)
+        if (!compact) ...[
+          SizedBox(
+            height: 52,
+            child: Row(
+              children: [
+                const SizedBox(width: SgSpace.s1),
                 Container(
-                  key: const Key('home_you_are_here'),
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: SgSpace.s2,
-                    vertical: 2,
-                  ),
+                  width: 10,
+                  height: 10,
                   decoration: BoxDecoration(
-                    color: SgColors.pickup.withValues(alpha: 0.14),
-                    borderRadius: BorderRadius.circular(SgRadius.pill),
+                    color: SgColors.pickup,
+                    shape: BoxShape.circle,
                   ),
-                  child: Text(
-                    youAreHere!,
-                    style: SgText.caption.copyWith(
-                      color: SgColors.pickup,
-                      fontWeight: FontWeight.w600,
-                      fontSize: SgText.sizeSmall,
+                ),
+                const SizedBox(width: SgSpace.s3),
+                Expanded(child: from),
+                if (youAreHere != null)
+                  Container(
+                    key: const Key('home_you_are_here'),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: SgSpace.s2,
+                      vertical: 2,
+                    ),
+                    decoration: BoxDecoration(
+                      color: SgColors.okSoft,
+                      borderRadius: BorderRadius.circular(SgRadius.pill),
+                    ),
+                    child: Text(
+                      youAreHere!,
+                      style: SgText.caption.copyWith(
+                        color: SgColors.success,
+                        fontWeight: FontWeight.w600,
+                      ),
                     ),
                   ),
+              ],
+            ),
+          ),
+          const SizedBox(height: SgSpace.s1),
+        ],
+        // Keyed: the pickup row comes and goes above it, and the field must
+        // keep its focus and text when it does.
+        KeyedSubtree(
+          key: const ValueKey('home_to_field'),
+          child: Container(
+            height: 52,
+            padding: const EdgeInsets.symmetric(horizontal: SgSpace.s4),
+            decoration: BoxDecoration(
+              color: SgColors.bg200,
+              borderRadius: BorderRadius.circular(SgSpace.s3),
+            ),
+            child: Row(
+              children: [
+                Container(
+                  width: 8,
+                  height: 8,
+                  decoration: BoxDecoration(
+                    color: SgColors.ink,
+                    borderRadius: BorderRadius.circular(2),
+                  ),
                 ),
-            ],
-          ),
-        ),
-        Align(
-          alignment: Alignment.centerLeft,
-          child: Padding(
-            padding: const EdgeInsets.only(left: 5),
-            child: Container(width: 2, height: 10, color: SgColors.line),
-          ),
-        ),
-        const SizedBox(height: SgSpace.s1),
-        Container(
-          height: 60,
-          padding: const EdgeInsets.symmetric(horizontal: SgSpace.s3),
-          decoration: BoxDecoration(
-            color: SgColors.bg300,
-            borderRadius: BorderRadius.circular(SgRadius.md),
-          ),
-          child: Row(
-            children: [
-              Container(
-                width: 12,
-                height: 12,
-                decoration: BoxDecoration(
-                  color: SgColors.gold500,
-                  borderRadius: BorderRadius.circular(3),
-                ),
-              ),
-              const SizedBox(width: SgSpace.s3),
-              Expanded(child: to),
-            ],
+                const SizedBox(width: SgSpace.s3),
+                Expanded(child: to),
+              ],
+            ),
           ),
         ),
         ?results,

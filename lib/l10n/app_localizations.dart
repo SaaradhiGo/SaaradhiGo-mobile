@@ -1449,6 +1449,96 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Add New Payment Method'**
   String get addPaymentMethod;
+
+  /// Home sheet: the destination field's hint
+  ///
+  /// In en, this message translates to:
+  /// **'Search a destination'**
+  String get searchADestination;
+
+  /// Account row
+  ///
+  /// In en, this message translates to:
+  /// **'Your trips'**
+  String get accountYourTrips;
+
+  /// Account row subtitle under Your trips
+  ///
+  /// In en, this message translates to:
+  /// **'Receipts match the locked fare'**
+  String get accountTripsHint;
+
+  /// Account row
+  ///
+  /// In en, this message translates to:
+  /// **'Saved places'**
+  String get accountSavedPlaces;
+
+  /// Saved places sheet when the list is empty
+  ///
+  /// In en, this message translates to:
+  /// **'No saved places yet'**
+  String get accountNoSavedPlaces;
+
+  /// Account row
+  ///
+  /// In en, this message translates to:
+  /// **'Payment'**
+  String get accountPayment;
+
+  /// Account row
+  ///
+  /// In en, this message translates to:
+  /// **'Theme'**
+  String get accountTheme;
+
+  /// Account row
+  ///
+  /// In en, this message translates to:
+  /// **'Help'**
+  String get accountHelp;
+
+  /// Account: sign out
+  ///
+  /// In en, this message translates to:
+  /// **'Sign out'**
+  String get accountSignOut;
+
+  /// Account: delete account link
+  ///
+  /// In en, this message translates to:
+  /// **'Delete account'**
+  String get accountDelete;
+
+  /// Delete account dialog title
+  ///
+  /// In en, this message translates to:
+  /// **'Delete your account?'**
+  String get deleteAccountTitle;
+
+  /// Delete account dialog body
+  ///
+  /// In en, this message translates to:
+  /// **'Your account and personal details will be removed. This cannot be undone.'**
+  String get deleteAccountBody;
+
+  /// Delete account dialog: confirm button
+  ///
+  /// In en, this message translates to:
+  /// **'Delete'**
+  String get deleteAccountConfirm;
+
+  /// Delete account failed
+  ///
+  /// In en, this message translates to:
+  /// **'Could not delete your account. Try again.'**
+  String get deleteAccountFailed;
+
+  /// Home: the menu button over the map
+  ///
+  /// In en, this message translates to:
+  /// **'Menu'**
+  String get menu;
 }
 
 class _AppLocalizationsDelegate

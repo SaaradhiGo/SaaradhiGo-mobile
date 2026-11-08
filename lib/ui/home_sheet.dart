@@ -53,10 +53,11 @@ String greetingFor(DateTime now) {
   return (name: parts.first, address: parts.skip(1).join(', '));
 }
 
+/// The home's bottom sheet (signed-in design rider-app-home): "Where to?",
+/// the destination field, saved-place chips and the recent places.
 class HomeSheet extends StatelessWidget {
   const HomeSheet({
     super.key,
-    required this.greeting,
     required this.search,
     required this.chips,
     required this.recents,
@@ -64,8 +65,6 @@ class HomeSheet extends StatelessWidget {
     this.loading = false,
     this.expanded = false,
   });
-
-  final String greeting;
 
   /// The destination field, built by the screen so its behaviour is untouched.
   final Widget search;
@@ -88,40 +87,33 @@ class HomeSheet extends StatelessWidget {
           mainAxisSize: MainAxisSize.min,
           children: [
             if (!expanded) ...[
-              Text(greeting, style: SgText.caption),
-              Text(sgStrings(context).whereTo, style: SgText.display),
-              const SizedBox(height: SgSpace.s3),
+              Text(
+                sgStrings(context).whereTo,
+                key: const Key('home_where_to'),
+                style: SgText.title,
+              ),
+              const SizedBox(height: SgSpace.s4),
             ],
             // Keyed: opening the search removes the lines above it, and an
             // unkeyed field would be rebuilt there, losing focus and the keyboard.
             KeyedSubtree(key: const ValueKey('home-search'), child: search),
-            if (expanded)
-              const SizedBox.shrink()
-            else ...[
+            if (!expanded) ...[
               if (banner != null) ...[
-                const SizedBox(height: SgSpace.s3),
+                const SizedBox(height: SgSpace.s4),
                 banner!,
               ],
               if (chips.isNotEmpty) ...[
-                const SizedBox(height: SgSpace.s3),
-                SizedBox(
-                  height: kSgTouch,
-                  child: ListView(
-                    scrollDirection: Axis.horizontal,
-                    children: [
-                      for (final c in chips)
-                        Padding(
-                          padding: const EdgeInsets.only(right: SgSpace.s2),
-                          child: _Chip(data: c),
-                        ),
-                    ],
-                  ),
+                const SizedBox(height: SgSpace.s4),
+                Wrap(
+                  spacing: SgSpace.s2,
+                  runSpacing: SgSpace.s2,
+                  children: [for (final c in chips) _Chip(data: c)],
                 ),
               ],
-              const SizedBox(height: SgSpace.s2),
+              const SizedBox(height: SgSpace.s4),
               if (loading && recents.isEmpty && chips.isEmpty)
                 Padding(
-                  padding: EdgeInsets.all(SgSpace.s4),
+                  padding: const EdgeInsets.all(SgSpace.s4),
                   child: Center(
                     child: SizedBox(
                       width: 20,
@@ -142,8 +134,7 @@ class HomeSheet extends StatelessWidget {
                   ),
                 )
               else
-                for (var i = 0; i < recents.length; i++)
-                  _Place(data: recents[i], last: i == recents.length - 1),
+                for (final r in recents) _Place(data: r),
             ],
           ],
         ),
@@ -152,6 +143,7 @@ class HomeSheet extends StatelessWidget {
   }
 }
 
+/// A 36px pill: gold-text icon, 14px semibold label.
 class _Chip extends StatelessWidget {
   const _Chip({required this.data});
   final SavedChipData data;
@@ -159,54 +151,58 @@ class _Chip extends StatelessWidget {
   @override
   Widget build(BuildContext context) => Semantics(
     button: true,
-    child: InkWell(
-      borderRadius: BorderRadius.circular(SgRadius.pill),
-      onTap: data.onTap,
-      onLongPress: data.onLongPress,
-      child: Container(
-        constraints: const BoxConstraints(minHeight: kSgTouch, maxWidth: 200),
-        padding: const EdgeInsets.symmetric(horizontal: SgSpace.s4),
-        decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(SgRadius.pill),
-          border: Border.all(color: SgColors.lineStrong),
-        ),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            SgIcon(
-              data.icon ?? SgIcons.pin,
-              size: 16,
-              color: SgColors.goldText,
-            ),
-            const SizedBox(width: SgSpace.s2),
-            Flexible(
-              child: Text(
-                data.label,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: SgText.body,
+    child: Material(
+      color: SgColors.bg100,
+      shape: StadiumBorder(side: BorderSide(color: SgColors.line)),
+      child: InkWell(
+        customBorder: const StadiumBorder(),
+        onTap: data.onTap,
+        onLongPress: data.onLongPress,
+        child: Container(
+          height: 36,
+          constraints: const BoxConstraints(maxWidth: 220),
+          padding: const EdgeInsets.symmetric(horizontal: 14),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              SgIcon(
+                data.icon ?? SgIcons.pin,
+                size: 18,
+                color: SgColors.goldText,
               ),
-            ),
-          ],
+              const SizedBox(width: SgSpace.s2),
+              Flexible(
+                child: Text(
+                  data.label,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: SgText.caption.copyWith(
+                    color: SgColors.ink,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     ),
   );
 }
 
+/// A recent place: clock tile, name, address; a hairline under each row.
 class _Place extends StatelessWidget {
-  const _Place({required this.data, required this.last});
+  const _Place({required this.data});
   final RecentPlaceData data;
-  final bool last;
 
   @override
   Widget build(BuildContext context) => InkWell(
     onTap: data.onTap,
     onLongPress: data.onLongPress,
     child: Container(
-      constraints: const BoxConstraints(minHeight: 64),
+      padding: const EdgeInsets.symmetric(vertical: SgSpace.s3),
       decoration: BoxDecoration(
-        border: last ? null : Border(bottom: BorderSide(color: SgColors.line)),
+        border: Border(bottom: BorderSide(color: SgColors.divider)),
       ),
       child: Row(
         children: [
@@ -215,9 +211,11 @@ class _Place extends StatelessWidget {
             height: 40,
             decoration: BoxDecoration(
               color: SgColors.bg200,
-              shape: BoxShape.circle,
+              borderRadius: BorderRadius.circular(SgSpace.s3),
             ),
-            child: const Center(child: SgIcon(SgIcons.clock, size: 18)),
+            child: Center(
+              child: SgIcon(SgIcons.clock, size: 20, color: SgColors.inkMuted),
+            ),
           ),
           const SizedBox(width: SgSpace.s3),
           Expanded(
@@ -242,21 +240,16 @@ class _Place extends StatelessWidget {
             ),
           ),
           if (data.distance != null)
-            Text(
-              data.distance!,
-              style: SgText.caption.copyWith(
-                color: SgColors.inkSubtle,
-                fontSize: SgText.sizeSmall,
-              ),
-            ),
+            Text(data.distance!, style: SgText.caption),
         ],
       ),
     ),
   );
 }
 
-/// The search field's look: gold square, text, "Now" chip. The screen puts its
-/// TextField in [field].
+/// The destination field's look (design `.field`): 52 high, bg-200, 12
+/// corners, an ink square before the text. The screen puts its TextField in
+/// [field].
 class SgSearchBar extends StatelessWidget {
   const SgSearchBar({super.key, required this.field});
   final Widget field;
@@ -266,32 +259,21 @@ class SgSearchBar extends StatelessWidget {
     height: 52,
     padding: const EdgeInsets.symmetric(horizontal: SgSpace.s4),
     decoration: BoxDecoration(
-      color: SgColors.bg300,
-      borderRadius: BorderRadius.circular(SgRadius.md),
+      color: SgColors.bg200,
+      borderRadius: BorderRadius.circular(SgSpace.s3),
     ),
     child: Row(
       children: [
         Container(
-          width: 14,
-          height: 14,
+          width: 8,
+          height: 8,
           decoration: BoxDecoration(
-            color: SgColors.gold500,
-            borderRadius: BorderRadius.circular(3),
+            color: SgColors.ink,
+            borderRadius: BorderRadius.circular(2),
           ),
         ),
         const SizedBox(width: SgSpace.s3),
         Expanded(child: field),
-        Container(
-          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-          decoration: BoxDecoration(
-            color: SgColors.bg100,
-            borderRadius: BorderRadius.circular(SgRadius.pill),
-          ),
-          child: Text(
-            'Now',
-            style: SgText.caption.copyWith(fontWeight: FontWeight.w600),
-          ),
-        ),
       ],
     ),
   );

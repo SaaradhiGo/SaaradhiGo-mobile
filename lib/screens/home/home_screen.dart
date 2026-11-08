@@ -1,6 +1,5 @@
 import '../../utils/position.dart';
 import '../../ui/sg_layout.dart';
-import 'dart:ui';
 
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
@@ -25,6 +24,11 @@ import '../../screens/components/coming_soon_overlay.dart';
 import 'history_screen.dart';
 import 'wallet_screen.dart';
 import '../../ui/appearance_settings.dart';
+import '../../core/rider_flags.dart';
+import '../../core/maps/sg_map.dart';
+import '../../l10n/app_localizations.dart';
+import '../../services/api_service.dart';
+import '../../ui/home_sheet.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key, this.initialTabIndex = 0});
@@ -370,15 +374,18 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
       ),
       const HistoryScreen(),
       const WalletScreen(),
-      _ProfileTab(onWallet: () => setState(() => _tabIndex = 2)),
+      _ProfileTab(
+        onWallet: () => setState(() => _tabIndex = 2),
+        onTrips: () => setState(() => _tabIndex = 1),
+        onBack: () => setState(() => _tabIndex = 0),
+      ),
     ];
-    final l = sgStrings(context);
 
     return PopScope(
       // Back from History, Wallet or Profile returns home.
       canPop: _tabIndex == 0,
       onPopInvokedWithResult: (didPop, _) {
-        if (!didPop) setState(() => _tabIndex = 0);
+        if (!didPop) setState(() => _tabIndex = _tabIndex == 2 ? 3 : 0);
       },
       child: Scaffold(
         key: _scaffoldKey,
@@ -386,60 +393,36 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
         drawer: _MenuDrawer(
           onTab: (index) => setState(() => _tabIndex = index),
         ),
-        // Ride, Trips, Account. Wallet opens from Account and shows under it.
-        bottomNavigationBar: SgTabBar(
-          items: [
-            SgTabItem(
-              key: const Key('home-nav-home'),
-              icon: SgIcons.home,
-              label: l.tabRide,
-            ),
-            SgTabItem(
-              key: const Key('home-nav-trips'),
-              icon: SgIcons.history,
-              label: l.tabTrips,
-            ),
-            SgTabItem(
-              key: const Key('home-nav-profile'),
-              icon: SgIcons.user,
-              label: l.tabAccount,
-            ),
-          ],
-          selected: switch (_tabIndex) {
-            0 => 0,
-            1 => 1,
-            _ => 2,
-          },
-          onSelect: (i) => setState(() => _tabIndex = const [0, 1, 3][i]),
-        ),
-        body: _tabIndex == 0
-            ? tabs[0]
-            : SafeArea(
-                child: Padding(
-                  padding: const EdgeInsets.fromLTRB(24, 4, 24, 0),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      if (_tabIndex == 2)
-                        IconButton(
-                          tooltip: 'Back',
-                          constraints: const BoxConstraints(
-                            minWidth: kSgTouch,
-                            minHeight: kSgTouch,
-                          ),
-                          padding: EdgeInsets.zero,
-                          onPressed: () => setState(() => _tabIndex = 3),
-                          icon: SgIcon(
-                            SgIcons.back,
-                            size: 24,
-                            color: SgColors.ink,
-                          ),
-                        ),
-                      Expanded(child: tabs[_tabIndex]),
-                    ],
+        // No tab bar (signed-in design rider-app-home): the map's menu
+        // button opens the drawer, and Trips, Wallet and Account each carry
+        // a back button.
+        body: switch (_tabIndex) {
+          0 => tabs[0],
+          3 => SafeArea(child: tabs[3]),
+          _ => SafeArea(
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(24, 4, 24, 0),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  IconButton(
+                    key: const Key('page_back'),
+                    tooltip: 'Back',
+                    constraints: const BoxConstraints(
+                      minWidth: kSgTouch,
+                      minHeight: kSgTouch,
+                    ),
+                    padding: EdgeInsets.zero,
+                    onPressed: () =>
+                        setState(() => _tabIndex = _tabIndex == 2 ? 3 : 0),
+                    icon: SgIcon(SgIcons.back, size: 24, color: SgColors.ink),
                   ),
-                ),
+                  Expanded(child: tabs[_tabIndex]),
+                ],
               ),
+            ),
+          ),
+        },
       ),
     );
   }
@@ -527,9 +510,14 @@ class _MenuDrawer extends StatelessWidget {
               ),
             row(
               SgIcons.user,
-              sgStrings(context).profile,
+              sgStrings(context).tabAccount,
               () => onTab(3),
               key: const Key('menu_profile'),
+            ),
+            row(
+              SgIcons.lock,
+              sgStrings(context).privacySecurity,
+              () => context.push('/privacy-security'),
             ),
             row(
               SgIcons.help,
@@ -621,19 +609,47 @@ class _HomeTab extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final mapProvider = context.watch<MapProvider>();
-    final auth = context.watch<AuthProvider>();
     final l = sgStrings(context);
     final here = mapProvider.pickupLocation?.latLng ?? currentPosition;
-    final first = homeFirstName(auth.fullName);
-    // Saved places have labels only when the server sends them; otherwise
-    // their address text. Up to two, quoted while the home is on screen.
-    // Only places near the rider, in the rider's own service area.
-    final places = pickHomePlaces(
-      mapProvider.favoriteLocations,
-      mapProvider.recentLocations,
-      near: homePlaceFilter(marketOf(context), here),
-      requireNear: true,
-    );
+    final near = homePlaceFilter(marketOf(context), here);
+    void open(double lat, double lng, String name) =>
+        _goTo(context, '$lat,$lng', dropName: name);
+
+    // Saved places from GET /rider/locations/all/. Home/Work labels only
+    // when the flag is on (the API does not label places yet).
+    final chips = <SavedChipData>[
+      for (final f in mapProvider.favoriteLocations.take(4))
+        if (f.latitude != 0 || f.longitude != 0)
+          SavedChipData(
+            label: savedPlaceLabel(l, f),
+            icon: switch (RiderFlags.homeWorkLabels ? f.label : null) {
+              'home' => SgIcons.home,
+              'work' => SgIcons.work,
+              _ => SgIcons.pin,
+            },
+            onTap: () => open(f.latitude, f.longitude, f.addressText),
+          ),
+    ];
+    // Recent drops from the rider's own trips, nearest first in time.
+    final seen = <String>{};
+    final recents = <RecentPlaceData>[];
+    for (final t in mapProvider.recentLocations) {
+      final lat = t.destinationLat, lng = t.destinationLng;
+      final addr = t.destinationAddress.trim();
+      if (recents.length >= 3 || lat == null || lng == null || addr.isEmpty) {
+        continue;
+      }
+      if (near != null && !near(LatLng(lat, lng))) continue;
+      if (!seen.add(addr.toLowerCase())) continue;
+      final p = splitPlace(addr);
+      recents.add(
+        RecentPlaceData(
+          name: p.name,
+          address: p.address,
+          onTap: () => open(lat, lng, addr),
+        ),
+      );
+    }
 
     return ValueListenableBuilder<bool>(
       valueListenable: searchOpen,
@@ -644,204 +660,121 @@ class _HomeTab extends StatelessWidget {
           pickupFocusNode.unfocus();
           dropFocusNode.unfocus();
         },
-        child: SafeArea(
-          bottom: false,
-          child: SgReadableWidth(
-            child: ListView(
-              padding: const EdgeInsets.fromLTRB(
-                SgSpace.s4,
-                SgSpace.s2,
-                SgSpace.s4,
-                SgSpace.s5,
-              ),
+        child: LayoutBuilder(
+          builder: (context, box) {
+            final top = MediaQuery.paddingOf(context).top;
+            final sheetMax = box.maxHeight * 0.55;
+            return Stack(
               children: [
-                if (!open) ...[
-                  HomeHeader(
-                    languageShort: languageShort(
-                      SgAppearance.instance.language,
-                    ),
-                    onLanguage: () => showLanguagePicker(context),
-                    onToggleTheme: SgAppearance.instance.toggleTheme,
-                    name: auth.fullName,
-                    avatarUrl: auth.avatarUrl,
-                    onAccount: onProfileTap,
-                  ),
-                  const SizedBox(height: SgSpace.s5),
-                  Text(
-                    first.isEmpty ? l.homeHeadline : l.homeHeadlineNamed(first),
-                    key: const Key('home_headline'),
-                    style: SgText.display,
-                  ),
-                  const SizedBox(height: SgSpace.s4),
-                ],
-                // Keyed: opening the search removes the lines above it, and an
-                // unkeyed field would be rebuilt there, losing focus and the
-                // keyboard.
-                KeyedSubtree(
-                  key: const ValueKey('home-search'),
-                  child: _LocationCard(
-                    pickupController: pickupController,
-                    dropController: dropController,
-                    pickupFocusNode: pickupFocusNode,
-                    dropFocusNode: dropFocusNode,
-                    onLocationTap: onLocationTap,
-                    isGettingLocation: isGettingLocation,
-                    currentPosition: currentPosition,
-                    onActiveRideTap: onActiveRideTap,
-                    searchOpen: searchOpen,
+                Positioned.fill(
+                  child: _HomeMap(here: here, bottomInset: sheetMax - 24),
+                ),
+                Positioned(
+                  top: top + SgSpace.s4,
+                  left: SgSpace.s4,
+                  child: SgMapButton(
+                    key: const Key('home_menu'),
+                    icon: SgIcons.menu,
+                    label: l.menu,
+                    onTap: onMenuTap,
                   ),
                 ),
-                if (!open) ...[
-                  if (mapProvider.isTripInProgress) ...[
-                    const SizedBox(height: SgSpace.s3),
-                    _ActiveRideTile(onTap: onActiveRideTap),
-                  ],
-                  const SizedBox(height: SgSpace.s5),
-                  if (places.isNotEmpty || mapProvider.isLoadingHomeData) ...[
-                    SgEyebrow(l.faresFromHere),
-                    const SizedBox(height: SgSpace.s3),
-                  ],
-                  if (places.isEmpty && mapProvider.isLoadingHomeData)
-                    Padding(
-                      padding: EdgeInsets.all(SgSpace.s4),
-                      child: Center(
-                        child: SizedBox(
-                          width: 20,
-                          height: 20,
-                          child: CircularProgressIndicator(
-                            strokeWidth: 2,
-                            color: SgColors.gold500,
-                          ),
+                Positioned(
+                  key: const ValueKey('home-sheet'),
+                  left: 0,
+                  right: 0,
+                  bottom: 0,
+                  top: open ? top + SgSpace.s2 : null,
+                  child: ConstrainedBox(
+                    constraints: BoxConstraints(
+                      maxHeight: open ? double.infinity : sheetMax,
+                    ),
+                    child: SgReadableWidth(
+                      child: HomeSheet(
+                        expanded: open,
+                        loading: mapProvider.isLoadingHomeData,
+                        banner: mapProvider.isTripInProgress
+                            ? _ActiveRideTile(onTap: onActiveRideTap)
+                            : null,
+                        chips: chips,
+                        recents: recents,
+                        search: _LocationCard(
+                          pickupController: pickupController,
+                          dropController: dropController,
+                          pickupFocusNode: pickupFocusNode,
+                          dropFocusNode: dropFocusNode,
+                          onLocationTap: onLocationTap,
+                          isGettingLocation: isGettingLocation,
+                          currentPosition: currentPosition,
+                          onActiveRideTap: onActiveRideTap,
+                          searchOpen: searchOpen,
                         ),
                       ),
-                    )
-                  else
-                    _HomeFares(
-                      here: here,
-                      places: places,
-                      fallback: l.tapToSeeFares,
-                      onOpen: (place, type) {
-                        if (type != null) {
-                          context.read<MapProvider>().selectVehicleType(type);
-                        }
-                        _goTo(
-                          context,
-                          '${place.to.latitude},${place.to.longitude}',
-                          dropName: place.address ?? place.name,
-                        );
-                      },
                     ),
-                  const SizedBox(height: SgSpace.s4),
-                  FareLockLine(l.fareLockLine),
-                ],
+                  ),
+                ),
               ],
-            ),
-          ),
+            );
+          },
         ),
       ),
     );
   }
 }
 
-/// The fare cards: one per place, each quoted on its own so a slow place does
-/// not hold up the other.
-class _HomeFares extends StatefulWidget {
-  const _HomeFares({
-    required this.here,
-    required this.places,
-    required this.fallback,
-    required this.onOpen,
-  });
-
-  final LatLng? here;
-  final List<HomePlace> places;
-  final String fallback;
-  final void Function(HomePlace place, String? type) onOpen;
-
-  @override
-  State<_HomeFares> createState() => _HomeFaresState();
+/// A saved place's chip label: Home/Work when labels are on and the server
+/// sent one, else the first part of the address.
+String savedPlaceLabel(AppLocalizations l, FavoriteLocation f) {
+  if (RiderFlags.homeWorkLabels && f.label == 'home') return l.navHome;
+  if (RiderFlags.homeWorkLabels && f.label == 'work') return 'Work';
+  return splitPlace(f.addressText).name;
 }
 
-class _HomeFaresState extends State<_HomeFares> {
-  final _service = HomeFares();
-  final Map<String, HomeQuote> _quotes = {};
-  final Set<String> _loading = {};
-  String _signature = '';
+/// The map behind the home sheet: the rider's position, centred when known.
+class _HomeMap extends StatefulWidget {
+  const _HomeMap({required this.here, required this.bottomInset});
+
+  final LatLng? here;
+  final double bottomInset;
 
   @override
-  void initState() {
-    super.initState();
-    _refresh();
-  }
+  State<_HomeMap> createState() => _HomeMapState();
+}
+
+class _HomeMapState extends State<_HomeMap> {
+  SgMapController? _map;
 
   @override
-  void didUpdateWidget(covariant _HomeFares old) {
+  void didUpdateWidget(covariant _HomeMap old) {
     super.didUpdateWidget(old);
-    _refresh();
-  }
-
-  String _sig() =>
-      '${widget.here?.latitude.toStringAsFixed(3)},'
-      '${widget.here?.longitude.toStringAsFixed(3)}|'
-      '${widget.places.map((p) => p.name).join('|')}';
-
-  void _refresh() {
-    final sig = _sig();
-    if (sig == _signature) return;
-    _signature = sig;
-    final from = widget.here;
-    if (from == null) return;
-    for (final p in widget.places) {
-      final hit = _service.cached(from, p);
-      if (hit != null) {
-        _quotes[p.name] = hit;
-        continue;
-      }
-      _loading.add(p.name);
-      _service.quote(from, p).then((q) {
-        if (!mounted) return;
-        setState(() {
-          _loading.remove(p.name);
-          _quotes[p.name] = q;
-        });
-      });
-    }
+    final here = widget.here;
+    if (here != null && here != old.here) _map?.moveTo(here);
   }
 
   @override
   Widget build(BuildContext context) {
-    final market = marketOf(context);
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        for (final p in widget.places) ...[
-          Builder(
-            builder: (context) {
-              final q = _quotes[p.name];
-              final meta = (q?.distanceKm == null || q?.durationMin == null)
-                  ? null
-                  : '${market.formatDistanceKm(q!.distanceKm!)} · ${durationLabel(q.durationMin!)}';
-              return HomeFareCard(
-                key: Key('home_fare_${p.name}'),
-                name: p.name,
-                meta: meta,
-                loading: widget.here != null && _loading.contains(p.name),
-                fallback: widget.fallback,
-                onTap: () => widget.onOpen(p, null),
-                chips: [
-                  for (final f in q?.fares ?? const <HomeClassFare>[])
-                    HomeClassChip(
-                      type: f.type,
-                      fareText: f.fareText,
-                      onTap: () => widget.onOpen(p, f.type),
-                    ),
-                ],
-              );
-            },
+    final here = widget.here;
+    return SgMap(
+      initialCenter:
+          here ??
+          marketOf(context).cities.firstOrNull?.center ??
+          const LatLng(17.385044, 78.4867),
+      initialZoom: 15,
+      padding: EdgeInsets.only(bottom: widget.bottomInset),
+      markers: [
+        if (here != null)
+          SgMarker(
+            id: 'here',
+            point: here,
+            icon: sgPickupIcon,
+            anchor: sgJourneyAnchor,
           ),
-          const SizedBox(height: SgSpace.s3),
-        ],
       ],
+      onMapCreated: (c) {
+        _map = c;
+        final h = widget.here;
+        if (h != null) c.moveTo(h);
+      },
     );
   }
 }
@@ -853,91 +786,157 @@ class _HomeFaresState extends State<_HomeFares> {
 // Profile tab implementation
 
 class _ProfileTab extends StatelessWidget {
-  const _ProfileTab({required this.onWallet});
+  const _ProfileTab({
+    required this.onWallet,
+    required this.onTrips,
+    required this.onBack,
+  });
 
   final VoidCallback onWallet;
+  final VoidCallback onTrips;
+  final VoidCallback onBack;
 
   @override
   Widget build(BuildContext context) {
     final auth = context.watch<AuthProvider>();
-    return ListView(
-      padding: EdgeInsets.zero,
-      children: [
-        SgPageTitle(sgStrings(context).profile),
-        // Only what the account holds: no stock photo, name or rating.
-        SgPersonHeader(
-          name: auth.fullName,
-          rating: auth.rating,
-          avatarUrl: auth.avatarUrl,
-          onTap: () => context.push('/personal-info'),
+    final saved = context.watch<MapProvider>().favoriteLocations;
+    final l = sgStrings(context);
+    final a = SgAppearance.instance;
+    final names = [for (final f in saved.take(2)) savedPlaceLabel(l, f)];
+    return AccountView(
+      title: l.tabAccount,
+      name: auth.fullName,
+      phoneLine: maskedPhone(auth.countryCode, auth.phoneNumber),
+      avatarUrl: auth.avatarUrl,
+      onBack: onBack,
+      onHeader: () => context.push('/personal-info'),
+      rows: [
+        AccountRowData(
+          key: const Key('account_trips'),
+          icon: kListIcon,
+          label: l.accountYourTrips,
+          subtitle: l.accountTripsHint,
+          onTap: onTrips,
         ),
-        const SizedBox(height: SgSpace.s5),
-        SgListGroup([
-          SgListRow(
-            icon: SgIcons.user,
-            label: sgStrings(context).personalInfo,
-            chevron: true,
-            onTap: () => context.push('/personal-info'),
+        AccountRowData(
+          key: const Key('account_saved'),
+          icon: SgIcons.home,
+          label: l.accountSavedPlaces,
+          subtitle: names.isEmpty ? null : names.join(', '),
+          onTap: () => _showSavedPlaces(context, saved),
+        ),
+        AccountRowData(
+          key: const Key('profile_wallet'),
+          icon: kCardIcon,
+          label: l.accountPayment,
+          onTap: () => context.push('/payment-methods'),
+        ),
+        // Safety ("2 trusted contacts") waits for a trusted-contacts API.
+        if (RiderFlags.trustedContacts)
+          AccountRowData(
+            key: const Key('account_safety'),
+            icon: SgIcons.shield,
+            label: l.safety,
+            onTap: () {},
           ),
-          SgListRow(
-            key: const Key('profile_wallet'),
-            icon: SgIcons.wallet,
-            label: sgStrings(context).wallet,
-            chevron: true,
-            onTap: onWallet,
-          ),
-          SgListRow(
-            icon: kCardIcon,
-            label: sgStrings(context).paymentMethods,
-            chevron: true,
-            onTap: () => context.push('/payment-methods'),
-          ),
-          SgListRow(
-            icon: SgIcons.bell,
-            label: sgStrings(context).notifications,
-            chevron: true,
-            onTap: () => context.push('/notifications'),
-          ),
-          SgListRow(
-            icon: SgIcons.lock,
-            label: sgStrings(context).privacySecurity,
-            chevron: true,
-            onTap: () => context.push('/privacy-security'),
-          ),
-          SgListRow(
-            icon: SgIcons.help,
-            label: sgStrings(context).helpSupport,
-            chevron: true,
-            onTap: () => context.push('/help-support'),
-          ),
-          // Hidden unless a referral offer is live for riders in this market.
-          if (MarketConfigStore.instance.current.referralsAvailable)
-            SgListRow(
-              icon: kGiftIcon,
-              label: sgStrings(context).referFriend,
-              chevron: true,
-              onTap: () => context.push('/refer'),
-            ),
-        ]),
-        const SizedBox(height: SgSpace.s5),
-        SgListGroup(appearanceRows(context)),
-        const SizedBox(height: SgSpace.s5),
-        SgListGroup([
-          SgListRow(
-            key: const Key('profile_logout'),
-            icon: kLogoutIcon,
-            label: sgStrings(context).logOut,
-            danger: true,
-            onTap: () async {
-              await context.read<AuthProvider>().logout();
-              if (!context.mounted) return;
-              context.go('/login');
-            },
-          ),
-        ]),
-        const SizedBox(height: SgSpace.s6),
+        AccountRowData(
+          key: const Key('profile_language'),
+          icon: SgIcons.language,
+          label: l.language,
+          subtitle: languageLabel(l, a.language),
+          onTap: () => showLanguagePicker(context),
+        ),
+        AccountRowData(
+          key: const Key('profile_appearance'),
+          icon: SgIcons.moon,
+          label: l.accountTheme,
+          subtitle: themeChoiceLabel(l, a.theme),
+          onTap: () => showThemePicker(context),
+        ),
+        AccountRowData(
+          key: const Key('account_help'),
+          icon: SgIcons.help,
+          label: l.accountHelp,
+          onTap: () => context.push('/help-support'),
+        ),
       ],
+      signOutLabel: l.accountSignOut,
+      onSignOut: () async {
+        await context.read<AuthProvider>().logout();
+        if (!context.mounted) return;
+        context.go('/login');
+      },
+      deleteLabel: l.accountDelete,
+      onDelete: () => _confirmDelete(context),
     );
+  }
+
+  void _showSavedPlaces(BuildContext context, List<FavoriteLocation> saved) {
+    final l = sgStrings(context);
+    showModalBottomSheet<void>(
+      context: context,
+      backgroundColor: Colors.transparent,
+      builder: (_) => SgSheetSurface(
+        child: SingleChildScrollView(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Text(l.accountSavedPlaces, style: SgText.title),
+              const SizedBox(height: SgSpace.s3),
+              if (saved.isEmpty)
+                Text(l.accountNoSavedPlaces, style: SgText.caption)
+              else
+                for (final f in saved)
+                  Padding(
+                    padding: const EdgeInsets.symmetric(vertical: SgSpace.s2),
+                    child: Text(f.addressText, style: SgText.body),
+                  ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Future<void> _confirmDelete(BuildContext context) async {
+    final l = sgStrings(context);
+    final yes = await showDialog<bool>(
+      context: context,
+      builder: (c) => AlertDialog(
+        backgroundColor: SgColors.bg100,
+        title: Text(l.deleteAccountTitle, style: SgText.title),
+        content: Text(l.deleteAccountBody, style: SgText.body),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(c, false),
+            child: Text(l.cancel, style: SgText.body),
+          ),
+          TextButton(
+            key: const Key('account_delete_confirm'),
+            onPressed: () => Navigator.pop(c, true),
+            child: Text(
+              l.deleteAccountConfirm,
+              style: SgText.body.copyWith(
+                color: SgColors.danger,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+    if (yes != true || !context.mounted) return;
+    final ok = await ApiService().deleteMyAccount();
+    if (!context.mounted) return;
+    if (!ok) {
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(l.deleteAccountFailed)));
+      return;
+    }
+    await context.read<AuthProvider>().logout();
+    if (!context.mounted) return;
+    context.go('/login');
   }
 }
 
@@ -1250,18 +1249,16 @@ class _LocationCardState extends State<_LocationCard> {
               ),
           ],
         ),
+        compact: !_open,
         to: TextField(
           controller: widget.dropController,
           focusNode: widget.dropFocusNode,
-          style: SgText.title,
+          style: SgText.body,
           decoration: InputDecoration(
             isDense: true,
             border: InputBorder.none,
-            hintText: l.searchDestination,
-            hintStyle: SgText.title.copyWith(
-              color: SgColors.inkSubtle,
-              fontWeight: FontWeight.w600,
-            ),
+            hintText: l.searchADestination,
+            hintStyle: SgText.body.copyWith(color: SgColors.inkMuted),
             contentPadding: EdgeInsets.zero,
           ),
         ),

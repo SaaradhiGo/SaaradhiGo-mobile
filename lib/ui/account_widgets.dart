@@ -250,3 +250,232 @@ class SgListGroup extends StatelessWidget {
     ),
   );
 }
+
+/// A list icon (design rider-app-account "Your trips").
+const kListIcon = '<path d="M8 6h12M8 12h12M8 18h12M4 6h.01M4 12h.01M4 18h.01"/>';
+
+/// "+91 ••••• ••210": the country code and the last three digits only.
+String maskedPhone(String? countryCode, String? phone) {
+  final digits = (phone ?? '').replaceAll(RegExp(r'\D'), '');
+  if (digits.length < 4) return '';
+  final cc = (countryCode ?? '').trim();
+  final tail = digits.substring(digits.length - 3);
+  return '${cc.isEmpty ? '' : '$cc '}••••• ••$tail';
+}
+
+/// One account row: icon tile, label, optional subtitle, chevron.
+class AccountRowData {
+  const AccountRowData({
+    required this.key,
+    required this.icon,
+    required this.label,
+    required this.onTap,
+    this.subtitle,
+  });
+  final Key key;
+  final String icon;
+  final String label;
+  final String? subtitle;
+  final VoidCallback onTap;
+}
+
+/// Account (signed-in design rider-app-account): back and title, the rider,
+/// the rows, Sign out and Delete account.
+class AccountView extends StatelessWidget {
+  const AccountView({
+    super.key,
+    required this.title,
+    required this.name,
+    required this.rows,
+    required this.signOutLabel,
+    required this.onSignOut,
+    required this.deleteLabel,
+    required this.onDelete,
+    this.phoneLine,
+    this.avatarUrl,
+    this.onBack,
+    this.onHeader,
+  });
+
+  final String title;
+  final String? name;
+  final String? phoneLine;
+  final String? avatarUrl;
+  final List<AccountRowData> rows;
+  final String signOutLabel;
+  final VoidCallback onSignOut;
+  final String deleteLabel;
+  final VoidCallback onDelete;
+  final VoidCallback? onBack;
+  final VoidCallback? onHeader;
+
+  @override
+  Widget build(BuildContext context) {
+    final shown = (name ?? '').trim();
+    return ListView(
+      padding: const EdgeInsets.fromLTRB(20, SgSpace.s4, 20, SgSpace.s6),
+      children: [
+        SizedBox(
+          height: 48,
+          child: Row(
+            children: [
+              if (onBack != null) ...[
+                Semantics(
+                  button: true,
+                  label: 'Back',
+                  child: InkWell(
+                    key: const Key('account_back'),
+                    onTap: onBack,
+                    customBorder: const CircleBorder(),
+                    child: SizedBox(
+                      width: 32,
+                      height: 48,
+                      child: Align(
+                        alignment: Alignment.centerLeft,
+                        child: SgIcon(SgIcons.back, size: 20, color: SgColors.ink),
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+              Text(title, style: SgText.title),
+            ],
+          ),
+        ),
+        InkWell(
+          key: const Key('account_header'),
+          onTap: onHeader,
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(0, SgSpace.s3, 0, SgSpace.s4),
+            child: Row(
+              children: [
+                Container(
+                  width: 56,
+                  height: 56,
+                  clipBehavior: Clip.antiAlias,
+                  decoration: BoxDecoration(
+                    color: SgColors.codeSoft,
+                    shape: BoxShape.circle,
+                  ),
+                  child: (avatarUrl ?? '').trim().isEmpty
+                      ? Center(
+                          child: SgIcon(
+                            SgIcons.user,
+                            size: 24,
+                            color: SgColors.goldText,
+                          ),
+                        )
+                      : SgAvatar(name: shown, url: avatarUrl),
+                ),
+                const SizedBox(width: 14),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      if (shown.isNotEmpty)
+                        Text(
+                          shown,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: SgText.title,
+                        ),
+                      if ((phoneLine ?? '').isNotEmpty)
+                        Text(phoneLine!, style: SgText.caption),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+        for (final r in rows) _AccountRow(data: r),
+        InkWell(
+          key: const Key('profile_logout'),
+          onTap: onSignOut,
+          child: Container(
+            padding: const EdgeInsets.symmetric(vertical: 14),
+            decoration: BoxDecoration(
+              border: Border(top: BorderSide(color: SgColors.divider)),
+            ),
+            child: Text(
+              signOutLabel,
+              style: SgText.body.copyWith(fontWeight: FontWeight.w600),
+            ),
+          ),
+        ),
+        Align(
+          alignment: Alignment.centerLeft,
+          child: InkWell(
+            key: const Key('account_delete'),
+            onTap: onDelete,
+            child: Padding(
+              padding: const EdgeInsets.only(top: SgSpace.s1, bottom: SgSpace.s2),
+              child: Text(
+                deleteLabel,
+                style: SgText.caption.copyWith(
+                  color: SgColors.danger,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _AccountRow extends StatelessWidget {
+  const _AccountRow({required this.data});
+  final AccountRowData data;
+
+  @override
+  Widget build(BuildContext context) => Semantics(
+    button: true,
+    child: InkWell(
+      key: data.key,
+      onTap: data.onTap,
+      child: Container(
+        padding: const EdgeInsets.symmetric(vertical: SgSpace.s3),
+        decoration: BoxDecoration(
+          border: Border(top: BorderSide(color: SgColors.divider)),
+        ),
+        child: Row(
+          children: [
+            Container(
+              width: 40,
+              height: 40,
+              decoration: BoxDecoration(
+                color: SgColors.bg200,
+                borderRadius: BorderRadius.circular(SgSpace.s3),
+              ),
+              child: Center(
+                child: SgIcon(data.icon, size: 20, color: SgColors.ink),
+              ),
+            ),
+            const SizedBox(width: SgSpace.s3),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    data.label,
+                    style: SgText.body.copyWith(fontWeight: FontWeight.w600),
+                  ),
+                  if ((data.subtitle ?? '').isNotEmpty)
+                    Text(
+                      data.subtitle!,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: SgText.caption,
+                    ),
+                ],
+              ),
+            ),
+            SgIcon(kChevronIcon, size: 18, color: SgColors.ink),
+          ],
+        ),
+      ),
+    ),
+  );
+}

@@ -160,7 +160,8 @@ void main() {
       );
       await tester.pumpAndSettle();
 
-      expect(find.text('Personal information'), findsOneWidget);
+      expect(find.text('Your trips'), findsOneWidget);
+      expect(find.text('Sign out'), findsOneWidget);
       expect(find.text('Rider Jane'), findsOneWidget);
     });
 
