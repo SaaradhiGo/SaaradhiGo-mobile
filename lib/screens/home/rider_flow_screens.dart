@@ -745,6 +745,12 @@ class _DriverFoundScreenState extends State<DriverFoundScreen> {
         final who = d.first.isEmpty ? l.yourDriver : d.first;
         final headline = arrived ? l.driverArrived(who) : l.driverOnWay(who);
         void sos() => showSafetySheet(context, trip: d.safety);
+        final fare = _lockedFare(mapProvider);
+        final type = mapProvider.selectedVehicleType;
+        final locked =
+            type != null &&
+            (mapProvider.fareEstimates[type]?['quote_id']?.toString() ?? '')
+                .isNotEmpty;
 
         return PopScope(
           canPop: _canPop,
@@ -770,13 +776,21 @@ class _DriverFoundScreenState extends State<DriverFoundScreen> {
             },
             topRight: SgSosPill(
               key: const ValueKey('arriving_sos_button'),
+              label: l.safety,
               onTap: sos,
             ),
             sheet: ArrivingT2Sheet(
-              // The pickup ETA at 52px only when there is one.
-              eta: (arrived || mins == null) ? null : l.minutesShort(mins),
+              // "Arriving in N min" only when there is a pickup ETA.
+              eta: (arrived || mins == null) ? null : l.arrivingInMin(mins),
               headline: headline,
               meetLine: d.meetLine,
+              status: arrived ? l.statusArrived : l.statusOnTheWay,
+              fareLine: [
+                vehicleClassName(mapProvider.selectedVehicleType),
+                paymentMethodLabel(l, mapProvider.selectedPaymentMethod),
+              ].where((s) => s.isNotEmpty).join(' \u00b7 '),
+              fareText: fare.fareText,
+              lockedLabel: locked ? l.locked : null,
               driver: SgDriverRow(
                 name: d.card.name,
                 rating: d.card.rating,
@@ -787,12 +801,14 @@ class _DriverFoundScreenState extends State<DriverFoundScreen> {
               pinPanel: d.pin.isEmpty
                   ? null
                   : SgPinPanel(
-                      label: l.ridePin,
-                      hint: l.ridePinHint,
+                      label: l.yourRideCode,
+                      hint: l.tellDriverInPerson,
                       pin: d.pin,
+                      showLabel: l.showCode,
+                      hideLabel: l.hideCode,
                     ),
-              // TODO(data): share trip, masked calling and the trip-share
-              // contact are not available, so there is no Share button.
+              // Share trip waits for a trip-share API (RiderFlags.shareTrip);
+              // Message stands in the second slot.
               actions: [
                 SgIconButtonWide(
                   key: const Key('arriving_call'),

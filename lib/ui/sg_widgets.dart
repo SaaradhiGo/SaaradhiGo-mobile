@@ -122,9 +122,9 @@ class SgPrimaryButton extends StatelessWidget {
     final on = onPressed != null;
     return Material(
       color: on ? SgColors.gold500 : SgColors.bg300,
-      borderRadius: BorderRadius.circular(SgRadius.md),
+      borderRadius: BorderRadius.circular(SgSpace.s3),
       child: InkWell(
-        borderRadius: BorderRadius.circular(SgRadius.md),
+        borderRadius: BorderRadius.circular(SgSpace.s3),
         onTap: onPressed,
         child: Container(
           height: 56,

@@ -799,7 +799,8 @@ class _ProfileTab extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final auth = context.watch<AuthProvider>();
-    final saved = context.watch<MapProvider>().favoriteLocations;
+    final map = context.watch<MapProvider>();
+    final saved = map.favoriteLocations;
     final l = sgStrings(context);
     final a = SgAppearance.instance;
     final names = [for (final f in saved.take(2)) savedPlaceLabel(l, f)];
@@ -829,6 +830,8 @@ class _ProfileTab extends StatelessWidget {
           key: const Key('profile_wallet'),
           icon: kCardIcon,
           label: l.accountPayment,
+          // The method the booking flow will use (Cash, Wallet, Online).
+          subtitle: paymentMethodLabel(l, map.selectedPaymentMethod),
           onTap: () => context.push('/payment-methods'),
         ),
         // Safety ("2 trusted contacts") waits for a trusted-contacts API.

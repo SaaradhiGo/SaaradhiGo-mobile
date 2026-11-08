@@ -1539,6 +1539,60 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Menu'**
   String get menu;
+
+  /// Choose a ride sheet title
+  ///
+  /// In en, this message translates to:
+  /// **'Choose a ride'**
+  String get chooseARide;
+
+  /// Choose a ride: how long the quoted fare is held (from quote_expires_at)
+  ///
+  /// In en, this message translates to:
+  /// **'Fare held {n} min'**
+  String fareHeldMin(int n);
+
+  /// Driver arriving: title with the pickup ETA
+  ///
+  /// In en, this message translates to:
+  /// **'Arriving in {n} min'**
+  String arrivingInMin(int n);
+
+  /// Driver arriving: status pill
+  ///
+  /// In en, this message translates to:
+  /// **'On the way'**
+  String get statusOnTheWay;
+
+  /// Driver arriving: status pill once the driver is at the pickup
+  ///
+  /// In en, this message translates to:
+  /// **'Arrived'**
+  String get statusArrived;
+
+  /// Driver arriving: ride code panel label
+  ///
+  /// In en, this message translates to:
+  /// **'Your ride code'**
+  String get yourRideCode;
+
+  /// Driver arriving: ride code panel hint
+  ///
+  /// In en, this message translates to:
+  /// **'Tell the driver in person'**
+  String get tellDriverInPerson;
+
+  /// Ride code panel: reveal the code
+  ///
+  /// In en, this message translates to:
+  /// **'Show'**
+  String get showCode;
+
+  /// Ride code panel: hide the code
+  ///
+  /// In en, this message translates to:
+  /// **'Hide'**
+  String get hideCode;
 }
 
 class _AppLocalizationsDelegate

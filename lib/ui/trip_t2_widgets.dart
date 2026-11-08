@@ -7,18 +7,21 @@ import 'package:flutter/material.dart';
 import 'sg_text.dart';
 import 'sg_tokens.dart';
 import 'sg_widgets.dart';
-import 'trip_widgets.dart' show SgStar, formatPlate, initialsOf;
+import 'trip_widgets.dart' show formatPlate;
 
 /// The red SOS pill, top right on the arriving and on-trip screens. It opens
 /// the existing safety flow.
 class SgSosPill extends StatelessWidget {
-  const SgSosPill({super.key, required this.onTap});
+  const SgSosPill({super.key, required this.onTap, this.label = 'SOS'});
   final VoidCallback onTap;
+
+  /// "Safety" on the arriving screen (design); SOS elsewhere.
+  final String label;
 
   @override
   Widget build(BuildContext context) => Semantics(
     button: true,
-    label: 'SOS',
+    label: label,
     excludeSemantics: true,
     child: Material(
       color: SgColors.danger,
@@ -28,8 +31,8 @@ class SgSosPill extends StatelessWidget {
         onTap: onTap,
         borderRadius: BorderRadius.circular(SgRadius.pill),
         child: Container(
-          height: kSgTouch,
-          padding: const EdgeInsets.symmetric(horizontal: SgSpace.s4),
+          height: 44,
+          padding: const EdgeInsets.symmetric(horizontal: 14),
           alignment: Alignment.center,
           child: Row(
             mainAxisSize: MainAxisSize.min,
@@ -37,7 +40,7 @@ class SgSosPill extends StatelessWidget {
               SgIcon(SgIcons.shield, size: 18, color: SgColors.onDanger),
               const SizedBox(width: SgSpace.s1),
               Text(
-                'SOS',
+                label,
                 style: SgText.body.copyWith(
                   color: SgColors.onDanger,
                   fontWeight: FontWeight.w600,
@@ -124,28 +127,37 @@ class SgNumberPlate extends StatelessWidget {
   }
 }
 
-/// The ride PIN on noir: every digit, gold, letter-spaced, 38px.
-class SgPinPanel extends StatelessWidget {
+/// The ride code (signed-in design rider-app-trip): hidden as six dots until
+/// the rider taps Show, so it is not read off the screen by someone nearby.
+class SgPinPanel extends StatefulWidget {
   const SgPinPanel({
     super.key,
     required this.label,
     required this.hint,
     required this.pin,
+    this.showLabel = 'Show',
+    this.hideLabel = 'Hide',
   });
   final String label;
   final String hint;
   final String pin;
+  final String showLabel;
+  final String hideLabel;
+
+  @override
+  State<SgPinPanel> createState() => _SgPinPanelState();
+}
+
+class _SgPinPanelState extends State<SgPinPanel> {
+  bool _shown = false;
 
   @override
   Widget build(BuildContext context) => Container(
     key: const Key('pin_panel'),
-    padding: const EdgeInsets.symmetric(
-      horizontal: SgSpace.s4,
-      vertical: SgSpace.s3,
-    ),
+    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: SgSpace.s3),
     decoration: BoxDecoration(
-      color: SgColors.black,
-      borderRadius: BorderRadius.circular(SgRadius.lg),
+      color: SgColors.codeSoft,
+      borderRadius: BorderRadius.circular(SgSpace.s3),
     ),
     child: Row(
       children: [
@@ -154,24 +166,58 @@ class SgPinPanel extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
-                label.toUpperCase(),
-                style: SgText.eyebrow.copyWith(color: SgColors.brandGold),
+                widget.label,
+                style: SgText.caption.copyWith(
+                  color: SgColors.goldText,
+                  fontWeight: FontWeight.w600,
+                ),
               ),
-              const SizedBox(height: 2),
-              Text(
-                hint,
-                style: SgText.caption.copyWith(color: SgPalette.dark.inkMuted),
-              ),
+              Text(widget.hint, style: SgText.caption),
             ],
           ),
         ),
-        Text(
-          pin,
-          key: const Key('ride_pin'),
-          style: SgText.fare.copyWith(
-            fontSize: SgText.sizeDisplay,
-            height: 1,
-            color: SgColors.brandGold,
+        const SizedBox(width: SgSpace.s2),
+        if (_shown)
+          Text(
+            widget.pin,
+            key: const Key('ride_pin'),
+            style: SgText.title.copyWith(
+              fontFeatures: const [FontFeature.tabularFigures()],
+            ),
+          )
+        else
+          Row(
+            key: const Key('ride_pin_dots'),
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              for (var i = 0; i < widget.pin.length; i++) ...[
+                if (i > 0) const SizedBox(width: 5),
+                Container(
+                  width: 9,
+                  height: 9,
+                  decoration: BoxDecoration(
+                    color: SgColors.ink,
+                    shape: BoxShape.circle,
+                  ),
+                ),
+              ],
+            ],
+          ),
+        const SizedBox(width: SgSpace.s2),
+        InkWell(
+          key: const Key('ride_pin_toggle'),
+          onTap: () => setState(() => _shown = !_shown),
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(minHeight: 44, minWidth: 44),
+            child: Center(
+              child: Text(
+                _shown ? widget.hideLabel : widget.showLabel,
+                style: SgText.caption.copyWith(
+                  color: SgColors.goldText,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ),
           ),
         ),
       ],
@@ -200,50 +246,25 @@ class SgDriverRow extends StatelessWidget {
   @override
   Widget build(BuildContext context) => Row(
     children: [
-      // TODO(data): driver photo, trip count and languages are not sent;
-      // initials stand in.
+      // TODO(data): driver photo is not sent; a person icon stands in.
       Container(
         width: 52,
         height: 52,
         alignment: Alignment.center,
-        decoration: BoxDecoration(
-          color: SgColors.bg300,
-          shape: BoxShape.circle,
-          border: Border.all(color: SgColors.goldLine, width: 1.5),
-        ),
-        child: Text(
-          initialsOf(name),
-          style: SgText.title.copyWith(color: SgColors.goldText),
-        ),
+        decoration: BoxDecoration(color: SgColors.line, shape: BoxShape.circle),
+        child: SgIcon(SgIcons.user, size: 24, color: SgColors.inkMuted),
       ),
       const SizedBox(width: SgSpace.s3),
       Expanded(
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Row(
-              children: [
-                Flexible(
-                  child: Text(
-                    name,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: SgText.title,
-                  ),
-                ),
-                if (rating != null) ...[
-                  const SizedBox(width: SgSpace.s2),
-                  SgStar(color: SgColors.goldText),
-                  const SizedBox(width: 2),
-                  Text(
-                    rating!,
-                    style: SgText.caption.copyWith(
-                      color: SgColors.goldText,
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
-                ],
-              ],
+            Text(
+              rating == null ? name : '$name \u00b7 $rating',
+              key: const Key('driver_name_line'),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: SgText.body.copyWith(fontWeight: FontWeight.w600),
             ),
             if (vehicleLine != null && vehicleLine!.isNotEmpty)
               Text(
@@ -252,14 +273,33 @@ class SgDriverRow extends StatelessWidget {
                 overflow: TextOverflow.ellipsis,
                 style: SgText.caption,
               ),
-            if (plate != null && plate!.isNotEmpty)
-              Padding(
-                padding: const EdgeInsets.only(top: SgSpace.s1),
-                child: SgNumberPlate(plate!, indian: indianPlate),
-              ),
           ],
         ),
       ),
+      if (plate != null && plate!.isNotEmpty) ...[
+        const SizedBox(width: SgSpace.s2),
+        Flexible(
+          child: FittedBox(
+            fit: BoxFit.scaleDown,
+            alignment: Alignment.centerRight,
+            child: Container(
+              key: const Key('plate_box'),
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(SgSpace.s2),
+                border: Border.all(color: SgColors.ink, width: 2),
+              ),
+              child: Text(
+                formatPlate(plate!),
+                style: SgText.caption.copyWith(
+                  color: SgColors.ink,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ),
+          ),
+        ),
+      ],
       ?trailing,
     ],
   );
@@ -283,16 +323,16 @@ class SgIconButtonWide extends StatelessWidget {
   Widget build(BuildContext context) {
     final c = danger ? SgColors.danger : SgColors.ink;
     return Material(
-      color: SgColors.bg200,
-      borderRadius: BorderRadius.circular(SgRadius.md),
+      color: SgColors.bg100,
+      borderRadius: BorderRadius.circular(SgSpace.s3),
       child: InkWell(
         onTap: onTap,
-        borderRadius: BorderRadius.circular(SgRadius.md),
+        borderRadius: BorderRadius.circular(SgSpace.s3),
         child: Container(
-          height: 52,
+          height: 48,
           decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(SgRadius.md),
-            border: Border.all(color: SgColors.lineStrong),
+            borderRadius: BorderRadius.circular(SgSpace.s3),
+            border: Border.all(color: SgColors.line),
           ),
           child: Row(
             mainAxisAlignment: MainAxisAlignment.center,
@@ -318,7 +358,8 @@ class SgIconButtonWide extends StatelessWidget {
   }
 }
 
-/// Driver arriving (screen 7).
+/// Driver arriving (signed-in design rider-app-trip): the ETA and status, the
+/// driver and plate, the ride code, the class and locked fare, then actions.
 class ArrivingT2Sheet extends StatelessWidget {
   const ArrivingT2Sheet({
     super.key,
@@ -328,19 +369,33 @@ class ArrivingT2Sheet extends StatelessWidget {
     required this.actions,
     this.eta,
     this.meetLine,
+    this.status,
+    this.fareLine,
+    this.fareText,
+    this.lockedLabel,
     this.cancelLabel,
     this.onCancel,
     this.cancelNote,
   });
 
-  /// "4 min" at 52px, or null when there is no pickup ETA.
+  /// "Arriving in 4 min", or null when there is no pickup ETA.
   final String? eta;
 
-  /// Under the ETA ("Ravi is on the way"), or alone when there is no ETA.
+  /// "Ravi is on the way": the title when there is no ETA.
   final String headline;
   final String? meetLine;
+
+  /// The pill beside the title: "On the way", "Arrived".
+  final String? status;
   final Widget driver;
   final Widget? pinPanel;
+
+  /// "Mini · Cash" and the fare the rider booked at.
+  final String? fareLine;
+  final String? fareText;
+
+  /// "Locked", only when the booking used a quote.
+  final String? lockedLabel;
   final List<Widget> actions;
   final String? cancelLabel;
   final VoidCallback? onCancel;
@@ -353,29 +408,59 @@ class ArrivingT2Sheet extends StatelessWidget {
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          if (eta != null)
-            Text(
-              eta!,
-              key: const Key('arriving_eta'),
-              style: SgText.fare.copyWith(
-                fontSize: SgText.sizeDisplay,
-                height: 1,
+          Row(
+            children: [
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      eta ?? headline,
+                      key: const Key('arriving_headline'),
+                      style: SgText.title,
+                    ),
+                    if (meetLine != null && meetLine!.isNotEmpty)
+                      Text(meetLine!, style: SgText.caption),
+                  ],
+                ),
               ),
-            ),
-          Text(
-            headline,
-            key: const Key('arriving_headline'),
-            style: eta == null ? SgText.heading : SgText.title,
+              if (status != null) SgStatusPill(status!),
+            ],
           ),
-          if (meetLine != null && meetLine!.isNotEmpty)
-            Text(meetLine!, style: SgText.caption),
-          const SizedBox(height: SgSpace.s4),
+          const SizedBox(height: SgSpace.s3),
           driver,
           if (pinPanel != null) ...[
-            const SizedBox(height: SgSpace.s4),
+            const SizedBox(height: SgSpace.s3),
             pinPanel!,
           ],
-          const SizedBox(height: SgSpace.s4),
+          if (fareText != null && fareText!.isNotEmpty) ...[
+            const SizedBox(height: SgSpace.s3),
+            Container(
+              key: const Key('arriving_fare'),
+              padding: const EdgeInsets.symmetric(vertical: 10),
+              decoration: BoxDecoration(
+                border: Border(top: BorderSide(color: SgColors.divider)),
+              ),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: Text(
+                      fareLine ?? '',
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: SgText.body.copyWith(fontWeight: FontWeight.w600),
+                    ),
+                  ),
+                  Text(fareText!, style: SgText.fare),
+                  if (lockedLabel != null) ...[
+                    const SizedBox(width: SgSpace.s2),
+                    SgStatusPill(lockedLabel!, icon: SgIcons.lock),
+                  ],
+                ],
+              ),
+            ),
+          ],
+          const SizedBox(height: SgSpace.s3),
           Row(
             children: [
               for (var i = 0; i < actions.length; i++) ...[
@@ -405,6 +490,39 @@ class ArrivingT2Sheet extends StatelessWidget {
             ),
         ],
       ),
+    ),
+  );
+}
+
+/// A green 28px pill: "On the way", "Locked" (design `.pill.ok`).
+class SgStatusPill extends StatelessWidget {
+  const SgStatusPill(this.text, {super.key, this.icon});
+  final String text;
+  final String? icon;
+
+  @override
+  Widget build(BuildContext context) => Container(
+    height: 28,
+    padding: const EdgeInsets.symmetric(horizontal: 10),
+    decoration: BoxDecoration(
+      color: SgColors.okSoft,
+      borderRadius: BorderRadius.circular(SgRadius.pill),
+    ),
+    child: Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        if (icon != null) ...[
+          SgIcon(icon!, size: 14, color: SgColors.success),
+          const SizedBox(width: 6),
+        ],
+        Text(
+          text,
+          style: SgText.caption.copyWith(
+            color: SgColors.success,
+            fontWeight: FontWeight.w600,
+          ),
+        ),
+      ],
     ),
   );
 }

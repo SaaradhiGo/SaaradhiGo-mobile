@@ -106,7 +106,7 @@ void main() {
       expect(o.map((e) => e.type), ['auto', 'hatchback', 'sedan', 'suv']);
       expect(o[2].name, 'Saaradhi Sedan');
       expect(o[2].fareText, '₹248');
-      expect(o[2].meta, '5 min · 4 seats');
+      expect(o[2].meta, '4 seats · 5 min');
       expect(o[1].fareText, '₹196');
     });
 
@@ -123,9 +123,11 @@ void main() {
       await tester.pump();
       expect(find.text('Book Auto · ₹142'), findsOneWidget);
       expect(find.text('Book Sedan · ₹248'), findsNothing);
-      expect(find.text('12.4 km · 24 min'), findsOneWidget);
+      // The design shows no distance summary.
+      expect(find.text('12.4 km · 24 min'), findsNothing);
       expect(find.text('Cash'), findsOneWidget);
-      expect(find.text('Change'), findsOneWidget);
+      // The payment label itself opens the methods (no Change link).
+      expect(find.byKey(const Key('choose_payment')), findsOneWidget);
     });
 
     testWidgets('a higher price is explained calmly and never says surge', (
@@ -191,7 +193,7 @@ void main() {
         'bike': {'estimated_fare': '90', 'pickup_eta_min': 2},
       });
       expect(o.firstWhere((e) => e.type == 'sedan').meta, '4 seats');
-      expect(o.firstWhere((e) => e.type == 'bike').meta, '2 min · 1 seat');
+      expect(o.firstWhere((e) => e.type == 'bike').meta, '1 seat · 2 min');
       expect(o.map((e) => e.meta).join(), isNot(contains('Drop in')));
       expect(minLabel('92 mins'), '92 min');
       expect(vehicleClassSeats('suv'), 6);

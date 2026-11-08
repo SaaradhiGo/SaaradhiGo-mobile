@@ -6,3 +6,7 @@ searchADestination, menu, accountYourTrips, accountTripsHint, accountSavedPlaces
 accountNoSavedPlaces, accountPayment, accountTheme, accountHelp, accountSignOut,
 accountDelete, deleteAccountTitle, deleteAccountBody, deleteAccountConfirm,
 deleteAccountFailed
+
+Signed-in designs, 2026-11-08 (choose a ride, driver arriving):
+chooseARide, fareHeldMin, arrivingInMin, statusOnTheWay, statusArrived,
+yourRideCode, tellDriverInPerson, showCode, hideCode
