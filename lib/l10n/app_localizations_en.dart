@@ -842,4 +842,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get hideCode => 'Hide';
+
+  @override
+  String get savedWork => 'Work';
 }

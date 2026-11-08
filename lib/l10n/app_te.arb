@@ -497,5 +497,7 @@
   "showCode": "చూపించు",
   "@showCode": {"description": "needs native review"},
   "hideCode": "దాచు",
-  "@hideCode": {"description": "needs native review"}
+  "@hideCode": {"description": "needs native review"},
+  "savedWork": "ఆఫీస్",
+  "@savedWork": {"description": "needs native review"}
 }

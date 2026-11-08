@@ -1593,6 +1593,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Hide'**
   String get hideCode;
+
+  /// Label of a saved place the server marks as work
+  ///
+  /// In en, this message translates to:
+  /// **'Work'**
+  String get savedWork;
 }
 
 class _AppLocalizationsDelegate

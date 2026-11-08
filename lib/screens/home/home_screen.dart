@@ -615,8 +615,8 @@ class _HomeTab extends StatelessWidget {
     void open(double lat, double lng, String name) =>
         _goTo(context, '$lat,$lng', dropName: name);
 
-    // Saved places from GET /rider/locations/all/. Home/Work labels only
-    // when the flag is on (the API does not label places yet).
+    // Saved places from GET /rider/locations/all/, with Home/Work from the
+    // place's own `label`.
     final chips = <SavedChipData>[
       for (final f in mapProvider.favoriteLocations.take(4))
         if (f.latitude != 0 || f.longitude != 0)
@@ -726,7 +726,7 @@ class _HomeTab extends StatelessWidget {
 /// sent one, else the first part of the address.
 String savedPlaceLabel(AppLocalizations l, FavoriteLocation f) {
   if (RiderFlags.homeWorkLabels && f.label == 'home') return l.navHome;
-  if (RiderFlags.homeWorkLabels && f.label == 'work') return 'Work';
+  if (RiderFlags.homeWorkLabels && f.label == 'work') return l.savedWork;
   return splitPlace(f.addressText).name;
 }
 
