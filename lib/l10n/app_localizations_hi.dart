@@ -755,4 +755,50 @@ class AppLocalizationsHi extends AppLocalizations {
 
   @override
   String get addPaymentMethod => 'नया भुगतान तरीका जोड़ें';
+
+  @override
+  String get searchADestination => 'मंज़िल खोजें';
+
+  @override
+  String get accountYourTrips => 'आपकी यात्राएँ';
+
+  @override
+  String get accountTripsHint => 'रसीदें लॉक किए गए किराए से मेल खाती हैं';
+
+  @override
+  String get accountSavedPlaces => 'सहेजी गई जगहें';
+
+  @override
+  String get accountNoSavedPlaces => 'अभी कोई सहेजी गई जगह नहीं';
+
+  @override
+  String get accountPayment => 'भुगतान';
+
+  @override
+  String get accountTheme => 'थीम';
+
+  @override
+  String get accountHelp => 'मदद';
+
+  @override
+  String get accountSignOut => 'साइन आउट';
+
+  @override
+  String get accountDelete => 'खाता हटाएँ';
+
+  @override
+  String get deleteAccountTitle => 'अपना खाता हटाएँ?';
+
+  @override
+  String get deleteAccountBody =>
+      'आपका खाता और निजी जानकारी हटा दी जाएगी। इसे वापस नहीं किया जा सकता।';
+
+  @override
+  String get deleteAccountConfirm => 'हटाएँ';
+
+  @override
+  String get deleteAccountFailed => 'आपका खाता नहीं हट सका। फिर से कोशिश करें।';
+
+  @override
+  String get menu => 'मेनू';
 }

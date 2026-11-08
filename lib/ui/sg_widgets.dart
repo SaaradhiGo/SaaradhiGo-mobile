@@ -144,7 +144,8 @@ class SgPrimaryButton extends StatelessWidget {
   }
 }
 
-/// Bottom sheet surface: bg-100, gold hairline edge, grab handle.
+/// Bottom sheet surface (signed-in designs, 2026-11-08): bg-100, 24 top
+/// corners, a soft upward shadow, padding 12/20/20 and a 40x5 grab handle.
 class SgSheetSurface extends StatelessWidget {
   const SgSheetSurface({super.key, required this.child, this.padding});
   final Widget child;
@@ -154,24 +155,20 @@ class SgSheetSurface extends StatelessWidget {
   Widget build(BuildContext context) => Container(
     decoration: BoxDecoration(
       color: SgColors.bg100,
-      borderRadius: BorderRadius.vertical(top: Radius.circular(SgRadius.lg)),
-      border: Border(top: BorderSide(color: SgColors.goldLine)),
+      borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+      border: SgColors.isDark
+          ? Border(top: BorderSide(color: SgColors.line))
+          : null,
       boxShadow: [
         BoxShadow(
           color: SgColors.shadow,
-          blurRadius: 40,
-          offset: Offset(0, -12),
+          blurRadius: 30,
+          offset: const Offset(0, -10),
         ),
       ],
     ),
     padding:
-        padding ??
-        const EdgeInsets.fromLTRB(
-          SgSpace.s4,
-          SgSpace.s3,
-          SgSpace.s4,
-          SgSpace.s4,
-        ),
+        padding ?? const EdgeInsets.fromLTRB(20, SgSpace.s3, 20, 20),
     child: Column(
       mainAxisSize: MainAxisSize.min,
       crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -179,11 +176,11 @@ class SgSheetSurface extends StatelessWidget {
         Center(
           child: Container(
             width: 40,
-            height: 4,
-            margin: const EdgeInsets.only(bottom: SgSpace.s4),
+            height: 5,
+            margin: const EdgeInsets.only(bottom: SgSpace.s3),
             decoration: BoxDecoration(
-              color: SgColors.lineStrong,
-              borderRadius: BorderRadius.circular(SgRadius.pill),
+              color: SgColors.line,
+              borderRadius: BorderRadius.circular(3),
             ),
           ),
         ),

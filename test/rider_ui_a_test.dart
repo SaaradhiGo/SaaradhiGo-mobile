@@ -17,17 +17,18 @@ import 'support/rider_ui_fixtures.dart';
 void main() {
   setUpAll(loadSgFonts);
   group('home sheet', () {
-    testWidgets('greets by time of day and asks Where to?', (tester) async {
+    testWidgets('asks Where to? over a plain destination field', (tester) async {
       setPhoneSurface(tester);
       addTearDown(tester.view.reset);
       await tester.pumpWidget(
         sgApp(homeFrame(chips: const [], recents: const [])),
       );
       await tester.pump();
-      expect(find.text('Good evening'), findsOneWidget);
       expect(find.text('Where to?'), findsOneWidget);
       expect(find.text('Search destination'), findsOneWidget);
-      expect(find.text('Now'), findsOneWidget);
+      // The design has no "Now" chip and no greeting.
+      expect(find.text('Now'), findsNothing);
+      expect(find.text('Good evening'), findsNothing);
       expect(greetingFor(DateTime(2026, 1, 1, 8)), 'Good morning');
       expect(greetingFor(DateTime(2026, 1, 1, 14)), 'Good afternoon');
       expect(greetingFor(DateTime(2026, 1, 1, 19)), 'Good evening');

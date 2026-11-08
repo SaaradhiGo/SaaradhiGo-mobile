@@ -1,4 +1,4 @@
-// The fare-first home: the tab bar and the avatar reach the other screens,
+// The map home: the menu reaches the other screens,
 // back returns home, and no search results open on their own.
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -55,44 +55,45 @@ void main() {
   setUp(stubStartupPluginChannels);
   _focusSurvivesOpening();
 
-  const headline = 'Where are you going?';
+  const headline = 'Where to?';
 
-  testWidgets('fare-first home: headline, From/To, tab bar; nothing opens '
-      'by itself', (tester) async {
+  testWidgets('map home: menu, Where to?, the destination field; no tab '
+      'bar; nothing opens by itself', (tester) async {
     await _pumpHome(tester);
-    expect(find.byKey(const Key('home-nav-home')), findsOneWidget);
-    expect(find.byKey(const Key('home-nav-trips')), findsOneWidget);
-    expect(find.byKey(const Key('home-nav-profile')), findsOneWidget);
+    expect(find.byKey(const Key('home_menu')), findsOneWidget);
+    expect(find.byKey(const Key('home-nav-home')), findsNothing);
     expect(find.text(headline), findsOneWidget);
-    expect(find.text('Search destination'), findsOneWidget);
-    expect(find.text('The fare you book is the fare you pay.'), findsOneWidget);
+    expect(find.text('Search a destination'), findsOneWidget);
     expect(find.text('Current Location'), findsNothing);
     // Never a mic: voice search does not exist.
     expect(find.byIcon(Icons.mic), findsNothing);
   });
 
-  testWidgets('the tab bar reaches Trips and Account; Wallet opens from '
-      'Account; back returns home', (tester) async {
+  testWidgets('the menu reaches Account; Account reaches Trips; back '
+      'returns home', (tester) async {
     await _pumpHome(tester);
-    await tester.tap(find.byKey(const Key('home-nav-trips')));
+    await tester.tap(find.byKey(const Key('home_menu')));
+    await _settle(tester);
+    await tester.tap(find.byKey(const Key('menu_profile')));
     await _settle(tester);
     expect(find.text(headline), findsNothing);
-    await tester.tap(find.byKey(const Key('home-nav-profile')));
+    expect(find.text('Your trips'), findsOneWidget);
+    expect(find.text('Sign out'), findsOneWidget);
+    await tester.tap(find.byKey(const Key('account_trips')));
     await _settle(tester);
-    expect(find.text('Help and support'), findsOneWidget);
-    await tester.tap(find.byKey(const Key('profile_wallet')));
-    await _settle(tester);
-    expect(find.byKey(const Key('profile_wallet')), findsNothing);
-    await tester.tap(find.byKey(const Key('home-nav-home')));
+    expect(find.text('Sign out'), findsNothing);
+    await tester.tap(find.byKey(const Key('page_back')));
     await _settle(tester);
     expect(find.text(headline), findsOneWidget);
   });
 
-  testWidgets('the avatar opens Account and system back returns home', (
+  testWidgets('Account opens from the menu and system back returns home', (
     tester,
   ) async {
     await _pumpHome(tester);
-    await tester.tap(find.byKey(const Key('home_account_avatar')));
+    await tester.tap(find.byKey(const Key('home_menu')));
+    await _settle(tester);
+    await tester.tap(find.byKey(const Key('menu_profile')));
     await _settle(tester);
     expect(find.text(headline), findsNothing);
     await tester.binding.handlePopRoute();

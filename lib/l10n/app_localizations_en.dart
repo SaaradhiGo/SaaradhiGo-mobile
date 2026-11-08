@@ -765,4 +765,50 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get addPaymentMethod => 'Add New Payment Method';
+
+  @override
+  String get searchADestination => 'Search a destination';
+
+  @override
+  String get accountYourTrips => 'Your trips';
+
+  @override
+  String get accountTripsHint => 'Receipts match the locked fare';
+
+  @override
+  String get accountSavedPlaces => 'Saved places';
+
+  @override
+  String get accountNoSavedPlaces => 'No saved places yet';
+
+  @override
+  String get accountPayment => 'Payment';
+
+  @override
+  String get accountTheme => 'Theme';
+
+  @override
+  String get accountHelp => 'Help';
+
+  @override
+  String get accountSignOut => 'Sign out';
+
+  @override
+  String get accountDelete => 'Delete account';
+
+  @override
+  String get deleteAccountTitle => 'Delete your account?';
+
+  @override
+  String get deleteAccountBody =>
+      'Your account and personal details will be removed. This cannot be undone.';
+
+  @override
+  String get deleteAccountConfirm => 'Delete';
+
+  @override
+  String get deleteAccountFailed => 'Could not delete your account. Try again.';
+
+  @override
+  String get menu => 'Menu';
 }

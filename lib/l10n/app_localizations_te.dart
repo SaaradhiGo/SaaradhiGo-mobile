@@ -759,4 +759,51 @@ class AppLocalizationsTe extends AppLocalizations {
 
   @override
   String get addPaymentMethod => 'కొత్త చెల్లింపు పద్ధతి';
+
+  @override
+  String get searchADestination => 'గమ్యస్థానాన్ని వెతకండి';
+
+  @override
+  String get accountYourTrips => 'మీ ట్రిప్‌లు';
+
+  @override
+  String get accountTripsHint => 'రసీదులు లాక్ చేసిన ఛార్జీతో సరిపోలుతాయి';
+
+  @override
+  String get accountSavedPlaces => 'సేవ్ చేసిన స్థలాలు';
+
+  @override
+  String get accountNoSavedPlaces => 'ఇంకా సేవ్ చేసిన స్థలాలు లేవు';
+
+  @override
+  String get accountPayment => 'చెల్లింపు';
+
+  @override
+  String get accountTheme => 'థీమ్';
+
+  @override
+  String get accountHelp => 'సహాయం';
+
+  @override
+  String get accountSignOut => 'సైన్ అవుట్';
+
+  @override
+  String get accountDelete => 'ఖాతాను తొలగించండి';
+
+  @override
+  String get deleteAccountTitle => 'మీ ఖాతాను తొలగించాలా?';
+
+  @override
+  String get deleteAccountBody =>
+      'మీ ఖాతా మరియు వ్యక్తిగత వివరాలు తొలగించబడతాయి. దీన్ని రద్దు చేయలేరు.';
+
+  @override
+  String get deleteAccountConfirm => 'తొలగించు';
+
+  @override
+  String get deleteAccountFailed =>
+      'మీ ఖాతాను తొలగించలేకపోయాం. మళ్లీ ప్రయత్నించండి.';
+
+  @override
+  String get menu => 'మెను';
 }

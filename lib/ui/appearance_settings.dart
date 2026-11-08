@@ -200,3 +200,23 @@ class _ChoiceRow extends StatelessWidget {
     ),
   );
 }
+
+/// The theme sheet on its own (Account > Theme).
+Future<void> showThemePicker(BuildContext context, {SgAppearance? appearance}) {
+  final a = appearance ?? SgAppearance.instance;
+  final l = sgStrings(context);
+  return _showChoices<SgThemeChoice>(
+    context,
+    title: l.appearance,
+    options: [
+      for (final c in SgThemeChoice.values)
+        (
+          c,
+          themeChoiceLabel(l, c),
+          c == SgThemeChoice.automatic ? l.themeAutomaticHint : null,
+        ),
+    ],
+    selected: a.theme,
+    onSelected: a.setTheme,
+  );
+}

@@ -85,7 +85,6 @@ Widget homeFrame({
         child: Padding(
           padding: const EdgeInsets.only(bottom: 84),
           child: HomeSheet(
-            greeting: greeting,
             search: SgSearchBar(
               field: Text(
                 'Search destination',

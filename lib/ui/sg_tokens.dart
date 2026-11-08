@@ -237,6 +237,17 @@ class SgColors {
   static Color get onDanger => _active.onDanger;
   static Color get shadow => _active.shadow;
 
+  // Signed-in designs (2026-11-08): soft fills behind status pills and the
+  // ride code, and the hairline between rows. Light values are the design's.
+  static Color get okSoft =>
+      isDark ? const Color(0xFF12342B) : const Color(0xFFDDF1E6);
+  static Color get warnSoft =>
+      isDark ? const Color(0xFF3A2E14) : const Color(0xFFFCEFD3);
+  static Color get codeSoft =>
+      isDark ? const Color(0xFF2A2416) : const Color(0xFFF6EBD3);
+  static Color get divider =>
+      isDark ? _active.line : const Color(0xFFF0EBE2);
+
   /// Pure black and white, for the few things that are black or white in both
   /// themes (a photo scrim, the white ring on a marker).
   static const black = Color(0xFF000000);

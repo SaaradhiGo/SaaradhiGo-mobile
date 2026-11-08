@@ -512,6 +512,21 @@ class ApiService implements AuthApiClient {
     }
   }
 
+  /// POST /auth/me/delete/ with the literal confirm the server requires.
+  /// True only on a 2xx; the caller then ends the session locally.
+  Future<bool> deleteMyAccount() async {
+    final response = await authedRequest(
+      (headers) => _client.post(
+        Uri.parse('$baseUrl/auth/me/delete/'),
+        headers: headers,
+        body: jsonEncode({'confirm': 'DELETE'}),
+      ),
+    );
+    return response != null &&
+        response.statusCode >= 200 &&
+        response.statusCode < 300;
+  }
+
   /// End the session on the server, then locally.
   ///
   /// This used to be `TokenStore.clear()` alone, so a rider's logout was
