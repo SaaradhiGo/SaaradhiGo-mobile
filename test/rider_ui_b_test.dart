@@ -106,7 +106,7 @@ List<SgActionData> _actions(void Function(String) tapped) => [
 
 void main() {
   group('fare-quote ETA', () {
-    test('rows read "5 min · 4 seats"', () {
+    test('rows read "4 seats · 5 min"', () {
       final o = RideOption.fromEstimates({
         'sedan': {
           'estimated_fare': '248',
@@ -114,7 +114,7 @@ void main() {
           'drivers_nearby': true,
         },
       }).single;
-      expect(o.meta, '5 min · 4 seats');
+      expect(o.meta, '4 seats · 5 min');
       expect(o.etaMin, 5);
       expect(o.driversNearby, isTrue);
     });
@@ -127,7 +127,7 @@ void main() {
           'drivers_nearby': false,
         },
       }).single;
-      expect(o.meta, 'No drivers nearby · 4 seats');
+      expect(o.meta, '4 seats · No drivers nearby');
       expect(o.driversNearby, isFalse);
       expect(o.etaMin, isNull);
     });
@@ -169,10 +169,10 @@ void main() {
         ),
       );
       await tester.pump();
-      expect(find.text('5 min · 4 seats'), findsOneWidget);
+      expect(find.text('4 seats · 5 min'), findsOneWidget);
       await tester.drag(find.byType(Scrollable).first, const Offset(0, -2000));
       await tester.pumpAndSettle();
-      expect(find.text('No drivers nearby · 6 seats'), findsOneWidget);
+      expect(find.text('6 seats · No drivers nearby'), findsOneWidget);
       await tester.pump();
       await tester.tap(find.byKey(const Key('ride_row_suv')));
       expect(picked, ['suv']);

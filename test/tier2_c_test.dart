@@ -98,6 +98,11 @@ void main() {
     // The IND strip is drawn without lettering (6px type was under the floor).
     expect(find.text('TS 09 QT 0059'), findsOneWidget);
     expect(find.byKey(const Key('plate_plain')), findsOneWidget);
+    // The code is six dots until the rider taps Show.
+    expect(find.text('482913'), findsNothing);
+    expect(find.byKey(const Key('ride_pin_dots')), findsOneWidget);
+    await tester.tap(find.byKey(const Key('ride_pin_toggle')));
+    await tester.pump();
     expect(find.text('482913'), findsOneWidget);
   });
 }

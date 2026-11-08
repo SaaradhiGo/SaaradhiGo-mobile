@@ -29,18 +29,26 @@ class RideOption {
     this.etaMin,
     this.driversNearby = true,
     this.seats,
+    this.locked = false,
+    this.quoteExpiresAt,
   });
+
+  /// True when the quote carries a `quote_id`: booking holds this fare.
+  final bool locked;
+
+  /// The quote's `quote_expires_at`, when sent.
+  final DateTime? quoteExpiresAt;
 
   /// Seats in the class: the quote's `seats` when sent, else the table.
   final int? seats;
 
   /// [meta] in the rider's language.
   String metaIn(AppLocalizations l) => [
+    if (seats != null) l.seatsCount(seats!),
     if (!driversNearby)
       l.noDriversNearby
     else if (etaMin != null)
       l.minutesShort(etaMin!),
-    if (seats != null) l.seatsCount(seats!),
   ].join(' · ');
 
   /// Backend identifier (`sedan`); never shown.
@@ -126,11 +134,11 @@ class RideOption {
     final seats = _num(e, _seatKeys) ?? vehicleClassSeats(type);
     final nearby = e['drivers_nearby'] != false;
     final parts = <String>[
+      if (seats != null) '${seats.toInt()} ${seats == 1 ? 'seat' : 'seats'}',
       if (!nearby)
         'No drivers nearby'
       else if (eta != null)
         '${eta.ceil()} min',
-      if (seats != null) '${seats.toInt()} ${seats == 1 ? 'seat' : 'seats'}',
     ];
     return RideOption(
       type: type,
@@ -142,6 +150,10 @@ class RideOption {
       etaMin: nearby ? eta?.ceil() : null,
       driversNearby: nearby,
       seats: seats?.toInt(),
+      locked: (e['quote_id']?.toString() ?? '').isNotEmpty,
+      quoteExpiresAt: DateTime.tryParse(
+        e['quote_expires_at']?.toString() ?? '',
+      ),
     );
   }
 
@@ -186,7 +198,22 @@ String? preselectVehicle(List<String> offered, String? lastUsed) {
   );
 }
 
-/// Every fare, side by side (Tier 2 spec, screen 4).
+/// Whole minutes the quote is still held, or null when there is no expiry
+/// or it has passed.
+int? heldMinutes(DateTime? expiresAt, {DateTime? now}) {
+  if (expiresAt == null) return null;
+  final left = expiresAt.difference(now ?? DateTime.now());
+  if (left.inSeconds <= 0) return null;
+  return (left.inSeconds / 60).ceil();
+}
+
+/// The card icon (design: payment row).
+const kCardIconBody =
+    '<rect x="3" y="6" width="18" height="14" rx="2"/><path d="M3 10h18M16 15h2"/>';
+
+/// "Choose a ride" (signed-in design rider-app-choose): one row per priced
+/// class with its locked fare, the payment method, how long the fare is
+/// held, and Book.
 class ChooseRideSheet extends StatelessWidget {
   const ChooseRideSheet({
     super.key,
@@ -206,15 +233,15 @@ class ChooseRideSheet extends StatelessWidget {
   final ValueChanged<String> onSelect;
   final VoidCallback onConfirm;
 
-  /// "12.4 km · 24 min".
+  /// "12.4 km · 24 min". The design does not show it; kept for callers.
   final String? summary;
 
-  /// "Banjara Hills → Mindspace".
+  /// "Banjara Hills → Mindspace". The design does not show it; kept for callers.
   final String? route;
   final String paymentLabel;
   final VoidCallback? onChangePayment;
 
-  /// Below the rows inside the scroll area (fare details, promo code).
+  /// Below the rows inside the scroll area (promo code).
   final Widget? footer;
 
   @override
@@ -224,42 +251,18 @@ class ChooseRideSheet extends StatelessWidget {
     for (final o in options) {
       if (o.type == selectedType) selected = o;
     }
-    final tags = rideTags(options);
+    final held = selected == null || !selected.locked
+        ? null
+        : heldMinutes(selected.quoteExpiresAt);
     return SgSheetSurface(
       child: Column(
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          if (route != null && route!.isNotEmpty)
-            Text(
-              route!,
-              key: const Key('choose_route'),
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              style: SgText.title,
-            ),
-          const SizedBox(height: SgSpace.s1),
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.baseline,
-            textBaseline: TextBaseline.alphabetic,
-            children: [
-              Expanded(
-                child: Text(
-                  l.waysToGo(options.length),
-                  style: SgText.heading.copyWith(
-                    fontSize: SgText.sizeHeading,
-                    height: 28 / 24,
-                  ),
-                ),
-              ),
-              if (summary != null)
-                Text(
-                  summary!,
-                  style: SgText.caption.copyWith(
-                    fontFeatures: const [FontFeature.tabularFigures()],
-                  ),
-                ),
-            ],
+          Text(
+            l.chooseARide,
+            key: const Key('choose_title'),
+            style: SgText.title,
           ),
           const SizedBox(height: SgSpace.s3),
           Flexible(
@@ -269,12 +272,10 @@ class ChooseRideSheet extends StatelessWidget {
               children: [
                 for (final o in options)
                   Padding(
-                    padding: const EdgeInsets.only(bottom: SgSpace.s2),
+                    padding: const EdgeInsets.only(bottom: SgSpace.s3),
                     child: _RideRow(
                       option: o,
                       selected: o.type == selectedType,
-                      cheapest: tags.cheapest == o.type ? l.tagCheapest : null,
-                      fastest: tags.fastest == o.type ? l.tagFastest : null,
                       onTap: () => onSelect(o.type),
                     ),
                   ),
@@ -287,52 +288,46 @@ class ChooseRideSheet extends StatelessWidget {
           if (selected?.reason != null)
             Padding(
               key: const Key('choose_demand'),
-              padding: const EdgeInsets.only(top: SgSpace.s2),
-              child: Row(
-                children: [
-                  SgIcon(SgIcons.clock, size: 16, color: SgColors.inkMuted),
-                  const SizedBox(width: SgSpace.s2),
-                  Expanded(
-                    child: Text(selected!.reason!, style: SgText.caption),
-                  ),
-                ],
-              ),
+              padding: const EdgeInsets.only(bottom: SgSpace.s2),
+              child: Text(selected!.reason!, style: SgText.caption),
             ),
-          const SizedBox(height: SgSpace.s2),
-          Container(
-            height: kSgTouch,
-            decoration: BoxDecoration(
-              border: Border(top: BorderSide(color: SgColors.line)),
-            ),
-            child: Row(
-              children: [
-                SgIcon(SgIcons.cash, size: 20, color: SgColors.ink),
-                const SizedBox(width: SgSpace.s3),
-                Expanded(
-                  child: Text(
-                    paymentLabel,
-                    style: SgText.body.copyWith(fontWeight: FontWeight.w600),
+          Row(
+            children: [
+              InkWell(
+                key: const Key('choose_payment'),
+                onTap: onChangePayment,
+                child: ConstrainedBox(
+                  constraints: const BoxConstraints(minHeight: 40),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      SgIcon(kCardIconBody, size: 16, color: SgColors.ink),
+                      const SizedBox(width: 6),
+                      Text(
+                        paymentLabel,
+                        style: SgText.caption.copyWith(color: SgColors.ink),
+                      ),
+                    ],
                   ),
                 ),
-                if (onChangePayment != null)
-                  TextButton(
-                    onPressed: onChangePayment,
-                    style: TextButton.styleFrom(
-                      minimumSize: const Size(kSgTouch, kSgTouch),
-                      foregroundColor: SgColors.goldText,
+              ),
+              const Spacer(),
+              if (held != null)
+                Row(
+                  key: const Key('choose_held'),
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    SgIcon(SgIcons.lock, size: 14, color: SgColors.pickup),
+                    const SizedBox(width: 6),
+                    Text(
+                      l.fareHeldMin(held),
+                      style: SgText.caption.copyWith(color: SgColors.pickup),
                     ),
-                    child: Text(
-                      l.change,
-                      style: SgText.body.copyWith(
-                        color: SgColors.goldText,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                  ),
-              ],
-            ),
+                  ],
+                ),
+            ],
           ),
-          const SizedBox(height: SgSpace.s2),
+          const SizedBox(height: SgSpace.s3),
           SgPrimaryButton(
             key: const Key('choose_book'),
             label: selected == null
@@ -379,51 +374,53 @@ class _RideRow extends StatelessWidget {
     required this.option,
     required this.selected,
     required this.onTap,
-    this.cheapest,
-    this.fastest,
   });
   final RideOption option;
   final bool selected;
   final VoidCallback onTap;
-  final String? cheapest;
-  final String? fastest;
 
   @override
   Widget build(BuildContext context) {
+    final l = sgStrings(context);
+    final meta = option.metaIn(l);
     return Semantics(
       button: true,
       selected: selected,
       child: InkWell(
         key: Key('ride_row_${option.type}'),
-        borderRadius: BorderRadius.circular(SgRadius.lg),
+        borderRadius: BorderRadius.circular(14),
         onTap: onTap,
         child: AnimatedContainer(
           duration: SgMotion.press,
           curve: SgMotion.curve,
-          constraints: const BoxConstraints(minHeight: 80),
-          padding: const EdgeInsets.all(SgSpace.s3),
+          // The 2px selected border takes its extra pixel from the padding,
+          // so the row does not jump.
+          padding: EdgeInsets.symmetric(
+            horizontal: selected ? 11 : 12,
+            vertical: selected ? 9 : 10,
+          ),
           decoration: BoxDecoration(
-            color: selected ? SgColors.goldSoft : SgColors.bg200,
-            borderRadius: BorderRadius.circular(SgRadius.lg),
+            color: SgColors.bg100,
+            borderRadius: BorderRadius.circular(14),
             border: Border.all(
-              color: selected ? SgColors.gold500 : SgColors.line,
-              width: selected ? 2.5 : 1,
+              color: selected ? SgColors.ink : SgColors.line,
+              width: selected ? 2 : 1,
             ),
           ),
           child: Row(
             children: [
               Container(
-                width: 56,
-                height: 56,
+                width: 40,
+                height: 40,
                 decoration: BoxDecoration(
                   color: vehicleTileColour(option.type),
-                  borderRadius: BorderRadius.circular(SgRadius.md),
+                  borderRadius: BorderRadius.circular(SgSpace.s3),
                 ),
                 child: Center(
                   child: SvgPicture.asset(
                     vehicleClassAsset(option.type),
-                    width: 34,
-                    height: 34,
+                    width: 24,
+                    height: 24,
                     colorFilter: ColorFilter.mode(
                       vehicleIconColour(option.type),
                       BlendMode.srcIn,
@@ -440,39 +437,39 @@ class _RideRow extends StatelessWidget {
                       option.shortName,
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
-                      style: SgText.title,
+                      style: SgText.body.copyWith(fontWeight: FontWeight.w600),
                     ),
-                    if (option.meta.isNotEmpty)
+                    if (meta.isNotEmpty)
                       Text(
-                        option.metaIn(sgStrings(context)),
+                        meta,
                         style: option.driversNearby
                             ? SgText.caption
                             : SgText.caption.copyWith(
                                 color: SgColors.inkSubtle,
                               ),
                       ),
-                    if (cheapest != null || fastest != null)
-                      Padding(
-                        padding: const EdgeInsets.only(top: SgSpace.s1),
-                        child: Wrap(
-                          spacing: SgSpace.s1,
-                          children: [
-                            if (cheapest != null)
-                              SgTag(cheapest!, key: const Key('tag_cheapest')),
-                            if (fastest != null)
-                              SgTag(
-                                fastest!,
-                                key: const Key('tag_fastest'),
-                                color: SgColors.goldText,
-                              ),
-                          ],
-                        ),
-                      ),
                   ],
                 ),
               ),
               const SizedBox(width: SgSpace.s2),
-              Text(option.fareText, style: SgText.fare),
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.end,
+                children: [
+                  Text(
+                    option.fareText,
+                    style: SgText.body.copyWith(
+                      fontWeight: FontWeight.w600,
+                      fontFeatures: const [FontFeature.tabularFigures()],
+                    ),
+                  ),
+                  if (option.locked)
+                    Text(
+                      l.locked,
+                      key: Key('ride_locked_${option.type}'),
+                      style: SgText.caption.copyWith(color: SgColors.pickup),
+                    ),
+                ],
+              ),
             ],
           ),
         ),

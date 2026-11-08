@@ -801,4 +801,35 @@ class AppLocalizationsHi extends AppLocalizations {
 
   @override
   String get menu => 'मेनू';
+
+  @override
+  String get chooseARide => 'राइड चुनें';
+
+  @override
+  String fareHeldMin(int n) {
+    return 'किराया $n मिनट तक तय';
+  }
+
+  @override
+  String arrivingInMin(int n) {
+    return '$n मिनट में पहुँच रहे हैं';
+  }
+
+  @override
+  String get statusOnTheWay => 'रास्ते में';
+
+  @override
+  String get statusArrived => 'पहुँच गए';
+
+  @override
+  String get yourRideCode => 'आपका राइड कोड';
+
+  @override
+  String get tellDriverInPerson => 'ड्राइवर को खुद बताएँ';
+
+  @override
+  String get showCode => 'दिखाएँ';
+
+  @override
+  String get hideCode => 'छिपाएँ';
 }

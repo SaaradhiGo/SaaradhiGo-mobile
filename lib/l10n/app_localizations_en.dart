@@ -811,4 +811,35 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get menu => 'Menu';
+
+  @override
+  String get chooseARide => 'Choose a ride';
+
+  @override
+  String fareHeldMin(int n) {
+    return 'Fare held $n min';
+  }
+
+  @override
+  String arrivingInMin(int n) {
+    return 'Arriving in $n min';
+  }
+
+  @override
+  String get statusOnTheWay => 'On the way';
+
+  @override
+  String get statusArrived => 'Arrived';
+
+  @override
+  String get yourRideCode => 'Your ride code';
+
+  @override
+  String get tellDriverInPerson => 'Tell the driver in person';
+
+  @override
+  String get showCode => 'Show';
+
+  @override
+  String get hideCode => 'Hide';
 }

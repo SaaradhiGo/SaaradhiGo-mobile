@@ -806,4 +806,35 @@ class AppLocalizationsTe extends AppLocalizations {
 
   @override
   String get menu => 'మెను';
+
+  @override
+  String get chooseARide => 'రైడ్‌ను ఎంచుకోండి';
+
+  @override
+  String fareHeldMin(int n) {
+    return 'ఛార్జీ $n నిమి. పాటు నిలిపి ఉంది';
+  }
+
+  @override
+  String arrivingInMin(int n) {
+    return '$n నిమిషాల్లో వస్తున్నారు';
+  }
+
+  @override
+  String get statusOnTheWay => 'దారిలో ఉన్నారు';
+
+  @override
+  String get statusArrived => 'చేరుకున్నారు';
+
+  @override
+  String get yourRideCode => 'మీ రైడ్ కోడ్';
+
+  @override
+  String get tellDriverInPerson => 'డ్రైవర్‌కు నేరుగా చెప్పండి';
+
+  @override
+  String get showCode => 'చూపించు';
+
+  @override
+  String get hideCode => 'దాచు';
 }
