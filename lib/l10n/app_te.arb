@@ -499,5 +499,21 @@
   "hideCode": "దాచు",
   "@hideCode": {"description": "needs native review"},
   "savedWork": "ఆఫీస్",
-  "@savedWork": {"description": "needs native review"}
+  "@savedWork": {"description": "needs native review"},
+  "loadErrWallet": "మీ వాలెట్‌ను లోడ్ చేయలేకపోయాము.",
+  "@loadErrWallet": {
+    "description": "needs native review"
+  },
+  "loadErrTrips": "మీ ట్రిప్‌లను లోడ్ చేయలేకపోయాము.",
+  "@loadErrTrips": {
+    "description": "needs native review"
+  },
+  "loadErrPlaces": "మీ ప్రదేశాలను లోడ్ చేయలేకపోయాము.",
+  "@loadErrPlaces": {
+    "description": "needs native review"
+  },
+  "authSessionExpired": "మీ సెషన్ ముగిసింది. దయచేసి మళ్లీ లాగిన్ అవ్వండి.",
+  "@authSessionExpired": {
+    "description": "needs native review"
+  }
 }

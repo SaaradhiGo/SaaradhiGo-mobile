@@ -22,6 +22,8 @@ import 'package:saaradhigo_rider/screens/home/rider_flow_screens.dart';
 import 'package:saaradhigo_rider/services/online_payment.dart';
 import 'package:saaradhigo_rider/services/ride_service.dart';
 import 'package:saaradhigo_rider/services/trip_charge.dart';
+import 'package:saaradhigo_rider/services/models/wallet_model.dart';
+import 'package:saaradhigo_rider/services/wallet_service.dart';
 import 'package:saaradhigo_rider/services/websocket_service.dart';
 import 'package:saaradhigo_rider/state/ride_notifier.dart';
 import 'package:saaradhigo_rider/state/ride_state.dart';
@@ -626,7 +628,9 @@ void main() {
               value: MapProvider(container: container),
             ),
             ChangeNotifierProvider<WalletProvider>.value(
-              value: WalletProvider(),
+              // A wallet that answers at once: a real client never completes
+              // under fake time and would leave the load timeout pending.
+              value: WalletProvider(walletService: _InstantWallet()),
             ),
           ],
           child: MaterialApp(
@@ -871,4 +875,12 @@ void main() {
       expect(find.text('₹169.02'), findsOneWidget);
     });
   });
+}
+
+class _InstantWallet extends WalletService {
+  @override
+  Future<Wallet> loadBalance() async => Wallet(balance: 0, currency: 'INR');
+
+  @override
+  Future<List<Transaction>> loadTransactions() async => const [];
 }

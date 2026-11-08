@@ -499,5 +499,21 @@
   "hideCode": "छिपाएँ",
   "@hideCode": {"description": "needs native review"},
   "savedWork": "ऑफ़िस",
-  "@savedWork": {"description": "needs native review"}
+  "@savedWork": {"description": "needs native review"},
+  "loadErrWallet": "हम आपका वॉलेट लोड नहीं कर सके।",
+  "@loadErrWallet": {
+    "description": "needs native review"
+  },
+  "loadErrTrips": "हम आपकी ट्रिप लोड नहीं कर सके।",
+  "@loadErrTrips": {
+    "description": "needs native review"
+  },
+  "loadErrPlaces": "हम आपकी जगहें लोड नहीं कर सके।",
+  "@loadErrPlaces": {
+    "description": "needs native review"
+  },
+  "authSessionExpired": "आपका सत्र समाप्त हो गया है। कृपया फिर से लॉग इन करें।",
+  "@authSessionExpired": {
+    "description": "needs native review"
+  }
 }

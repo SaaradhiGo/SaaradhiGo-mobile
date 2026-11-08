@@ -70,7 +70,7 @@ class _HistoryScreenState extends State<HistoryScreen> {
                 else if (provider.errorMessage != null &&
                     provider.trips.isEmpty)
                   SliverFillRemaining(
-                    child: _buildErrorState(provider.errorMessage!),
+                    child: _buildErrorState(sgStrings(context).loadErrTrips),
                   )
                 else if (provider.trips.isEmpty)
                   SliverFillRemaining(child: _buildEmptyState())
@@ -174,6 +174,7 @@ class _HistoryScreenState extends State<HistoryScreen> {
             ),
             const SizedBox(height: 24),
             ElevatedButton(
+              key: const Key('history_retry'),
               onPressed: () => context.read<HistoryProvider>().fetchHistory(),
               style: ElevatedButton.styleFrom(
                 backgroundColor: SgColors.gold500,
@@ -187,9 +188,9 @@ class _HistoryScreenState extends State<HistoryScreen> {
                   borderRadius: BorderRadius.circular(16),
                 ),
               ),
-              child: const Text(
-                'Try Again',
-                style: TextStyle(fontWeight: FontWeight.w600),
+              child: Text(
+                sgStrings(context).tryAgain,
+                style: const TextStyle(fontWeight: FontWeight.w600),
               ),
             ),
           ],

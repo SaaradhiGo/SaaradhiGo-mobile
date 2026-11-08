@@ -693,6 +693,8 @@ class _HomeTab extends StatelessWidget {
                       child: HomeSheet(
                         expanded: open,
                         loading: mapProvider.isLoadingHomeData,
+                        failed: mapProvider.homeDataFailed,
+                        onRetry: mapProvider.fetchDynamicHomeData,
                         banner: mapProvider.isTripInProgress
                             ? _ActiveRideTile(onTap: onActiveRideTap)
                             : null,

@@ -19,6 +19,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:saaradhigo_rider/state/ride_notifier.dart';
 import 'package:saaradhigo_rider/state/ride_state.dart';
+import 'package:saaradhigo_rider/services/api_service.dart';
 import 'package:saaradhigo_rider/services/ride_service.dart';
 import 'package:saaradhigo_rider/services/models/trip_model.dart';
 
@@ -63,6 +64,9 @@ class _FakeRideService implements RideService {
     Future<String?> Function()? onUnauthorized,
   }) async =>
       [];
+
+  @override
+  Future<List<Trip>> loadRideHistory({ApiService? api}) async => [];
 
   /// Added when CI was introduced: this fake did not implement `cancelTrip`, so
   /// the whole file failed to compile and none of its ride-state-recovery tests

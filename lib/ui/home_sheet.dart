@@ -63,6 +63,8 @@ class HomeSheet extends StatelessWidget {
     required this.recents,
     this.banner,
     this.loading = false,
+    this.failed = false,
+    this.onRetry,
     this.expanded = false,
   });
 
@@ -75,8 +77,21 @@ class HomeSheet extends StatelessWidget {
   final Widget? banner;
   final bool loading;
 
+  /// Recent places could not be loaded: the error and Try again ([onRetry]).
+  final bool failed;
+  final VoidCallback? onRetry;
+
   /// Searching: only the fields and their results show.
   final bool expanded;
+
+  static Widget _bar(double w, double h) => Container(
+    width: w,
+    height: h,
+    decoration: BoxDecoration(
+      color: SgColors.bg200,
+      borderRadius: BorderRadius.circular(6),
+    ),
+  );
 
   @override
   Widget build(BuildContext context) {
@@ -112,18 +127,55 @@ class HomeSheet extends StatelessWidget {
               ],
               const SizedBox(height: SgSpace.s4),
               if (loading && recents.isEmpty && chips.isEmpty)
-                Padding(
-                  padding: const EdgeInsets.all(SgSpace.s4),
-                  child: Center(
-                    child: SizedBox(
-                      width: 20,
-                      height: 20,
-                      child: CircularProgressIndicator(
-                        strokeWidth: 2,
-                        color: SgColors.gold500,
+                Column(
+                  key: const Key('home_places_loading'),
+                  children: [
+                    for (var i = 0; i < 2; i++)
+                      Padding(
+                        padding: const EdgeInsets.symmetric(
+                          vertical: SgSpace.s2,
+                        ),
+                        child: Row(
+                          children: [
+                            _bar(36, 36),
+                            const SizedBox(width: SgSpace.s3),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  _bar(140, 14),
+                                  const SizedBox(height: 6),
+                                  _bar(200, 12),
+                                ],
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                  ],
+                )
+              else if (failed && recents.isEmpty)
+                Row(
+                  key: const Key('home_places_error'),
+                  children: [
+                    Expanded(
+                      child: Text(
+                        sgStrings(context).loadErrPlaces,
+                        style: SgText.caption,
                       ),
                     ),
-                  ),
+                    TextButton(
+                      key: const Key('home_places_retry'),
+                      onPressed: onRetry,
+                      child: Text(
+                        sgStrings(context).tryAgain,
+                        style: SgText.body.copyWith(
+                          color: SgColors.goldText,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ),
+                  ],
                 )
               else if (recents.isEmpty)
                 Padding(

@@ -5,6 +5,8 @@ import 'package:web_socket_channel/web_socket_channel.dart';
 import 'package:flutter/foundation.dart';
 import 'models/trip_model.dart';
 import '../core/app_config.dart';
+import 'api_service.dart';
+import 'session_events.dart';
 import '../core/market/booking_refusal.dart';
 import '../utils/log_redaction.dart';
 
@@ -22,6 +24,36 @@ class RideService {
   Stream<dynamic>? get rideUpdates => _rideRequestChannel?.stream;
   Stream<dynamic>? get tripUpdates => _tripChannel?.stream;
 
+  /// The rider's trips through the 401 refresh path, capped at
+  /// [kLoadTimeout]. Unlike [fetchRideHistory] a failure throws
+  /// [LoadFailure], so a view can tell "no trips" from "could not load".
+  Future<List<Trip>> loadRideHistory({ApiService? api}) async {
+    final res = await (api ?? ApiService())
+        .authedRequest(
+          (h) => _client.get(
+            Uri.parse('${AppConfig.baseUrl}${AppConfig.rideHistory}'),
+            headers: h,
+          ),
+        )
+        .timeout(kLoadTimeout);
+    if (res == null) throw const LoadFailure('network');
+    if (res.statusCode != 200) throw LoadFailure('${res.statusCode}');
+    final dynamic data = jsonDecode(res.body);
+    List<dynamic>? results;
+    if (data is Map<String, dynamic>) {
+      final inner = data['data'];
+      if (data['results'] is List) {
+        results = data['results'] as List;
+      } else if (inner is Map && inner['results'] is List) {
+        results = inner['results'] as List;
+      } else if (inner is List) {
+        results = inner;
+      }
+    }
+    if (results == null) throw const LoadFailure('shape');
+    return results.map((j) => Trip.fromJson(j)).toList();
+  }
+
   /// [onUnauthorized] refreshes an expired access token; the call is retried
   /// once with the new one (a cold start otherwise showed no recent places).
   Future<List<Trip>> fetchRideHistory(
@@ -32,12 +64,12 @@ class RideService {
 
     try {
       Future<http.Response> get(String t) => _client.get(
-            Uri.parse(url),
-            headers: {
-              'Content-Type': 'application/json',
-              'Authorization': 'Bearer $t',
-            },
-          );
+        Uri.parse(url),
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer $t',
+        },
+      );
       var response = await get(token);
       if (response.statusCode == 401 && onUnauthorized != null) {
         final fresh = await onUnauthorized();
@@ -494,10 +526,7 @@ class RideService {
             // The server requires an integer trip_id and one of
             // cash/upi/wallet/online, and answers MISSING_FIELDS or
             // INVALID_METHOD otherwise.
-            body: jsonEncode({
-              'trip_id': parsedTripId,
-              'new_method': 'cash',
-            }),
+            body: jsonEncode({'trip_id': parsedTripId, 'new_method': 'cash'}),
           )
           .timeout(cashSwitchTimeout);
 

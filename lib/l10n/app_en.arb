@@ -499,5 +499,21 @@
   "hideCode": "Hide",
   "@hideCode": {"description": "Ride code panel: hide the code"},
   "savedWork": "Work",
-  "@savedWork": {"description": "Label of a saved place the server marks as work"}
+  "@savedWork": {"description": "Label of a saved place the server marks as work"},
+  "loadErrWallet": "We couldn't load your wallet.",
+  "@loadErrWallet": {
+    "description": "Error state of the wallet balance"
+  },
+  "loadErrTrips": "We couldn't load your trips.",
+  "@loadErrTrips": {
+    "description": "Error state of the ride history"
+  },
+  "loadErrPlaces": "We couldn't load your places.",
+  "@loadErrPlaces": {
+    "description": "Error state of recent places on Home"
+  },
+  "authSessionExpired": "Your session has expired. Please log in again.",
+  "@authSessionExpired": {
+    "description": "Shown on Log in after the session ended"
+  }
 }

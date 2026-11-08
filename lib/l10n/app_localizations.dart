@@ -1599,6 +1599,30 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Work'**
   String get savedWork;
+
+  /// Error state of the wallet balance
+  ///
+  /// In en, this message translates to:
+  /// **'We couldn\'t load your wallet.'**
+  String get loadErrWallet;
+
+  /// Error state of the ride history
+  ///
+  /// In en, this message translates to:
+  /// **'We couldn\'t load your trips.'**
+  String get loadErrTrips;
+
+  /// Error state of recent places on Home
+  ///
+  /// In en, this message translates to:
+  /// **'We couldn\'t load your places.'**
+  String get loadErrPlaces;
+
+  /// Shown on Log in after the session ended
+  ///
+  /// In en, this message translates to:
+  /// **'Your session has expired. Please log in again.'**
+  String get authSessionExpired;
 }
 
 class _AppLocalizationsDelegate

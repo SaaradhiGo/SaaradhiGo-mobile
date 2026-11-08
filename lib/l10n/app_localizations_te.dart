@@ -840,4 +840,17 @@ class AppLocalizationsTe extends AppLocalizations {
 
   @override
   String get savedWork => 'ఆఫీస్';
+
+  @override
+  String get loadErrWallet => 'మీ వాలెట్‌ను లోడ్ చేయలేకపోయాము.';
+
+  @override
+  String get loadErrTrips => 'మీ ట్రిప్‌లను లోడ్ చేయలేకపోయాము.';
+
+  @override
+  String get loadErrPlaces => 'మీ ప్రదేశాలను లోడ్ చేయలేకపోయాము.';
+
+  @override
+  String get authSessionExpired =>
+      'మీ సెషన్ ముగిసింది. దయచేసి మళ్లీ లాగిన్ అవ్వండి.';
 }
