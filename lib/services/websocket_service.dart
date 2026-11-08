@@ -5,6 +5,7 @@ import 'package:web_socket_channel/web_socket_channel.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:uuid/uuid.dart';
 import '../core/app_config.dart';
+import 'api_service.dart';
 
 final webSocketServiceProvider = Provider<WebSocketService>((ref) {
   return WebSocketService();
@@ -152,7 +153,7 @@ class WebSocketService {
     }
 
     debugPrint(
-      "WebSocketService: connectToTrip invoked for trip: $tripId. URL: $wsUrl",
+      "WebSocketService: connectToTrip invoked for trip: $tripId. URL: ${redactWsToken(wsUrl)}",
     );
 
     // Close the ride request channel since we have a trip now
@@ -210,6 +211,8 @@ class WebSocketService {
           })
           .catchError((error) {
             debugPrint("Ride WS failed to be ready: $error");
+            // A refused upgrade is almost always an expired access token.
+            _rideHandshakeFailed = true;
           });
     } catch (e) {
       debugPrint("Ride request WS connect error: $e");
@@ -228,17 +231,40 @@ class WebSocketService {
     _rideChannel = null;
   }
 
+  bool _rideHandshakeFailed = false;
+  bool _tripHandshakeFailed = false;
+
+  /// [url] with a freshly refreshed access token, or unchanged when the
+  /// refresh fails. The sockets read the stored token, which may have expired.
+  Future<String> _withRefreshedToken(String url) async {
+    try {
+      final fresh = await ApiService().refreshAccessToken();
+      if (fresh == null || fresh.isEmpty) return url;
+      return replaceWsToken(url, fresh);
+    } catch (_) {
+      return url;
+    }
+  }
+
   void _scheduleRideReconnect(String wsUrl) {
     if (_isIntentionalDisconnect || _tripActive) return;
     _rideReconnectTimer?.cancel();
-    _rideReconnectTimer = Timer(const Duration(seconds: 5), () {
+    _rideReconnectTimer = Timer(const Duration(seconds: 5), () async {
       debugPrint("Reconnecting Ride request WS...");
-      _connectRideChannel(wsUrl);
+      var url = wsUrl;
+      if (_rideHandshakeFailed) {
+        _rideHandshakeFailed = false;
+        url = await _withRefreshedToken(url);
+      }
+      if (_isIntentionalDisconnect || _tripActive) return;
+      _connectRideChannel(url);
     });
   }
 
   void _connectTripChannel(String wsUrl) {
-    debugPrint("WebSocketService: _connectTripChannel starting for $wsUrl");
+    debugPrint(
+      "WebSocketService: _connectTripChannel starting for ${redactWsToken(wsUrl)}",
+    );
     _isConnectingTrip = true;
     _tripOpen = false;
     _activeTripWsUrl = wsUrl;
@@ -266,7 +292,7 @@ class WebSocketService {
         },
         onDone: () {
           debugPrint(
-            "Trip WS closed. URL: $wsUrl, Code: ${_tripChannel?.closeCode}, Reason: ${_tripChannel?.closeReason}",
+            "Trip WS closed. URL: ${redactWsToken(wsUrl)}, Code: ${_tripChannel?.closeCode}, Reason: ${_tripChannel?.closeReason}",
           );
           _isConnectingTrip = false;
           _tripOpen = false;
@@ -285,13 +311,14 @@ class WebSocketService {
 
       _tripChannel!.ready
           .then((_) {
-            debugPrint("Trip WS Ready for $wsUrl");
+            debugPrint("Trip WS Ready for ${redactWsToken(wsUrl)}");
             _isConnectingTrip = false;
             _tripOpen = true;
             _tripReconnectAttempts = 0;
           })
           .catchError((error) {
             debugPrint("Trip WS failed to be ready: $error");
+            _tripHandshakeFailed = true;
             // onDone/onError will handle reconnection
           });
     } catch (e) {
@@ -314,9 +341,15 @@ class WebSocketService {
       "Scheduling Trip WS reconnect in ${delaySeconds}s (Attempt: $_tripReconnectAttempts)",
     );
 
-    _tripReconnectTimer = Timer(Duration(seconds: delaySeconds), () {
+    _tripReconnectTimer = Timer(Duration(seconds: delaySeconds), () async {
       debugPrint("Reconnecting Trip WS...");
-      _connectTripChannel(wsUrl);
+      var url = wsUrl;
+      if (_tripHandshakeFailed) {
+        _tripHandshakeFailed = false;
+        url = await _withRefreshedToken(url);
+      }
+      if (_isIntentionalDisconnect) return;
+      _connectTripChannel(url);
     });
   }
 
@@ -354,3 +387,16 @@ class WebSocketService {
     _tripReconnectAttempts = 0;
   }
 }
+
+/// [url] with its `token` query value replaced by [token].
+@visibleForTesting
+String replaceWsToken(String url, String token) {
+  final uri = Uri.parse(url);
+  return uri
+      .replace(queryParameters: {...uri.queryParameters, 'token': token})
+      .toString();
+}
+
+/// [url] with the token value hidden, for logs.
+String redactWsToken(String url) =>
+    url.replaceAll(RegExp(r'token=[^&]*'), 'token=***');
