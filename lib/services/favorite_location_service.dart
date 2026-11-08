@@ -3,10 +3,15 @@ import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 import '../core/app_config.dart';
+import 'api_service.dart';
 import 'models/location_model.dart';
 
 class FavoriteLocationService {
-  Future<List<FavoriteLocation>> fetchFavoriteLocations() async {
+  /// Saved places. A stored access token that has expired is refreshed once
+  /// and the call retried; it used to come back empty on a cold start.
+  Future<List<FavoriteLocation>> fetchFavoriteLocations({
+    bool retried = false,
+  }) async {
     final prefs = await SharedPreferences.getInstance();
     final token = prefs.getString('access_token');
 
@@ -21,6 +26,10 @@ class FavoriteLocationService {
           if (token != null) 'Authorization': 'Bearer $token',
         },
       );
+      if (response.statusCode == 401 && !retried) {
+        final fresh = await ApiService().refreshAccessToken();
+        if (fresh != null) return await fetchFavoriteLocations(retried: true);
+      }
       if (response.statusCode == 200) {
         final data = json.decode(response.body);
         if (data['status'] == 'success' && data['data'] != null) {
