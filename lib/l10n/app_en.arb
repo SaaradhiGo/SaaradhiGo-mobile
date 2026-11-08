@@ -497,5 +497,7 @@
   "showCode": "Show",
   "@showCode": {"description": "Ride code panel: reveal the code"},
   "hideCode": "Hide",
-  "@hideCode": {"description": "Ride code panel: hide the code"}
+  "@hideCode": {"description": "Ride code panel: hide the code"},
+  "savedWork": "Work",
+  "@savedWork": {"description": "Label of a saved place the server marks as work"}
 }

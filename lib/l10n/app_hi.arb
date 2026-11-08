@@ -497,5 +497,7 @@
   "showCode": "दिखाएँ",
   "@showCode": {"description": "needs native review"},
   "hideCode": "छिपाएँ",
-  "@hideCode": {"description": "needs native review"}
+  "@hideCode": {"description": "needs native review"},
+  "savedWork": "ऑफ़िस",
+  "@savedWork": {"description": "needs native review"}
 }

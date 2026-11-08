@@ -6,9 +6,9 @@ library;
 class RiderFlags {
   RiderFlags._();
 
-  /// "Home" / "Work" chips and labels. Needs a label on each saved place from
-  /// GET /rider/locations/all/.
-  static const homeWorkLabels = false;
+  /// "Home" / "Work" chips and labels, from the `label` (home|work|other)
+  /// that GET /rider/locations/all/ returns on each saved place.
+  static const homeWorkLabels = true;
 
   /// "Add a place" chip on the home sheet. Needs an add-a-saved-place flow.
   static const addPlaceChip = false;

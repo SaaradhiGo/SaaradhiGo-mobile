@@ -837,4 +837,7 @@ class AppLocalizationsTe extends AppLocalizations {
 
   @override
   String get hideCode => 'దాచు';
+
+  @override
+  String get savedWork => 'ఆఫీస్';
 }

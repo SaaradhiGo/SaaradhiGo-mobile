@@ -832,4 +832,7 @@ class AppLocalizationsHi extends AppLocalizations {
 
   @override
   String get hideCode => 'छिपाएँ';
+
+  @override
+  String get savedWork => 'ऑफ़िस';
 }
