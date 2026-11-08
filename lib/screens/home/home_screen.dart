@@ -853,6 +853,14 @@ class _ProfileTab extends StatelessWidget {
           subtitle: themeChoiceLabel(l, a.theme),
           onTap: () => showThemePicker(context),
         ),
+        // Only while a referral offer is live for riders in this market.
+        if (MarketConfigStore.instance.current.referralsAvailable)
+          AccountRowData(
+            key: const Key('account_refer'),
+            icon: kGiftIcon,
+            label: l.referFriend,
+            onTap: () => context.push('/refer'),
+          ),
         AccountRowData(
           key: const Key('account_help'),
           icon: SgIcons.help,

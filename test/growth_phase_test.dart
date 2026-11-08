@@ -551,7 +551,7 @@ void main() {
     ) async {
       for (final m in [_market(), _market(referrals: false)]) {
         await pumpProfile(t, m);
-        expect(find.text('Personal information'), findsOneWidget);
+        expect(find.text('Your trips'), findsOneWidget);
         expect(find.text('Refer a friend'), findsNothing);
       }
     });
