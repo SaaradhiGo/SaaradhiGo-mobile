@@ -182,7 +182,6 @@ class _SgPinPanelState extends State<SgPinPanel> {
             widget.pin,
             key: const Key('ride_pin'),
             style: SgText.title.copyWith(
-              letterSpacing: 2,
               fontFeatures: const [FontFeature.tabularFigures()],
             ),
           )
