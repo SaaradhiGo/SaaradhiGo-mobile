@@ -13,3 +13,6 @@ yourRideCode, tellDriverInPerson, showCode, hideCode
 
 Rider Home/Work labels (2026-11-08):
 savedWork
+
+Loading states, 2026-11-08 (wallet, trips, home places, session end):
+loadErrWallet, loadErrTrips, loadErrPlaces, authSessionExpired

@@ -4,6 +4,7 @@ import 'package:flutter/foundation.dart';
 import '../core/app_config.dart';
 import 'package:image_picker/image_picker.dart';
 import 'push_notification_service.dart';
+import 'session_events.dart';
 import 'token_store.dart';
 
 abstract class AuthApiClient {
@@ -107,15 +108,23 @@ class ApiService implements AuthApiClient {
     final future = () async {
       final refresh = await TokenStore.readRefreshToken();
       if (refresh == null || refresh.isEmpty) {
-        throw Exception('no refresh token');
+        throw const _SessionGone('no refresh token');
       }
-      final response = await _client.post(
-        Uri.parse('$baseUrl${AppConfig.authRefresh}'),
-        headers: {'Content-Type': 'application/json'},
-        body: jsonEncode({'refresh_token': refresh}),
-      );
-      if (response.statusCode != 200) {
-        throw Exception('refresh failed (${response.statusCode})');
+      final response = await _client
+          .post(
+            Uri.parse('$baseUrl${AppConfig.authRefresh}'),
+            headers: {'Content-Type': 'application/json'},
+            body: jsonEncode({'refresh_token': refresh}),
+          )
+          .timeout(kLoadTimeout);
+      final code = response.statusCode;
+      // A used or rotated refresh token comes back 400: any 4xx but a
+      // timeout or rate limit means the session is over.
+      if (code >= 400 && code < 500 && code != 408 && code != 429) {
+        throw _SessionGone('refresh refused ($code)');
+      }
+      if (code != 200) {
+        throw Exception('refresh failed ($code)');
       }
       final decoded = jsonDecode(response.body);
       final data = decoded is Map<String, dynamic> ? decoded['data'] : null;
@@ -139,11 +148,14 @@ class ApiService implements AuthApiClient {
     _inflightRefresh = future;
     try {
       return await future;
+    } on _SessionGone catch (e) {
+      debugPrint('Token refresh refused: ${e.reason}');
+      await _endSession();
+      return null;
     } catch (e) {
+      // A network fault or 5xx: keep the session, the view shows its error
+      // and Try again can still succeed.
       debugPrint('Token refresh failed: $e');
-      // Refresh failed — wipe so the next call goes to login.
-      await TokenStore.clear();
-      _accessToken = null;
       return null;
     } finally {
       _inflightRefresh = null;
@@ -185,8 +197,19 @@ class ApiService implements AuthApiClient {
         debugPrint('authedRequest retry network error: $e');
         return null;
       }
+      if (response.statusCode == 401) {
+        // Refused even with a fresh token: one refresh is all we try.
+        await _endSession();
+      }
     }
     return response;
+  }
+
+  /// Clears the tokens and tells the app to go to Log in.
+  Future<void> _endSession() async {
+    await TokenStore.clear();
+    _accessToken = null;
+    SessionEvents.emitExpired();
   }
 
   // Request OTP
@@ -572,4 +595,9 @@ class ApiService implements AuthApiClient {
     await TokenStore.clear();
     _accessToken = null;
   }
+}
+
+class _SessionGone implements Exception {
+  const _SessionGone(this.reason);
+  final String reason;
 }

@@ -91,6 +91,10 @@ class _WalletScreenState extends State<WalletScreen> {
                           )
                         : null,
                     isLoading: provider.isLoading,
+                    loaded: provider.wallet != null,
+                    failed: provider.balanceFailed,
+                    currency: provider.wallet?.currency,
+                    onRetry: provider.refreshWallet,
                     topupsEnabled: cfg.walletTopupsEnabled,
                     creditsOnly: cfg.walletCreditsOnly,
                   ),
@@ -111,16 +115,12 @@ class _WalletScreenState extends State<WalletScreen> {
                 const SizedBox(height: 28),
                 _buildFilterChips(),
                 const SizedBox(height: 16),
-                if (provider.isLoading && provider.transactions.isEmpty)
-                  Center(
-                    child: Padding(
-                      padding: EdgeInsets.all(40.0),
-                      child: CircularProgressIndicator(color: SgColors.gold500),
-                    ),
-                  )
-                else if (provider.errorMessage != null &&
-                    provider.transactions.isEmpty)
+                if (provider.errorMessage != null &&
+                    provider.transactions.isEmpty &&
+                    !provider.isLoading)
                   _ErrorState(message: provider.errorMessage!)
+                else if (provider.transactions.isEmpty && provider.isLoading)
+                  const _TransactionsSkeleton()
                 else if (provider.transactions.isEmpty)
                   const _EmptyTransactionsState()
                 else
@@ -243,8 +243,20 @@ class _WalletBalanceCard extends StatelessWidget {
     required this.topupsEnabled,
     required this.creditsOnly,
     this.pendingReview,
+    this.loaded = true,
+    this.failed = false,
+    this.currency,
+    this.onRetry,
   });
   final double balance;
+
+  /// The balance came back from the server; until then a skeleton.
+  final bool loaded;
+
+  /// The balance could not be loaded: the error and Try again, not ₹0.00.
+  final bool failed;
+  final String? currency;
+  final VoidCallback? onRetry;
 
   /// A reward held for review, already formatted; null hides the line.
   final String? pendingReview;
@@ -255,7 +267,9 @@ class _WalletBalanceCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final formatter = NumberFormat.currency(
-      symbol: marketOf(context).currencySymbol,
+      symbol: currency == null
+          ? marketOf(context).currencySymbol
+          : currencySymbol(currency),
       decimalDigits: 2,
     );
 
@@ -281,23 +295,48 @@ class _WalletBalanceCard extends StatelessWidget {
             ],
           ),
           const SizedBox(height: 8),
-          isLoading && balance == 0
-              ? SizedBox(
-                  height: 40,
-                  child: Center(
-                    child: CircularProgressIndicator(
-                      color: SgColors.gold500,
-                      strokeWidth: 2,
-                    ),
-                  ),
-                )
-              : Text(
-                  formatter.format(balance),
-                  style: SgText.fare.copyWith(
-                    fontSize: SgText.sizeDisplay,
-                    height: 44 / 36,
+          if (failed)
+            Row(
+              key: const Key('wallet_balance_error'),
+              children: [
+                Expanded(
+                  child: Text(
+                    sgStrings(context).loadErrWallet,
+                    style: SgText.body,
                   ),
                 ),
+                TextButton(
+                  key: const Key('wallet_balance_retry'),
+                  onPressed: onRetry,
+                  child: Text(
+                    sgStrings(context).tryAgain,
+                    style: SgText.body.copyWith(
+                      color: SgColors.goldText,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ),
+              ],
+            )
+          else if (!loaded)
+            Container(
+              key: const Key('wallet_balance_loading'),
+              width: 160,
+              height: 40,
+              decoration: BoxDecoration(
+                color: SgColors.bg200,
+                borderRadius: BorderRadius.circular(6),
+              ),
+            )
+          else
+            Text(
+              formatter.format(balance),
+              key: const Key('wallet_balance'),
+              style: SgText.fare.copyWith(
+                fontSize: SgText.sizeDisplay,
+                height: 44 / 36,
+              ),
+            ),
           if (pendingReview != null) ...[
             const SizedBox(height: 8),
             Text(
@@ -513,9 +552,10 @@ class _ErrorState extends StatelessWidget {
         ),
         const SizedBox(height: 16),
         TextButton(
+          key: const Key('wallet_transactions_retry'),
           onPressed: () => context.read<WalletProvider>().refreshWallet(),
           child: Text(
-            sgStrings(context).retry,
+            sgStrings(context).tryAgain,
             style: TextStyle(color: SgColors.goldText),
           ),
         ),
@@ -600,6 +640,49 @@ class _WalletActionButton extends StatelessWidget {
           ],
         ),
       ),
+    );
+  }
+}
+
+/// Three rows the shape of a transaction while the list loads.
+class _TransactionsSkeleton extends StatelessWidget {
+  const _TransactionsSkeleton();
+
+  @override
+  Widget build(BuildContext context) {
+    Widget bar(double w, double h) => Container(
+      width: w,
+      height: h,
+      decoration: BoxDecoration(
+        color: SgColors.bg200,
+        borderRadius: BorderRadius.circular(6),
+      ),
+    );
+    return Column(
+      key: const Key('wallet_transactions_loading'),
+      children: [
+        for (var i = 0; i < 3; i++)
+          Padding(
+            padding: const EdgeInsets.symmetric(vertical: 10),
+            child: Row(
+              children: [
+                bar(40, 40),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      bar(140, 14),
+                      const SizedBox(height: 6),
+                      bar(90, 12),
+                    ],
+                  ),
+                ),
+                bar(64, 16),
+              ],
+            ),
+          ),
+      ],
     );
   }
 }

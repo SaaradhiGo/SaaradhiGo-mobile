@@ -845,4 +845,17 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get savedWork => 'Work';
+
+  @override
+  String get loadErrWallet => 'We couldn\'t load your wallet.';
+
+  @override
+  String get loadErrTrips => 'We couldn\'t load your trips.';
+
+  @override
+  String get loadErrPlaces => 'We couldn\'t load your places.';
+
+  @override
+  String get authSessionExpired =>
+      'Your session has expired. Please log in again.';
 }

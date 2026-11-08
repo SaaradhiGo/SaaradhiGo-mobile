@@ -35,6 +35,7 @@ import 'state/ride_state.dart';
 
 import 'screens/splash/splash_screen.dart';
 import 'services/api_service.dart';
+import 'navigation/session_end.dart';
 import 'screens/auth/login_screen.dart';
 import 'screens/auth/otp_verification_screen.dart';
 import 'screens/profile/profile_setup_screen.dart';
@@ -194,6 +195,27 @@ class _SaaradhiGoAppState extends State<SaaradhiGoApp> {
   // reset where the rider is.
   late final GoRouter router = _buildRouter();
 
+  StreamSubscription<void>? _sessionSub;
+
+  @override
+  void initState() {
+    super.initState();
+    // A refused session ends here: forget the profile and go to Log in with
+    // the reason, instead of leaving screens waiting on calls that fail.
+    _sessionSub = goToLoginOnSessionEnd(
+      router,
+      beforeGo: () async {
+        if (mounted) await context.read<AuthProvider>().logout();
+      },
+    );
+  }
+
+  @override
+  void dispose() {
+    _sessionSub?.cancel();
+    super.dispose();
+  }
+
   bool get isFirstLaunch => widget.isFirstLaunch;
   bool get isLoggedIn => widget.isLoggedIn;
 
@@ -210,8 +232,9 @@ class _SaaradhiGoAppState extends State<SaaradhiGoApp> {
         ),
         GoRoute(
           path: '/login',
-          builder: (BuildContext context, GoRouterState state) =>
-              const LoginScreen(),
+          builder: (BuildContext context, GoRouterState state) => LoginScreen(
+            sessionExpired: state.uri.queryParameters['expired'] == '1',
+          ),
         ),
         GoRoute(
           path: '/otp',

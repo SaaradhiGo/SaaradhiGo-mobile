@@ -10,8 +10,8 @@ import '../services/location_service.dart';
 import '../services/fare_service.dart';
 import '../services/driver_service.dart';
 import '../services/favorite_location_service.dart';
-import '../services/api_service.dart';
 import '../services/ride_service.dart';
+import '../services/session_events.dart';
 import '../services/service_area_service.dart';
 import '../services/models/location_model.dart';
 import '../services/models/trip_model.dart';
@@ -278,38 +278,48 @@ class MapProvider extends ChangeNotifier {
     notifyListeners();
   }
 
+  bool _homeDataFailed = false;
+
+  /// Recent places could not be loaded: Home shows the error and Try again
+  /// instead of "places appear here".
+  bool get homeDataFailed => _homeDataFailed;
+
+  /// Saved and recent places, each on its own and capped at kLoadTimeout.
+  /// A refused session is handled by ApiService (sign-out to Log in).
   Future<void> fetchDynamicHomeData() async {
+    // Signed out (no token): nothing to load, and nothing left waiting.
+    final prefs = await SharedPreferences.getInstance();
+    if (prefs.getString('access_token') == null) return;
+
     _isLoadingHomeData = true;
+    _homeDataFailed = false;
     notifyListeners();
 
-    try {
-      final prefs = await SharedPreferences.getInstance();
-      final token = prefs.getString('access_token');
-
-      // Payment method is no longer stored in preferences - using auto-determined logic
-      // Removed loading of savedPaymentMethod
-
-      if (token != null) {
-        final results = await Future.wait([
-          _favoriteLocationService.fetchFavoriteLocations(),
-          _rideService.fetchRideHistory(
-            token,
-            onUnauthorized: () => ApiService().refreshAccessToken(),
-          ),
-        ]);
-
-        _favoriteLocations = results[0] as List<FavoriteLocation>;
-        final allHistory = results[1] as List<Trip>;
-        _recentLocations = distinctRecentTrips(
-          allHistory.where((t) => t.status.toLowerCase() == 'completed'),
-        );
-      }
-    } catch (e) {
-      debugPrint('Error fetching dynamic home data: $e');
-    } finally {
-      _isLoadingHomeData = false;
-      notifyListeners();
-    }
+    await Future.wait([
+      _favoriteLocationService
+          .fetchFavoriteLocations()
+          .timeout(kLoadTimeout)
+          .then((f) => _favoriteLocations = f)
+          .catchError((Object e) {
+            debugPrint('Saved places failed: $e');
+            return _favoriteLocations;
+          }),
+      _rideService
+          .loadRideHistory()
+          .then((all) {
+            _recentLocations = distinctRecentTrips(
+              all.where((t) => t.status.toLowerCase() == 'completed'),
+            );
+            return all;
+          })
+          .catchError((Object e) {
+            debugPrint('Recent places failed: $e');
+            if (_recentLocations.isEmpty) _homeDataFailed = true;
+            return <Trip>[];
+          }),
+    ]);
+    _isLoadingHomeData = false;
+    notifyListeners();
   }
 
   Future<String?> checkActiveRide() async {

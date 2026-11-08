@@ -14,7 +14,10 @@ import '../../ui/sg_tokens.dart';
 import '../../ui/sg_widgets.dart';
 
 class LoginScreen extends StatefulWidget {
-  const LoginScreen({super.key});
+  const LoginScreen({super.key, this.sessionExpired = false});
+
+  /// Arrived here because the session ended: says to log in again.
+  final bool sessionExpired;
 
   @override
   State<LoginScreen> createState() => _LoginScreenState();
@@ -191,6 +194,19 @@ class _LoginScreenState extends State<LoginScreen> {
                       child: SgBrandLockup(badgeSize: 40),
                     ),
                     const SizedBox(height: SgSpace.s6),
+                    if (widget.sessionExpired) ...[
+                      Container(
+                        key: const Key('login_session_expired'),
+                        padding: const EdgeInsets.all(SgSpace.s3),
+                        decoration: BoxDecoration(
+                          color: SgColors.bg100,
+                          borderRadius: BorderRadius.circular(SgRadius.md),
+                          border: Border.all(color: SgColors.line),
+                        ),
+                        child: Text(l.authSessionExpired, style: SgText.body),
+                      ),
+                      const SizedBox(height: SgSpace.s4),
+                    ],
                     if (_showLanguageTiles) ...[
                       Text(l.langChooseTitle, style: SgText.heading),
                       const SizedBox(height: SgSpace.s4),

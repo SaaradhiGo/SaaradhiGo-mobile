@@ -835,4 +835,17 @@ class AppLocalizationsHi extends AppLocalizations {
 
   @override
   String get savedWork => 'ऑफ़िस';
+
+  @override
+  String get loadErrWallet => 'हम आपका वॉलेट लोड नहीं कर सके।';
+
+  @override
+  String get loadErrTrips => 'हम आपकी ट्रिप लोड नहीं कर सके।';
+
+  @override
+  String get loadErrPlaces => 'हम आपकी जगहें लोड नहीं कर सके।';
+
+  @override
+  String get authSessionExpired =>
+      'आपका सत्र समाप्त हो गया है। कृपया फिर से लॉग इन करें।';
 }

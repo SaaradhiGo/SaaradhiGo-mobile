@@ -4,13 +4,63 @@ import 'package:http/http.dart' as http;
 import 'package:flutter/foundation.dart';
 import 'models/wallet_model.dart';
 import '../core/app_config.dart';
+import 'api_service.dart';
+import 'session_events.dart';
 import '../utils/log_redaction.dart';
 
 class WalletService {
-  WalletService({http.Client? client}) : _client = client ?? http.Client();
+  WalletService({http.Client? client, ApiService? api})
+    : _client = client ?? http.Client(),
+      _api = api;
 
   final http.Client _client;
+  final ApiService? _api;
   final String baseUrl = AppConfig.baseUrl;
+
+  /// GET [path] through the 401 refresh path, capped at [kLoadTimeout].
+  /// Throws [LoadFailure] on no answer or a non-200, so the wallet shows an
+  /// error rather than a balance of zero.
+  Future<dynamic> _authedJson(String path) async {
+    final res = await (_api ?? ApiService())
+        .authedRequest(
+          (h) => _client.get(Uri.parse('$baseUrl$path'), headers: h),
+        )
+        .timeout(kLoadTimeout);
+    if (res == null) throw const LoadFailure('network');
+    if (res.statusCode != 200) throw LoadFailure('${res.statusCode}');
+    return jsonDecode(res.body);
+  }
+
+  /// The wallet balance; throws [LoadFailure] when it could not be loaded.
+  Future<Wallet> loadBalance() async {
+    final data = await _authedJson('/rider/wallet/balance/');
+    final wallet = data is Map<String, dynamic> ? data['data'] : null;
+    if (wallet is! Map<String, dynamic>) throw const LoadFailure('shape');
+    return Wallet.fromJson(wallet);
+  }
+
+  /// The wallet's transactions (empty for a new account); throws
+  /// [LoadFailure] when they could not be loaded.
+  Future<List<Transaction>> loadTransactions() async {
+    final data = await _authedJson('/rider/wallet/transactions/');
+    List<dynamic>? results;
+    if (data is Map<String, dynamic>) {
+      final inner = data['data'];
+      if (data['results'] is List) {
+        results = data['results'] as List;
+      } else if (inner is List) {
+        results = inner;
+      } else if (inner is Map && inner['results'] is List) {
+        results = inner['results'] as List;
+      }
+    } else if (data is List) {
+      results = data;
+    }
+    if (results == null) throw const LoadFailure('shape');
+    return results
+        .map((j) => Transaction.fromJson(j as Map<String, dynamic>))
+        .toList();
+  }
 
   Future<Wallet?> fetchWalletBalance(String token) async {
     try {
