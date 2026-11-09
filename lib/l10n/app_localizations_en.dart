@@ -1,6 +1,5 @@
 // ignore: unused_import
 import 'package:intl/intl.dart' as intl;
-
 import 'app_localizations.dart';
 
 // ignore_for_file: type=lint
@@ -929,4 +928,58 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get placeNoResults => 'No places found';
+
+  @override
+  String get trustedContacts => 'Trusted contacts';
+
+  @override
+  String trustedContactsCount(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count trusted contacts',
+      one: '1 trusted contact',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get trustedContactsNone => 'No trusted contacts yet';
+
+  @override
+  String get autoShareTrips => 'Share every trip automatically';
+
+  @override
+  String get autoShareFailed => 'We couldn\'t change this setting. Try again.';
+
+  @override
+  String get contactAdd => 'Add a contact';
+
+  @override
+  String get contactName => 'Name';
+
+  @override
+  String get contactPick => 'Pick from contacts';
+
+  @override
+  String contactRemoveTitle(String name) {
+    return 'Remove $name?';
+  }
+
+  @override
+  String get contactRemoveBody =>
+      'They won\'t get links to your trips any more.';
+
+  @override
+  String get contactOptedOut => 'Stopped getting messages';
+
+  @override
+  String get contactsLoadErr => 'We couldn\'t load your trusted contacts.';
+
+  @override
+  String get contactSaveFailed => 'We couldn\'t add this contact. Try again.';
+
+  @override
+  String get contactRemoveFailed =>
+      'We couldn\'t remove this contact. Try again.';
 }

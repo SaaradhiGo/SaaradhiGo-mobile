@@ -1,6 +1,5 @@
 // ignore: unused_import
 import 'package:intl/intl.dart' as intl;
-
 import 'app_localizations.dart';
 
 // ignore_for_file: type=lint
@@ -919,4 +918,58 @@ class AppLocalizationsHi extends AppLocalizations {
 
   @override
   String get placeNoResults => 'कोई जगह नहीं मिली';
+
+  @override
+  String get trustedContacts => 'भरोसेमंद संपर्क';
+
+  @override
+  String trustedContactsCount(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count भरोसेमंद संपर्क',
+      one: '1 भरोसेमंद संपर्क',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get trustedContactsNone => 'अभी कोई भरोसेमंद संपर्क नहीं';
+
+  @override
+  String get autoShareTrips => 'हर ट्रिप अपने आप शेयर करें';
+
+  @override
+  String get autoShareFailed => 'हम यह सेटिंग नहीं बदल सके। फिर से कोशिश करें।';
+
+  @override
+  String get contactAdd => 'संपर्क जोड़ें';
+
+  @override
+  String get contactName => 'नाम';
+
+  @override
+  String get contactPick => 'संपर्कों से चुनें';
+
+  @override
+  String contactRemoveTitle(String name) {
+    return '$name को हटाएँ?';
+  }
+
+  @override
+  String get contactRemoveBody => 'उन्हें अब आपकी ट्रिप के लिंक नहीं मिलेंगे।';
+
+  @override
+  String get contactOptedOut => 'संदेश लेना बंद कर दिया';
+
+  @override
+  String get contactsLoadErr => 'हम आपके भरोसेमंद संपर्क लोड नहीं कर सके।';
+
+  @override
+  String get contactSaveFailed =>
+      'हम यह संपर्क नहीं जोड़ सके। फिर से कोशिश करें।';
+
+  @override
+  String get contactRemoveFailed =>
+      'हम यह संपर्क नहीं हटा सके। फिर से कोशिश करें।';
 }

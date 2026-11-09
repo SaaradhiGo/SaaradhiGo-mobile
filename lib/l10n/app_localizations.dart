@@ -1755,6 +1755,90 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'No places found'**
   String get placeNoResults;
+
+  /// Account > Safety: screen title and row
+  ///
+  /// In en, this message translates to:
+  /// **'Trusted contacts'**
+  String get trustedContacts;
+
+  /// Account: Safety row subtitle
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{1 trusted contact} other{{count} trusted contacts}}'**
+  String trustedContactsCount(int count);
+
+  /// Trusted contacts: empty list
+  ///
+  /// In en, this message translates to:
+  /// **'No trusted contacts yet'**
+  String get trustedContactsNone;
+
+  /// Trusted contacts: auto-share switch
+  ///
+  /// In en, this message translates to:
+  /// **'Share every trip automatically'**
+  String get autoShareTrips;
+
+  /// Trusted contacts: the switch did not save
+  ///
+  /// In en, this message translates to:
+  /// **'We couldn\'t change this setting. Try again.'**
+  String get autoShareFailed;
+
+  /// Trusted contacts: add button and sheet title
+  ///
+  /// In en, this message translates to:
+  /// **'Add a contact'**
+  String get contactAdd;
+
+  /// Add a contact: name field
+  ///
+  /// In en, this message translates to:
+  /// **'Name'**
+  String get contactName;
+
+  /// Add a contact: open the phone's contact picker
+  ///
+  /// In en, this message translates to:
+  /// **'Pick from contacts'**
+  String get contactPick;
+
+  /// Trusted contacts: remove confirmation title
+  ///
+  /// In en, this message translates to:
+  /// **'Remove {name}?'**
+  String contactRemoveTitle(String name);
+
+  /// Trusted contacts: remove confirmation body
+  ///
+  /// In en, this message translates to:
+  /// **'They won\'t get links to your trips any more.'**
+  String get contactRemoveBody;
+
+  /// Trusted contacts: the contact replied STOP
+  ///
+  /// In en, this message translates to:
+  /// **'Stopped getting messages'**
+  String get contactOptedOut;
+
+  /// Trusted contacts: load failed
+  ///
+  /// In en, this message translates to:
+  /// **'We couldn\'t load your trusted contacts.'**
+  String get contactsLoadErr;
+
+  /// Add a contact: save failed
+  ///
+  /// In en, this message translates to:
+  /// **'We couldn\'t add this contact. Try again.'**
+  String get contactSaveFailed;
+
+  /// Trusted contacts: remove failed
+  ///
+  /// In en, this message translates to:
+  /// **'We couldn\'t remove this contact. Try again.'**
+  String get contactRemoveFailed;
 }
 
 class _AppLocalizationsDelegate
