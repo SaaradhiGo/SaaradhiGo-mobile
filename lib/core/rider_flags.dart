@@ -13,8 +13,9 @@ class RiderFlags {
   /// "Add a place" chip on the home sheet (POST /rider/places/, 2026-11-09).
   static const addPlaceChip = true;
 
-  /// Account > Safety ("2 trusted contacts"). Needs a trusted-contacts API.
-  static const trustedContacts = false;
+  /// Account > Safety > Trusted contacts and the auto-share switch
+  /// (/sharing/contacts/ and /sharing/settings/, 2026-11-09).
+  static const trustedContacts = true;
 
   /// "Share trip" on the arriving and on-trip screens. Needs a trip-share
   /// link API.

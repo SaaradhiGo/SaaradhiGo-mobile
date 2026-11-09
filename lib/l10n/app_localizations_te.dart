@@ -1,6 +1,5 @@
 // ignore: unused_import
 import 'package:intl/intl.dart' as intl;
-
 import 'app_localizations.dart';
 
 // ignore_for_file: type=lint
@@ -928,4 +927,59 @@ class AppLocalizationsTe extends AppLocalizations {
 
   @override
   String get placeNoResults => 'స్థలాలు ఏవీ కనబడలేదు';
+
+  @override
+  String get trustedContacts => 'నమ్మకమైన కాంటాక్ట్‌లు';
+
+  @override
+  String trustedContactsCount(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count నమ్మకమైన కాంటాక్ట్‌లు',
+      one: '1 నమ్మకమైన కాంటాక్ట్',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get trustedContactsNone => 'ఇంకా నమ్మకమైన కాంటాక్ట్‌లు లేవు';
+
+  @override
+  String get autoShareTrips => 'ప్రతి ట్రిప్‌ను ఆటోమేటిక్‌గా షేర్ చేయండి';
+
+  @override
+  String get autoShareFailed =>
+      'ఈ సెట్టింగ్‌ను మార్చలేకపోయాము. మళ్లీ ప్రయత్నించండి.';
+
+  @override
+  String get contactAdd => 'కాంటాక్ట్‌ను జోడించండి';
+
+  @override
+  String get contactName => 'పేరు';
+
+  @override
+  String get contactPick => 'కాంటాక్ట్‌ల నుండి ఎంచుకోండి';
+
+  @override
+  String contactRemoveTitle(String name) {
+    return '$nameను తీసివేయాలా?';
+  }
+
+  @override
+  String get contactRemoveBody => 'వారికి ఇకపై మీ ట్రిప్ లింక్‌లు రావు.';
+
+  @override
+  String get contactOptedOut => 'సందేశాలు ఆపివేశారు';
+
+  @override
+  String get contactsLoadErr => 'మీ నమ్మకమైన కాంటాక్ట్‌లను లోడ్ చేయలేకపోయాము.';
+
+  @override
+  String get contactSaveFailed =>
+      'ఈ కాంటాక్ట్‌ను జోడించలేకపోయాము. మళ్లీ ప్రయత్నించండి.';
+
+  @override
+  String get contactRemoveFailed =>
+      'ఈ కాంటాక్ట్‌ను తీసివేయలేకపోయాము. మళ్లీ ప్రయత్నించండి.';
 }

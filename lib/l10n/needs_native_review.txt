@@ -19,3 +19,6 @@ loadErrWallet, loadErrTrips, loadErrPlaces, authSessionExpired
 
 Saved places (2026-11-09):
 placeSetHome, placeSetWork, placeAdd, placeEdit, placeSaveThis, placeSave, placeSearchHint, placeDragHint, placeLabel, placeOther, placeNameHint, placeNameRequired, placeDeleteTitle, placeDeleteBody, placeDelete, placeSaveFailed, placeDeleteFailed, placeLimitHome, placeLimitWork, placeLimitOther, placeOutsideArea, placeNoResults
+
+Saved places (2026-11-09):
+trustedContacts, trustedContactsCount, trustedContactsNone, autoShareTrips, autoShareFailed, contactAdd, contactName, contactPick, contactRemoveTitle, contactRemoveBody, contactOptedOut, contactsLoadErr, contactSaveFailed, contactRemoveFailed

@@ -81,7 +81,7 @@ class HomeSheet extends StatelessWidget {
   final bool failed;
   final VoidCallback? onRetry;
 
-  /// Searching: only the fields and their results show.
+  /// Searching: the fields, their results and the saved-place chips show.
   final bool expanded;
 
   static Widget _bar(double w, double h) => Container(
@@ -112,19 +112,22 @@ class HomeSheet extends StatelessWidget {
             // Keyed: opening the search removes the lines above it, and an
             // unkeyed field would be rebuilt there, losing focus and the keyboard.
             KeyedSubtree(key: const ValueKey('home-search'), child: search),
+            if (!expanded && banner != null) ...[
+              const SizedBox(height: SgSpace.s4),
+              banner!,
+            ],
+            // Saved-place chips show while searching too: Home and Work are
+            // one tap from the "Where to?" field.
+            if (chips.isNotEmpty) ...[
+              const SizedBox(height: SgSpace.s4),
+              Wrap(
+                key: const Key('home_place_chips'),
+                spacing: SgSpace.s2,
+                runSpacing: SgSpace.s2,
+                children: [for (final c in chips) _Chip(data: c)],
+              ),
+            ],
             if (!expanded) ...[
-              if (banner != null) ...[
-                const SizedBox(height: SgSpace.s4),
-                banner!,
-              ],
-              if (chips.isNotEmpty) ...[
-                const SizedBox(height: SgSpace.s4),
-                Wrap(
-                  spacing: SgSpace.s2,
-                  runSpacing: SgSpace.s2,
-                  children: [for (final c in chips) _Chip(data: c)],
-                ),
-              ],
               const SizedBox(height: SgSpace.s4),
               if (loading && recents.isEmpty && chips.isEmpty)
                 Column(

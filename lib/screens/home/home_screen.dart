@@ -673,7 +673,9 @@ class _HomeTab extends StatelessWidget {
       for (final f
           in saved.where((f) => f.label != 'home' && f.label != 'work').take(2))
         placeChip(f),
-      if (known && RiderFlags.addPlaceChip)
+      // "Add a place" does not depend on what loaded; "Set home"/"Set work"
+      // wait for a successful load so they never offer a Home that exists.
+      if (RiderFlags.addPlaceChip)
         SavedChipData(
           label: l.placeAdd,
           icon: _kPlusIcon,
@@ -936,7 +938,8 @@ class _ProfileTab extends StatelessWidget {
             key: const Key('account_safety'),
             icon: SgIcons.shield,
             label: l.safety,
-            onTap: () {},
+            subtitle: l.trustedContacts,
+            onTap: () => context.push('/trusted-contacts'),
           ),
         AccountRowData(
           key: const Key('profile_language'),
