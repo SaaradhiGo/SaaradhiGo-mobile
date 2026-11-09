@@ -1623,6 +1623,138 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Your session has expired. Please log in again.'**
   String get authSessionExpired;
+
+  /// Home sheet chip and Saved places row when no Home is saved
+  ///
+  /// In en, this message translates to:
+  /// **'Set home'**
+  String get placeSetHome;
+
+  /// Home sheet chip and Saved places row when no Work is saved
+  ///
+  /// In en, this message translates to:
+  /// **'Set work'**
+  String get placeSetWork;
+
+  /// Chip and button that open the add-a-place sheet
+  ///
+  /// In en, this message translates to:
+  /// **'Add a place'**
+  String get placeAdd;
+
+  /// Title of the place sheet when editing a saved place
+  ///
+  /// In en, this message translates to:
+  /// **'Edit place'**
+  String get placeEdit;
+
+  /// Long-press action on a recent destination
+  ///
+  /// In en, this message translates to:
+  /// **'Save this place'**
+  String get placeSaveThis;
+
+  /// Place sheet: save button
+  ///
+  /// In en, this message translates to:
+  /// **'Save'**
+  String get placeSave;
+
+  /// Place sheet: address search field
+  ///
+  /// In en, this message translates to:
+  /// **'Search for an address'**
+  String get placeSearchHint;
+
+  /// Place sheet: hint under the small map
+  ///
+  /// In en, this message translates to:
+  /// **'Move the map to put the pin on the spot'**
+  String get placeDragHint;
+
+  /// Place sheet: heading over Home / Work / Other
+  ///
+  /// In en, this message translates to:
+  /// **'Save as'**
+  String get placeLabel;
+
+  /// Place sheet: the Other label choice
+  ///
+  /// In en, this message translates to:
+  /// **'Other'**
+  String get placeOther;
+
+  /// Place sheet: name field for an Other place
+  ///
+  /// In en, this message translates to:
+  /// **'Name, like Gym'**
+  String get placeNameHint;
+
+  /// Place sheet: an Other place has no name
+  ///
+  /// In en, this message translates to:
+  /// **'Give this place a name'**
+  String get placeNameRequired;
+
+  /// Saved places: delete confirmation title
+  ///
+  /// In en, this message translates to:
+  /// **'Delete this place?'**
+  String get placeDeleteTitle;
+
+  /// Saved places: delete confirmation body
+  ///
+  /// In en, this message translates to:
+  /// **'{name} will be removed from your saved places.'**
+  String placeDeleteBody(String name);
+
+  /// Saved places: delete action
+  ///
+  /// In en, this message translates to:
+  /// **'Delete'**
+  String get placeDelete;
+
+  /// Place sheet: save failed
+  ///
+  /// In en, this message translates to:
+  /// **'We couldn\'t save this place. Try again.'**
+  String get placeSaveFailed;
+
+  /// Saved places: delete failed
+  ///
+  /// In en, this message translates to:
+  /// **'We couldn\'t delete this place. Try again.'**
+  String get placeDeleteFailed;
+
+  /// Place sheet: server refused a second Home (PLACE_LIMIT)
+  ///
+  /// In en, this message translates to:
+  /// **'You already have a Home. Edit it instead.'**
+  String get placeLimitHome;
+
+  /// Place sheet: server refused a second Work (PLACE_LIMIT)
+  ///
+  /// In en, this message translates to:
+  /// **'You already have a Work. Edit it instead.'**
+  String get placeLimitWork;
+
+  /// Place sheet: server refused one more Other place (PLACE_LIMIT)
+  ///
+  /// In en, this message translates to:
+  /// **'You can save up to {count} other places.'**
+  String placeLimitOther(int count);
+
+  /// Saved places: the server's notice for a place outside the service area
+  ///
+  /// In en, this message translates to:
+  /// **'Outside our service area for now'**
+  String get placeOutsideArea;
+
+  /// Place sheet: the address search found nothing
+  ///
+  /// In en, this message translates to:
+  /// **'No places found'**
+  String get placeNoResults;
 }
 
 class _AppLocalizationsDelegate

@@ -1,5 +1,6 @@
 // ignore: unused_import
 import 'package:intl/intl.dart' as intl;
+
 import 'app_localizations.dart';
 
 // ignore_for_file: type=lint
@@ -858,4 +859,74 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get authSessionExpired =>
       'Your session has expired. Please log in again.';
+
+  @override
+  String get placeSetHome => 'Set home';
+
+  @override
+  String get placeSetWork => 'Set work';
+
+  @override
+  String get placeAdd => 'Add a place';
+
+  @override
+  String get placeEdit => 'Edit place';
+
+  @override
+  String get placeSaveThis => 'Save this place';
+
+  @override
+  String get placeSave => 'Save';
+
+  @override
+  String get placeSearchHint => 'Search for an address';
+
+  @override
+  String get placeDragHint => 'Move the map to put the pin on the spot';
+
+  @override
+  String get placeLabel => 'Save as';
+
+  @override
+  String get placeOther => 'Other';
+
+  @override
+  String get placeNameHint => 'Name, like Gym';
+
+  @override
+  String get placeNameRequired => 'Give this place a name';
+
+  @override
+  String get placeDeleteTitle => 'Delete this place?';
+
+  @override
+  String placeDeleteBody(String name) {
+    return '$name will be removed from your saved places.';
+  }
+
+  @override
+  String get placeDelete => 'Delete';
+
+  @override
+  String get placeSaveFailed => 'We couldn\'t save this place. Try again.';
+
+  @override
+  String get placeDeleteFailed => 'We couldn\'t delete this place. Try again.';
+
+  @override
+  String get placeLimitHome => 'You already have a Home. Edit it instead.';
+
+  @override
+  String get placeLimitWork => 'You already have a Work. Edit it instead.';
+
+  @override
+  String placeLimitOther(int count) {
+    return 'You can save up to $count other places.';
+  }
+
+  @override
+  String get placeOutsideArea => 'Outside our service area for now';
+
+  @override
+  String get placeNoResults => 'No places found';
 }

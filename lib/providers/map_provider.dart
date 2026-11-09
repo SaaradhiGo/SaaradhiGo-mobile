@@ -129,6 +129,22 @@ class MapProvider extends ChangeNotifier {
   bool _showComingSoonOverlay = false;
 
   List<FavoriteLocation> get favoriteLocations => _favoriteLocations;
+
+  /// The saved places came back from the server at least once, so an absent
+  /// Home or Work really is unset ("Set home" rather than nothing).
+  bool _savedPlacesLoaded = false;
+  bool get savedPlacesLoaded => _savedPlacesLoaded;
+
+  /// The saved-places API, for Account > Saved places and the place sheet.
+  FavoriteLocationService get placesService => _favoriteLocationService;
+
+  /// After an add, edit or delete elsewhere: Home's chips follow at once.
+  void setSavedPlaces(List<FavoriteLocation> places) {
+    _favoriteLocations = places;
+    _savedPlacesLoaded = true;
+    notifyListeners();
+  }
+
   List<Trip> get recentLocations => _recentLocations;
   bool get isLoadingHomeData => _isLoadingHomeData;
   bool get showComingSoonOverlay => _showComingSoonOverlay;
@@ -299,7 +315,10 @@ class MapProvider extends ChangeNotifier {
       _favoriteLocationService
           .fetchFavoriteLocations()
           .timeout(kLoadTimeout)
-          .then((f) => _favoriteLocations = f)
+          .then((f) {
+            _savedPlacesLoaded = true;
+            return _favoriteLocations = f;
+          })
           .catchError((Object e) {
             debugPrint('Saved places failed: $e');
             return _favoriteLocations;

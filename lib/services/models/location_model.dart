@@ -40,8 +40,8 @@ class PlaceSuggestion {
       final structuredFormatting = json['structured_formatting'] ?? {};
       final description = (json['description'] ?? '').toString();
       var mainText = (structuredFormatting['main_text'] ?? '').toString();
-      var secondaryText =
-          (structuredFormatting['secondary_text'] ?? '').toString();
+      var secondaryText = (structuredFormatting['secondary_text'] ?? '')
+          .toString();
       if (mainText.trim().isEmpty) {
         // Places (New) sends only `description`, and a cached answer from
         // before the backend added the parts still does. Every row rendered
@@ -106,12 +106,24 @@ class FavoriteLocation {
   /// field); null when it does not.
   final String? label;
 
+  /// The rider's name for an `other` place (GET /rider/places/); empty for
+  /// Home, Work and places from the older /rider/locations/ list.
+  final String name;
+
+  /// False when the place is outside the service area; [notice] then carries
+  /// the server's line to show under it.
+  final bool inServiceArea;
+  final String? notice;
+
   FavoriteLocation({
     required this.id,
     required this.addressText,
     required this.latitude,
     required this.longitude,
     this.label,
+    this.name = '',
+    this.inServiceArea = true,
+    this.notice,
   });
 
   static String? _label(Object? raw) {
@@ -126,6 +138,11 @@ class FavoriteLocation {
       latitude: double.tryParse(json['latitude']?.toString() ?? '0.0') ?? 0.0,
       longitude: double.tryParse(json['longitude']?.toString() ?? '0.0') ?? 0.0,
       label: _label(json['label']),
+      name: (json['name'] as String?)?.trim() ?? '',
+      inServiceArea: json['in_service_area'] != false,
+      notice: (json['notice'] as String?)?.trim().isEmpty ?? true
+          ? null
+          : (json['notice'] as String).trim(),
     );
   }
 }

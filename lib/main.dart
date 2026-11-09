@@ -52,6 +52,7 @@ import 'screens/profile/privacy_security_screen.dart';
 import 'screens/profile/edit_personal_information_screen.dart';
 import 'screens/profile/help_support_screen.dart';
 import 'screens/profile/manage_payment_methods_screen.dart';
+import 'screens/profile/saved_places_screen.dart';
 import 'screens/home/add_money_screen.dart';
 import 'screens/home/payment_success_screen.dart';
 
@@ -292,6 +293,17 @@ class _SaaradhiGoAppState extends State<SaaradhiGoApp> {
           path: '/help-support',
           builder: (BuildContext context, GoRouterState state) =>
               const HelpSupportScreen(),
+        ),
+        GoRoute(
+          path: '/saved-places',
+          builder: (BuildContext context, GoRouterState state) {
+            final map = context.read<MapProvider>();
+            return SavedPlacesScreen(
+              service: map.placesService,
+              onChanged: map.setSavedPlaces,
+              near: map.pickupLocation?.latLng,
+            );
+          },
         ),
         GoRoute(
           path: '/payment-methods',
