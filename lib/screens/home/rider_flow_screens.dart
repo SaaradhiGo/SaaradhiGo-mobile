@@ -17,8 +17,10 @@
 // lint cleanup is not, which is why this comment exists instead.
 import '../../ui/sg_layout.dart';
 import '../../core/pricing/quote_lock.dart';
+import '../../core/trip_eta.dart';
 import '../../core/market/market_config_store.dart';
 import '../components/market_overlays.dart';
+
 import 'dart:async';
 
 import 'package:flutter/material.dart';
@@ -32,15 +34,19 @@ import 'trip_chat_screen.dart';
 import '../../providers/map_provider.dart';
 import '../../providers/wallet_provider.dart';
 import '../../core/maps/sg_map.dart';
+
 import 'package:latlong2/latlong.dart';
+
 import '../../services/ride_service.dart';
 import '../../services/payment_service.dart';
 import '../../services/wallet_service.dart' show WalletPayOutcome;
 import '../../services/online_payment.dart';
 import '../../services/trip_charge.dart';
 import '../../widgets/trip_charge_card.dart';
+
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:provider/provider.dart' as p;
+
 import '../../utils/money.dart';
 import '../../widgets/safety_sheet.dart';
 import '../../state/ride_notifier.dart';
@@ -151,23 +157,6 @@ class _DriverView {
     vehicleNumber: plate.isEmpty ? null : plate,
     vehicleModel: _model.isEmpty ? null : _model,
   );
-}
-
-/// Whole minutes from "3 mins" / "1 hour 5 mins"; null when there is no number.
-int? _minutesOf(String? text) {
-  if (text == null) return null;
-  var total = 0;
-  var found = false;
-  for (final m in RegExp(
-    r'(\d+)\s*(hour|hr|h|min)',
-  ).allMatches(text.toLowerCase())) {
-    found = true;
-    final n = int.parse(m.group(1)!);
-    total += m.group(2) == 'min' ? n : n * 60;
-  }
-  if (found) return total;
-  final plain = int.tryParse(RegExp(r'\d+').firstMatch(text)?.group(0) ?? '');
-  return plain;
 }
 
 /// Drivers the search has asked so far; 0 until the first dispatch wave.
@@ -388,9 +377,11 @@ class _SearchingDriverScreenState extends State<SearchingDriverScreen> {
           if (mounted && context.mounted) {
             String currentRoute = '';
             try {
-              currentRoute = GoRouter.of(
-                context,
-              ).routerDelegate.currentConfiguration.last.matchedLocation;
+              currentRoute = GoRouter.of(context)
+                  .routerDelegate
+                  .currentConfiguration
+                  .last
+                  .matchedLocation;
             } catch (e) {
               debugPrint('Guard route check failed: $e');
             }
@@ -672,10 +663,12 @@ class _DriverFoundScreenState extends State<DriverFoundScreen> {
   bool _canPop = false;
   bool _isNavigated = false;
   MapProvider? _mapProvider;
+  String? _etaAskedFor;
 
   @override
   void initState() {
     super.initState();
+    TripEtaStore.instance.addListener(_onEta);
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) return;
       _mapProvider = context.read<MapProvider>();
@@ -684,13 +677,19 @@ class _DriverFoundScreenState extends State<DriverFoundScreen> {
     });
   }
 
+  void _onEta() {
+    if (mounted) setState(() {});
+  }
+
   @override
   void dispose() {
+    TripEtaStore.instance.removeListener(_onEta);
     _mapProvider?.removeListener(_handleStateChange);
     super.dispose();
   }
 
   void _handleStateChange() {
+    _etaAskedFor = askTripEta(_mapProvider?.tripId, _etaAskedFor);
     if (!mounted || _isNavigated) return;
 
     final mapProvider = _mapProvider;
@@ -737,9 +736,10 @@ class _DriverFoundScreenState extends State<DriverFoundScreen> {
         final arrived =
             mapProvider.container?.read(rideNotifierProvider).status ==
             RideStatus.driverArrived;
-        final mins = mapProvider.driverLocation == null
-            ? null
-            : _minutesOf(mapProvider.duration);
+        // The server's pickup ETA only; none, no line (never a guess or 0).
+        final mins = TripEtaStore.instance
+            .etaFor(mapProvider.tripId)
+            ?.minutesToPickup;
         final l = sgStrings(context);
         final market = MarketConfigStore.instance.current;
         final who = d.first.isEmpty ? l.yourDriver : d.first;
@@ -769,6 +769,7 @@ class _DriverFoundScreenState extends State<DriverFoundScreen> {
             title: headline,
             close: true,
             mapBottom: 520,
+            mapLabel: (arrived || mins == null) ? null : l.minutesShort(mins),
             onBack: () async {
               if (mounted && context.mounted) {
                 Navigator.of(context).maybePop();
@@ -926,6 +927,13 @@ class _FullMapTrackingScreenState extends State<FullMapTrackingScreen> {
       _handleStateChange(); // Initial check
       _loadPlannedRoute();
     });
+    TripEtaStore.instance.addListener(_onEta);
+  }
+
+  String? _etaAskedFor;
+
+  void _onEta() {
+    if (mounted) setState(() {});
   }
 
   /// The trip the route was asked for; asked again only for a new trip id
@@ -951,11 +959,13 @@ class _FullMapTrackingScreenState extends State<FullMapTrackingScreen> {
 
   @override
   void dispose() {
+    TripEtaStore.instance.removeListener(_onEta);
     _mapProvider?.removeListener(_handleStateChange);
     super.dispose();
   }
 
   void _handleStateChange() {
+    _etaAskedFor = askTripEta(_mapProvider?.tripId, _etaAskedFor);
     if (_plannedRoute == null) _loadPlannedRoute();
     if (!mounted || _isNavigated) return;
 
@@ -1054,7 +1064,16 @@ class _FullMapTrackingScreenState extends State<FullMapTrackingScreen> {
           ),
           now: DateTime.now(),
         );
-        final headline = est == null
+        // The server's ETA (to_drop) first: "Arriving about 9:41 am" in the
+        // trip's own time zone.
+        final eta = TripEtaStore.instance.etaFor(mapProvider.tripId);
+        final clock = eta?.arrivalClock;
+        final dropMin = eta?.phase == 'to_drop' ? eta?.dropEtaMin : null;
+        final headline = clock != null
+            ? l.arrivingAbout(
+                clockText(DateTime(2000, 1, 1, clock.hour, clock.minute)),
+              )
+            : est == null
             ? (drop.isEmpty ? l.arrivingSoon : l.onTheWayTo(drop))
             : est.overdue
             ? l.arrivingSoon
@@ -1093,7 +1112,11 @@ class _FullMapTrackingScreenState extends State<FullMapTrackingScreen> {
             ),
             sheet: OnTripSheet(
               arrivalLine: headline,
-              minutesLeft: est?.minutesLeft == null
+              minutesLeft: clock != null
+                  ? (dropMin != null && dropMin > 0
+                        ? l.minutesLeft(dropMin)
+                        : null)
+                  : est?.minutesLeft == null
                   ? null
                   : l.minutesLeft(est!.minutesLeft!),
               progress: est?.progress,
@@ -2167,7 +2190,11 @@ class _DarkMapScaffold extends StatefulWidget {
     this.mapBottom = 300,
     this.topRight,
     this.plannedRoute,
+    this.mapLabel,
   });
+
+  /// A small label over the map ("4 min"), top centre; none when null.
+  final String? mapLabel;
 
   /// The server's planned route for the trip, drawn on trip when present.
   final List<LatLng>? plannedRoute;
@@ -2449,6 +2476,33 @@ class _DarkMapScaffoldState extends State<_DarkMapScaffold>
                   top: MediaQuery.of(context).padding.top + SgSpace.s2,
                   right: SgSpace.s4,
                   child: widget.topRight!,
+                ),
+              if (widget.mapLabel != null)
+                Positioned(
+                  top: MediaQuery.of(context).padding.top + SgSpace.s2 + 10,
+                  left: 0,
+                  right: 0,
+                  child: Center(
+                    child: Container(
+                      key: const Key('map_eta_label'),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: SgSpace.s3,
+                        vertical: SgSpace.s1,
+                      ),
+                      decoration: BoxDecoration(
+                        color: SgColors.bg100,
+                        borderRadius: BorderRadius.circular(SgRadius.pill),
+                        border: Border.all(color: SgColors.goldLine),
+                      ),
+                      child: Text(
+                        widget.mapLabel!,
+                        style: SgText.caption.copyWith(
+                          color: SgColors.ink,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ),
+                  ),
                 ),
             ],
           );

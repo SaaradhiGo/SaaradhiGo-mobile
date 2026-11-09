@@ -3,13 +3,17 @@ import 'dart:async';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:latlong2/latlong.dart';
 import 'package:flutter/foundation.dart';
+
 import 'ride_state.dart';
 import '../core/market/booking_refusal.dart';
 import '../core/promo/promo_messages.dart';
 import '../core/promo/promo_selection.dart';
 import '../core/pricing/quote_lock.dart';
+import '../core/trip_eta.dart';
 import '../services/models/location_model.dart';
+
 import 'package:shared_preferences/shared_preferences.dart';
+
 import '../services/websocket_service.dart';
 import '../services/ride_service.dart';
 
@@ -734,6 +738,9 @@ class RideNotifier extends Notifier<RideState> {
       return;
     }
 
+    // The server's ETA for the trip (at most every 15 s).
+    if (TripEtaStore.instance.applyFrame(data)) return;
+
     if (type == 'driver_location_update' || type == 'location_update') {
       final lat = data['lat'] ?? data['latitude'];
       final lng = data['lng'] ?? data['longitude'];
@@ -980,6 +987,7 @@ class RideNotifier extends Notifier<RideState> {
   /// killed could leave the finished trip's id on disk.
   Future<void> clearState() async {
     _generation++;
+    TripEtaStore.instance.clear();
     state = const RideState();
     // One write, not two racing ones: _saveState() would remove the key anyway
     // for an empty state, but being explicit here is what callers depend on.
