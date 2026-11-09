@@ -17,7 +17,7 @@ class RiderFlags {
   /// (/sharing/contacts/ and /sharing/settings/, 2026-11-09).
   static const trustedContacts = true;
 
-  /// "Share trip" on the arriving and on-trip screens. Needs a trip-share
-  /// link API.
-  static const shareTrip = false;
+  /// "Share trip" on the arriving and on-trip screens and in the Safety
+  /// sheet (/sharing/trips/<id>/share/, 2026-11-09).
+  static const shareTrip = true;
 }

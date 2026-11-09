@@ -18,6 +18,8 @@
 import '../../ui/sg_layout.dart';
 import '../../core/pricing/quote_lock.dart';
 import '../../core/trip_eta.dart';
+import '../../widgets/trip_actions.dart';
+import '../../core/rider_flags.dart';
 import '../../core/market/market_config_store.dart';
 import '../components/market_overlays.dart';
 
@@ -27,7 +29,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart' as riverpod;
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
-import 'package:url_launcher/url_launcher.dart';
 
 import 'trip_chat_screen.dart';
 
@@ -195,28 +196,6 @@ SgLockedFareCard _lockedFare(MapProvider mp) {
   );
 }
 
-Future<void> _callDriver(BuildContext context, _DriverView d) async {
-  final l = sgStrings(context);
-  void say(String m) {
-    if (context.mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(m)));
-    }
-  }
-
-  // Only a tel: link; the number is never shown (privacy posture, Phase-0).
-  final raw = (d.info['phone'] ?? d.ride['driver_phone'] ?? '').toString();
-  if (raw.isEmpty) {
-    return say(l.driverPhoneUnavailable);
-  }
-  try {
-    if (!await launchUrl(Uri(scheme: 'tel', path: raw))) {
-      say(l.dialerUnavailable);
-    }
-  } catch (_) {
-    say(l.callFailed);
-  }
-}
-
 void _openChat(BuildContext context, _DriverView d) {
   final tripId = int.tryParse(d.tripId ?? '') ?? 0;
   if (tripId <= 0) return;
@@ -377,11 +356,9 @@ class _SearchingDriverScreenState extends State<SearchingDriverScreen> {
           if (mounted && context.mounted) {
             String currentRoute = '';
             try {
-              currentRoute = GoRouter.of(context)
-                  .routerDelegate
-                  .currentConfiguration
-                  .last
-                  .matchedLocation;
+              currentRoute = GoRouter.of(
+                context,
+              ).routerDelegate.currentConfiguration.last.matchedLocation;
             } catch (e) {
               debugPrint('Guard route check failed: $e');
             }
@@ -808,14 +785,14 @@ class _DriverFoundScreenState extends State<DriverFoundScreen> {
                       showLabel: l.showCode,
                       hideLabel: l.hideCode,
                     ),
-              // Share trip waits for a trip-share API (RiderFlags.shareTrip);
-              // Message stands in the second slot.
+              // Call is masked (the server's bridge number, never the
+              // driver's own); Share sends the live trip link.
               actions: [
                 SgIconButtonWide(
                   key: const Key('arriving_call'),
                   icon: SgIcons.call,
                   label: l.call,
-                  onTap: () => _callDriver(context, d),
+                  onTap: () => callDriverMasked(context, d.tripId),
                 ),
                 SgIconButtonWide(
                   key: const Key('arriving_message'),
@@ -823,6 +800,13 @@ class _DriverFoundScreenState extends State<DriverFoundScreen> {
                   label: l.message,
                   onTap: () => _openChat(context, d),
                 ),
+                if (RiderFlags.shareTrip)
+                  SgIconButtonWide(
+                    key: const Key('arriving_share'),
+                    icon: SgIcons.share,
+                    label: l.share,
+                    onTap: () => shareTripLink(context, d.tripId),
+                  ),
               ],
               cancelLabel: l.cancelRide,
               onCancel: () => Navigator.of(context).maybePop(),
@@ -1136,10 +1120,22 @@ class _FullMapTrackingScreenState extends State<FullMapTrackingScreen> {
                       onPressed: () => context.push('/ride-summary'),
                     )
                   : null,
-              // TODO(data): Share trip is hidden (no trip-share contact or
-              // link service). The safety sheet POSTs /sos/, offers 112, and
-              // shows a failure instead of swallowing it.
+              // Share (the live link) and a masked Call; the safety sheet
+              // POSTs /sos/, offers the emergency number and shares too.
               actions: [
+                if (RiderFlags.shareTrip)
+                  SgIconButtonWide(
+                    key: const ValueKey('tracking_share_button'),
+                    icon: SgIcons.share,
+                    label: l.share,
+                    onTap: () => shareTripLink(context, d.tripId),
+                  ),
+                SgIconButtonWide(
+                  key: const ValueKey('tracking_call_button'),
+                  icon: SgIcons.call,
+                  label: l.call,
+                  onTap: () => callDriverMasked(context, d.tripId),
+                ),
                 SgIconButtonWide(
                   key: const ValueKey('tracking_sos_button'),
                   icon: SgIcons.shield,

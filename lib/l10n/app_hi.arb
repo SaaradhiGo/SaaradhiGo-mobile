@@ -587,5 +587,19 @@
   "contactSaveFailed": "हम यह संपर्क नहीं जोड़ सके। फिर से कोशिश करें।",
   "@contactSaveFailed": {"description": "needs native review"},
   "contactRemoveFailed": "हम यह संपर्क नहीं हटा सके। फिर से कोशिश करें।",
-  "@contactRemoveFailed": {"description": "needs native review"}
+  "@contactRemoveFailed": {"description": "needs native review"},
+  "shareTrip": "ट्रिप शेयर करें",
+  "@shareTrip": {"description": "needs native review"},
+  "shareTripText": "मेरी SaaradhiGo ट्रिप यहाँ देखें: {url}",
+  "@shareTripText": {"description": "needs native review", "placeholders": {"url": {"type": "String"}}},
+  "shareLinkAgain": "लिंक फिर से शेयर करें",
+  "@shareLinkAgain": {"description": "needs native review"},
+  "stopSharing": "शेयर करना बंद करें",
+  "@stopSharing": {"description": "needs native review"},
+  "sharingStopped": "शेयर करना बंद हो गया",
+  "@sharingStopped": {"description": "needs native review"},
+  "shareFailed": "हम यह ट्रिप शेयर नहीं कर सके। फिर से कोशिश करें।",
+  "@shareFailed": {"description": "needs native review"},
+  "linkCopied": "लिंक कॉपी हो गया",
+  "@linkCopied": {"description": "needs native review"}
 }

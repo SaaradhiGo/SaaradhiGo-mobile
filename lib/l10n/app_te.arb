@@ -587,5 +587,19 @@
   "contactSaveFailed": "ఈ కాంటాక్ట్‌ను జోడించలేకపోయాము. మళ్లీ ప్రయత్నించండి.",
   "@contactSaveFailed": {"description": "needs native review"},
   "contactRemoveFailed": "ఈ కాంటాక్ట్‌ను తీసివేయలేకపోయాము. మళ్లీ ప్రయత్నించండి.",
-  "@contactRemoveFailed": {"description": "needs native review"}
+  "@contactRemoveFailed": {"description": "needs native review"},
+  "shareTrip": "ట్రిప్‌ను షేర్ చేయండి",
+  "@shareTrip": {"description": "needs native review"},
+  "shareTripText": "నా SaaradhiGo ట్రిప్‌ను ఇక్కడ చూడండి: {url}",
+  "@shareTripText": {"description": "needs native review", "placeholders": {"url": {"type": "String"}}},
+  "shareLinkAgain": "లింక్‌ను మళ్లీ షేర్ చేయండి",
+  "@shareLinkAgain": {"description": "needs native review"},
+  "stopSharing": "షేర్ చేయడం ఆపండి",
+  "@stopSharing": {"description": "needs native review"},
+  "sharingStopped": "షేర్ చేయడం ఆపబడింది",
+  "@sharingStopped": {"description": "needs native review"},
+  "shareFailed": "ఈ ట్రిప్‌ను షేర్ చేయలేకపోయాము. మళ్లీ ప్రయత్నించండి.",
+  "@shareFailed": {"description": "needs native review"},
+  "linkCopied": "లింక్ కాపీ చేయబడింది",
+  "@linkCopied": {"description": "needs native review"}
 }

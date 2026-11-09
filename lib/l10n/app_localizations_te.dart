@@ -1,5 +1,6 @@
 // ignore: unused_import
 import 'package:intl/intl.dart' as intl;
+
 import 'app_localizations.dart';
 
 // ignore_for_file: type=lint
@@ -982,4 +983,28 @@ class AppLocalizationsTe extends AppLocalizations {
   @override
   String get contactRemoveFailed =>
       'ఈ కాంటాక్ట్‌ను తీసివేయలేకపోయాము. మళ్లీ ప్రయత్నించండి.';
+
+  @override
+  String get shareTrip => 'ట్రిప్‌ను షేర్ చేయండి';
+
+  @override
+  String shareTripText(String url) {
+    return 'నా SaaradhiGo ట్రిప్‌ను ఇక్కడ చూడండి: $url';
+  }
+
+  @override
+  String get shareLinkAgain => 'లింక్‌ను మళ్లీ షేర్ చేయండి';
+
+  @override
+  String get stopSharing => 'షేర్ చేయడం ఆపండి';
+
+  @override
+  String get sharingStopped => 'షేర్ చేయడం ఆపబడింది';
+
+  @override
+  String get shareFailed =>
+      'ఈ ట్రిప్‌ను షేర్ చేయలేకపోయాము. మళ్లీ ప్రయత్నించండి.';
+
+  @override
+  String get linkCopied => 'లింక్ కాపీ చేయబడింది';
 }

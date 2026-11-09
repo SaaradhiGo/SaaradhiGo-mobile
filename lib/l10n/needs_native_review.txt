@@ -22,3 +22,6 @@ placeSetHome, placeSetWork, placeAdd, placeEdit, placeSaveThis, placeSave, place
 
 Saved places (2026-11-09):
 trustedContacts, trustedContactsCount, trustedContactsNone, autoShareTrips, autoShareFailed, contactAdd, contactName, contactPick, contactRemoveTitle, contactRemoveBody, contactOptedOut, contactsLoadErr, contactSaveFailed, contactRemoveFailed
+
+Saved places (2026-11-09):
+shareTrip, shareTripText, shareLinkAgain, stopSharing, sharingStopped, shareFailed, linkCopied
