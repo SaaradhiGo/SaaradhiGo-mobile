@@ -587,5 +587,19 @@
   "contactSaveFailed": "We couldn't add this contact. Try again.",
   "@contactSaveFailed": {"description": "Add a contact: save failed"},
   "contactRemoveFailed": "We couldn't remove this contact. Try again.",
-  "@contactRemoveFailed": {"description": "Trusted contacts: remove failed"}
+  "@contactRemoveFailed": {"description": "Trusted contacts: remove failed"},
+  "shareTrip": "Share trip",
+  "@shareTrip": {"description": "Trip screens and Safety sheet: share the live trip link"},
+  "shareTripText": "Follow my SaaradhiGo trip: {url}",
+  "@shareTripText": {"description": "Text handed to the share sheet with the trip link", "placeholders": {"url": {"type": "String"}}},
+  "shareLinkAgain": "Share the link again",
+  "@shareLinkAgain": {"description": "Share: the trip is already shared"},
+  "stopSharing": "Stop sharing",
+  "@stopSharing": {"description": "Share: end the live trip link"},
+  "sharingStopped": "Sharing stopped",
+  "@sharingStopped": {"description": "Share: the link was stopped"},
+  "shareFailed": "We couldn't share this trip. Try again.",
+  "@shareFailed": {"description": "Share: failed"},
+  "linkCopied": "Link copied",
+  "@linkCopied": {"description": "Share: no share sheet, so the link was copied"}
 }

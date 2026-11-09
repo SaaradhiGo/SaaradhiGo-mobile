@@ -24,8 +24,11 @@ import 'package:url_launcher/url_launcher.dart';
 import '../core/market/market_config_store.dart';
 import '../services/sos_service.dart';
 import 'hold_to_send_button.dart';
+import 'trip_actions.dart';
+import '../core/rider_flags.dart';
 
 import 'package:go_router/go_router.dart';
+
 import '../ui/account_widgets.dart';
 import '../ui/appearance_settings.dart' show sgStrings;
 import '../ui/sg_text.dart';
@@ -335,10 +338,18 @@ class _SafetySheetState extends State<SafetySheet> {
               ),
             ),
             const SizedBox(height: SgSpace.s4),
-            // TODO(data): share trip, trip-share contacts, route-deviation
-            // alerts and night check-ins are not available; their rows are
-            // left out.
+            // Route-deviation alerts and night check-ins are not available;
+            // their rows are left out.
             SgListGroup([
+              if (RiderFlags.shareTrip &&
+                  (widget.trip.tripId ?? '').trim().isNotEmpty)
+                SgListRow(
+                  key: const Key('safety_share_trip'),
+                  icon: SgIcons.share,
+                  label: l.shareTrip,
+                  chevron: true,
+                  onTap: () => shareTripLink(context, widget.trip.tripId),
+                ),
               SgListRow(
                 key: const Key('safety_report'),
                 icon: SgIcons.help,

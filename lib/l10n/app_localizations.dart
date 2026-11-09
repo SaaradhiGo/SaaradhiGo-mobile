@@ -1839,6 +1839,48 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'We couldn\'t remove this contact. Try again.'**
   String get contactRemoveFailed;
+
+  /// Trip screens and Safety sheet: share the live trip link
+  ///
+  /// In en, this message translates to:
+  /// **'Share trip'**
+  String get shareTrip;
+
+  /// Text handed to the share sheet with the trip link
+  ///
+  /// In en, this message translates to:
+  /// **'Follow my SaaradhiGo trip: {url}'**
+  String shareTripText(String url);
+
+  /// Share: the trip is already shared
+  ///
+  /// In en, this message translates to:
+  /// **'Share the link again'**
+  String get shareLinkAgain;
+
+  /// Share: end the live trip link
+  ///
+  /// In en, this message translates to:
+  /// **'Stop sharing'**
+  String get stopSharing;
+
+  /// Share: the link was stopped
+  ///
+  /// In en, this message translates to:
+  /// **'Sharing stopped'**
+  String get sharingStopped;
+
+  /// Share: failed
+  ///
+  /// In en, this message translates to:
+  /// **'We couldn\'t share this trip. Try again.'**
+  String get shareFailed;
+
+  /// Share: no share sheet, so the link was copied
+  ///
+  /// In en, this message translates to:
+  /// **'Link copied'**
+  String get linkCopied;
 }
 
 class _AppLocalizationsDelegate

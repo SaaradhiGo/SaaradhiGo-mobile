@@ -1,5 +1,6 @@
 // ignore: unused_import
 import 'package:intl/intl.dart' as intl;
+
 import 'app_localizations.dart';
 
 // ignore_for_file: type=lint
@@ -982,4 +983,27 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get contactRemoveFailed =>
       'We couldn\'t remove this contact. Try again.';
+
+  @override
+  String get shareTrip => 'Share trip';
+
+  @override
+  String shareTripText(String url) {
+    return 'Follow my SaaradhiGo trip: $url';
+  }
+
+  @override
+  String get shareLinkAgain => 'Share the link again';
+
+  @override
+  String get stopSharing => 'Stop sharing';
+
+  @override
+  String get sharingStopped => 'Sharing stopped';
+
+  @override
+  String get shareFailed => 'We couldn\'t share this trip. Try again.';
+
+  @override
+  String get linkCopied => 'Link copied';
 }

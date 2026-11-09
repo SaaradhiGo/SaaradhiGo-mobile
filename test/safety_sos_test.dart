@@ -221,8 +221,8 @@ void main() {
       expect(find.byKey(const Key('safety_emergency_block')), findsOneWidget);
       expect(find.text('In danger?'), findsOneWidget);
       expect(find.byKey(const Key('safety_report')), findsOneWidget);
-      // TODO(data): no trip-share service, so no Share row.
-      expect(find.byKey(const Key('safety_share_trip')), findsNothing);
+      // The trip link (RiderFlags.shareTrip) on a trip with an id.
+      expect(find.byKey(const Key('safety_share_trip')), findsOneWidget);
     });
 
     testWidgets('a successful SOS shows a reference, not a bare reassurance', (
