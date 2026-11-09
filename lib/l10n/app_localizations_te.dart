@@ -1,5 +1,6 @@
 // ignore: unused_import
 import 'package:intl/intl.dart' as intl;
+
 import 'app_localizations.dart';
 
 // ignore_for_file: type=lint
@@ -853,4 +854,78 @@ class AppLocalizationsTe extends AppLocalizations {
   @override
   String get authSessionExpired =>
       'మీ సెషన్ ముగిసింది. దయచేసి మళ్లీ లాగిన్ అవ్వండి.';
+
+  @override
+  String get placeSetHome => 'ఇంటిని సెట్ చేయండి';
+
+  @override
+  String get placeSetWork => 'ఆఫీస్‌ను సెట్ చేయండి';
+
+  @override
+  String get placeAdd => 'స్థలాన్ని జోడించండి';
+
+  @override
+  String get placeEdit => 'స్థలాన్ని మార్చండి';
+
+  @override
+  String get placeSaveThis => 'ఈ స్థలాన్ని సేవ్ చేయండి';
+
+  @override
+  String get placeSave => 'సేవ్ చేయండి';
+
+  @override
+  String get placeSearchHint => 'చిరునామా కోసం వెతకండి';
+
+  @override
+  String get placeDragHint => 'పిన్‌ను సరైన చోట ఉంచడానికి మ్యాప్‌ను జరపండి';
+
+  @override
+  String get placeLabel => 'ఇలా సేవ్ చేయండి';
+
+  @override
+  String get placeOther => 'ఇతర';
+
+  @override
+  String get placeNameHint => 'పేరు, ఉదా. జిమ్';
+
+  @override
+  String get placeNameRequired => 'ఈ స్థలానికి ఒక పేరు ఇవ్వండి';
+
+  @override
+  String get placeDeleteTitle => 'ఈ స్థలాన్ని తొలగించాలా?';
+
+  @override
+  String placeDeleteBody(String name) {
+    return '$name మీ సేవ్ చేసిన స్థలాల నుండి తీసివేయబడుతుంది.';
+  }
+
+  @override
+  String get placeDelete => 'తొలగించు';
+
+  @override
+  String get placeSaveFailed =>
+      'ఈ స్థలాన్ని సేవ్ చేయలేకపోయాము. మళ్లీ ప్రయత్నించండి.';
+
+  @override
+  String get placeDeleteFailed =>
+      'ఈ స్థలాన్ని తొలగించలేకపోయాము. మళ్లీ ప్రయత్నించండి.';
+
+  @override
+  String get placeLimitHome =>
+      'మీకు ఇప్పటికే ఇల్లు సేవ్ చేయబడింది. దాన్ని మార్చండి.';
+
+  @override
+  String get placeLimitWork =>
+      'మీకు ఇప్పటికే ఆఫీస్ సేవ్ చేయబడింది. దాన్ని మార్చండి.';
+
+  @override
+  String placeLimitOther(int count) {
+    return 'మీరు గరిష్టంగా $count ఇతర స్థలాలను సేవ్ చేయవచ్చు.';
+  }
+
+  @override
+  String get placeOutsideArea => 'ప్రస్తుతానికి మా సేవా ప్రాంతం వెలుపల ఉంది';
+
+  @override
+  String get placeNoResults => 'స్థలాలు ఏవీ కనబడలేదు';
 }

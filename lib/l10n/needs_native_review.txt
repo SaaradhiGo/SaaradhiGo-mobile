@@ -16,3 +16,6 @@ savedWork
 
 Loading states, 2026-11-08 (wallet, trips, home places, session end):
 loadErrWallet, loadErrTrips, loadErrPlaces, authSessionExpired
+
+Saved places (2026-11-09):
+placeSetHome, placeSetWork, placeAdd, placeEdit, placeSaveThis, placeSave, placeSearchHint, placeDragHint, placeLabel, placeOther, placeNameHint, placeNameRequired, placeDeleteTitle, placeDeleteBody, placeDelete, placeSaveFailed, placeDeleteFailed, placeLimitHome, placeLimitWork, placeLimitOther, placeOutsideArea, placeNoResults

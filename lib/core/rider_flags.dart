@@ -7,11 +7,11 @@ class RiderFlags {
   RiderFlags._();
 
   /// "Home" / "Work" chips and labels, from the `label` (home|work|other)
-  /// that GET /rider/locations/all/ returns on each saved place.
+  /// that GET /rider/places/ returns on each saved place.
   static const homeWorkLabels = true;
 
-  /// "Add a place" chip on the home sheet. Needs an add-a-saved-place flow.
-  static const addPlaceChip = false;
+  /// "Add a place" chip on the home sheet (POST /rider/places/, 2026-11-09).
+  static const addPlaceChip = true;
 
   /// Account > Safety ("2 trusted contacts"). Needs a trusted-contacts API.
   static const trustedContacts = false;

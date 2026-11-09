@@ -29,6 +29,7 @@ import '../../core/maps/sg_map.dart';
 import '../../l10n/app_localizations.dart';
 import '../../services/api_service.dart';
 import '../../ui/home_sheet.dart';
+import '../profile/place_sheet.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key, this.initialTabIndex = 0});
@@ -615,20 +616,69 @@ class _HomeTab extends StatelessWidget {
     void open(double lat, double lng, String name) =>
         _goTo(context, '$lat,$lng', dropName: name);
 
-    // Saved places from GET /rider/locations/all/, with Home/Work from the
-    // place's own `label`.
+    Future<void> addPlace({
+      String label = 'other',
+      String? address,
+      LatLng? at,
+      String? name,
+    }) async {
+      final saved = await showPlaceSheet(
+        context,
+        service: mapProvider.placesService,
+        label: label,
+        address: address,
+        at: at,
+        name: name,
+        near: here,
+      );
+      if (saved != null && context.mounted) {
+        await context.read<MapProvider>().fetchDynamicHomeData();
+      }
+    }
+
+    // Saved places from GET /rider/places/: Home and Work first (one tap
+    // fills the destination; "Set home"/"Set work" when unset), then others.
+    final saved = mapProvider.favoriteLocations
+        .where((f) => f.latitude != 0 || f.longitude != 0)
+        .toList();
+    SavedChipData placeChip(FavoriteLocation f) => SavedChipData(
+      label: savedPlaceLabel(l, f),
+      icon: switch (RiderFlags.homeWorkLabels ? f.label : null) {
+        'home' => SgIcons.home,
+        'work' => SgIcons.work,
+        _ => SgIcons.pin,
+      },
+      onTap: () => open(f.latitude, f.longitude, f.addressText),
+    );
+    final known = mapProvider.savedPlacesLoaded;
+    final home = saved.where((f) => f.label == 'home').firstOrNull;
+    final work = saved.where((f) => f.label == 'work').firstOrNull;
     final chips = <SavedChipData>[
-      for (final f in mapProvider.favoriteLocations.take(4))
-        if (f.latitude != 0 || f.longitude != 0)
-          SavedChipData(
-            label: savedPlaceLabel(l, f),
-            icon: switch (RiderFlags.homeWorkLabels ? f.label : null) {
-              'home' => SgIcons.home,
-              'work' => SgIcons.work,
-              _ => SgIcons.pin,
-            },
-            onTap: () => open(f.latitude, f.longitude, f.addressText),
-          ),
+      if (home != null)
+        placeChip(home)
+      else if (known && RiderFlags.addPlaceChip)
+        SavedChipData(
+          label: l.placeSetHome,
+          icon: SgIcons.home,
+          onTap: () => addPlace(label: 'home'),
+        ),
+      if (work != null)
+        placeChip(work)
+      else if (known && RiderFlags.addPlaceChip)
+        SavedChipData(
+          label: l.placeSetWork,
+          icon: SgIcons.work,
+          onTap: () => addPlace(label: 'work'),
+        ),
+      for (final f
+          in saved.where((f) => f.label != 'home' && f.label != 'work').take(2))
+        placeChip(f),
+      if (known && RiderFlags.addPlaceChip)
+        SavedChipData(
+          label: l.placeAdd,
+          icon: _kPlusIcon,
+          onTap: () => addPlace(),
+        ),
     ];
     // Recent drops from the rider's own trips, nearest first in time.
     final seen = <String>{};
@@ -647,6 +697,16 @@ class _HomeTab extends StatelessWidget {
           name: p.name,
           address: p.address,
           onTap: () => open(lat, lng, addr),
+          onLongPress: RiderFlags.addPlaceChip
+              ? () => _offerSave(
+                  context,
+                  () => addPlace(
+                    address: addr,
+                    at: LatLng(lat, lng),
+                    name: p.name,
+                  ),
+                )
+              : null,
         ),
       );
     }
@@ -724,11 +784,45 @@ class _HomeTab extends StatelessWidget {
   }
 }
 
+const _kPlusIcon = '<path d="M12 5v14M5 12h14"/>';
+
+/// Long-press on a recent destination: "Save this place".
+void _offerSave(BuildContext context, VoidCallback onSave) {
+  final l = sgStrings(context);
+  showModalBottomSheet<void>(
+    context: context,
+    backgroundColor: Colors.transparent,
+    builder: (c) => SgSheetSurface(
+      child: InkWell(
+        key: const Key('recent_save_place'),
+        onTap: () {
+          Navigator.pop(c);
+          onSave();
+        },
+        child: Padding(
+          padding: const EdgeInsets.symmetric(vertical: SgSpace.s3),
+          child: Row(
+            children: [
+              SgIcon(SgIcons.pin, size: 20, color: SgColors.goldText),
+              const SizedBox(width: SgSpace.s3),
+              Text(
+                l.placeSaveThis,
+                style: SgText.body.copyWith(fontWeight: FontWeight.w600),
+              ),
+            ],
+          ),
+        ),
+      ),
+    ),
+  );
+}
+
 /// A saved place's chip label: Home/Work when labels are on and the server
-/// sent one, else the first part of the address.
+/// sent one, else the rider's name for it or the first part of the address.
 String savedPlaceLabel(AppLocalizations l, FavoriteLocation f) {
   if (RiderFlags.homeWorkLabels && f.label == 'home') return l.navHome;
   if (RiderFlags.homeWorkLabels && f.label == 'work') return l.savedWork;
+  if (f.name.isNotEmpty) return f.name;
   return splitPlace(f.addressText).name;
 }
 
@@ -826,7 +920,7 @@ class _ProfileTab extends StatelessWidget {
           icon: SgIcons.home,
           label: l.accountSavedPlaces,
           subtitle: names.isEmpty ? null : names.join(', '),
-          onTap: () => _showSavedPlaces(context, saved),
+          onTap: () => context.push('/saved-places'),
         ),
         AccountRowData(
           key: const Key('profile_wallet'),
@@ -881,33 +975,6 @@ class _ProfileTab extends StatelessWidget {
       },
       deleteLabel: l.accountDelete,
       onDelete: () => _confirmDelete(context),
-    );
-  }
-
-  void _showSavedPlaces(BuildContext context, List<FavoriteLocation> saved) {
-    final l = sgStrings(context);
-    showModalBottomSheet<void>(
-      context: context,
-      backgroundColor: Colors.transparent,
-      builder: (_) => SgSheetSurface(
-        child: SingleChildScrollView(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              Text(l.accountSavedPlaces, style: SgText.title),
-              const SizedBox(height: SgSpace.s3),
-              if (saved.isEmpty)
-                Text(l.accountNoSavedPlaces, style: SgText.caption)
-              else
-                for (final f in saved)
-                  Padding(
-                    padding: const EdgeInsets.symmetric(vertical: SgSpace.s2),
-                    child: Text(f.addressText, style: SgText.body),
-                  ),
-            ],
-          ),
-        ),
-      ),
     );
   }
 

@@ -1,5 +1,6 @@
 // ignore: unused_import
 import 'package:intl/intl.dart' as intl;
+
 import 'app_localizations.dart';
 
 // ignore_for_file: type=lint
@@ -848,4 +849,74 @@ class AppLocalizationsHi extends AppLocalizations {
   @override
   String get authSessionExpired =>
       'आपका सत्र समाप्त हो गया है। कृपया फिर से लॉग इन करें।';
+
+  @override
+  String get placeSetHome => 'घर सेट करें';
+
+  @override
+  String get placeSetWork => 'ऑफ़िस सेट करें';
+
+  @override
+  String get placeAdd => 'जगह जोड़ें';
+
+  @override
+  String get placeEdit => 'जगह बदलें';
+
+  @override
+  String get placeSaveThis => 'यह जगह सेव करें';
+
+  @override
+  String get placeSave => 'सेव करें';
+
+  @override
+  String get placeSearchHint => 'पता खोजें';
+
+  @override
+  String get placeDragHint => 'पिन को सही जगह रखने के लिए नक्शा खिसकाएँ';
+
+  @override
+  String get placeLabel => 'इस रूप में सेव करें';
+
+  @override
+  String get placeOther => 'अन्य';
+
+  @override
+  String get placeNameHint => 'नाम, जैसे जिम';
+
+  @override
+  String get placeNameRequired => 'इस जगह को एक नाम दें';
+
+  @override
+  String get placeDeleteTitle => 'यह जगह हटाएँ?';
+
+  @override
+  String placeDeleteBody(String name) {
+    return '$name आपकी सेव की गई जगहों से हटा दी जाएगी।';
+  }
+
+  @override
+  String get placeDelete => 'हटाएँ';
+
+  @override
+  String get placeSaveFailed => 'हम यह जगह सेव नहीं कर सके। फिर से कोशिश करें।';
+
+  @override
+  String get placeDeleteFailed => 'हम यह जगह हटा नहीं सके। फिर से कोशिश करें।';
+
+  @override
+  String get placeLimitHome => 'आपका घर पहले से सेव है। उसे बदलें।';
+
+  @override
+  String get placeLimitWork => 'आपका ऑफ़िस पहले से सेव है। उसे बदलें।';
+
+  @override
+  String placeLimitOther(int count) {
+    return 'आप अधिकतम $count अन्य जगहें सेव कर सकते हैं।';
+  }
+
+  @override
+  String get placeOutsideArea => 'फ़िलहाल हमारे सेवा क्षेत्र से बाहर';
+
+  @override
+  String get placeNoResults => 'कोई जगह नहीं मिली';
 }
