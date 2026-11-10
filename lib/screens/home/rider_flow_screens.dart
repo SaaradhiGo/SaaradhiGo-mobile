@@ -464,10 +464,12 @@ class _SearchingDriverScreenState extends State<SearchingDriverScreen> {
       ],
       note: l.closeAppNote,
       cancelLabel: l.cancelRequest,
-      // Said only when app-config says cancelling costs nothing
-      // (cancel_policy.charges_fee == false). TODO(data): no free-cancel
-      // window (free_cancel_seconds) is configured.
-      cancelNote: market.freeToCancel ? l.freeToCancel : null,
+      // Said only while cancelling really costs nothing: no fee in this
+      // market, or no driver has accepted yet (cancel_policy
+      // .free_before_accept). After acceptance the arriving screen decides.
+      cancelNote: market.freeToCancel || market.freeBeforeAccept
+          ? l.freeToCancel
+          : null,
       onCancel: () => Navigator.of(context).maybePop(),
     );
   }

@@ -90,6 +90,24 @@ void main() {
       final empty = MarketConfig.fromData({});
       expect(empty.currencySymbol, '₹');
     });
+
+    test('free to cancel only while it really is (9 Nov)', () {
+      final feeOn = MarketConfig.fromData({
+        'country': {
+          'code': 'IN',
+          'cancel_policy': {'charges_fee': true, 'free_before_accept': true},
+        },
+      });
+      expect(feeOn.freeToCancel, isFalse);
+      expect(feeOn.freeBeforeAccept, isTrue);
+      final old = MarketConfig.fromData({
+        'country': {
+          'code': 'IN',
+          'cancel_policy': {'charges_fee': true},
+        },
+      });
+      expect(old.freeBeforeAccept, isFalse);
+    });
   });
 
   group('fallback order: fresh -> cached -> built-in', () {
