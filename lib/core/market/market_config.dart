@@ -124,6 +124,7 @@ class MarketConfig {
     this.isBuiltIn = false,
     this.supportPhone,
     this.cancelChargesFee,
+    this.freeBeforeAccept = false,
     this.freeCancelSeconds,
     this.freeWaitMinutes,
     this.refundDays,
@@ -139,6 +140,10 @@ class MarketConfig {
   /// rider anything, so a cancel action may say "Free to cancel". Null: say
   /// nothing about it.
   final bool? cancelChargesFee;
+
+  /// `country.cancel_policy.free_before_accept` (9 Nov): cancelling costs
+  /// nothing until a driver accepts, even where a fee applies after that.
+  final bool freeBeforeAccept;
 
   /// `country.cancel_policy.free_cancel_seconds`; null while there is no
   /// window. TODO(data): no window is configured today.
@@ -389,6 +394,8 @@ class MarketConfig {
       cancelChargesFee: _map(country['cancel_policy'])['charges_fee'] is bool
           ? _map(country['cancel_policy'])['charges_fee'] as bool
           : null,
+      freeBeforeAccept:
+          _map(country['cancel_policy'])['free_before_accept'] == true,
       freeCancelSeconds: _int(
         _map(country['cancel_policy'])['free_cancel_seconds'],
       ),
