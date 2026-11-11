@@ -1,0 +1,324 @@
+/// Rider-facing fare transparency.
+///
+/// This was a finished widget sitting unrendered inside rider_flow_screens.dart
+/// behind an `ignore_for_file: unused_element`. The booking screen showed a
+/// rider one number per vehicle type and nothing about how it was reached, even
+/// though `/ride/estimate-fare/` already returns the components.
+///
+/// It reads the server's numbers and does no arithmetic of its own. Fare
+/// computation belongs on the server -- the backend comment on `estimate_fare`
+/// is explicit that trusting client-supplied distance was the audit's primary
+/// fare-tampering vector, and a second implementation here would be a second
+/// answer to the same question.
+///
+/// Nothing on screen names an internal concept. A rider sees "Base fare" and
+/// "Busy-time surcharge", never FarePricing, RateCard or fare_basis.
+library;
+
+import 'package:flutter/material.dart';
+
+import '../utils/money.dart';
+
+import '../ui/sg_tokens.dart';
+import '../ui/sg_text.dart';
+
+/// Formats a money value that may arrive as a String, an int or a double.
+///
+/// DRF serialises Decimal as a String by default, so a breakdown field is
+/// usually `"42.50"` and occasionally a number. The previous version of this
+/// widget compared `fareBreakdown['discount'] > 0` directly, which throws at
+/// runtime the moment the server sends the String it actually sends.
+/// [currencyCode] is an ISO 4217 code from the quote, not a symbol. The
+/// parameter used to be `String currency = '₹'` -- a symbol with a hardcoded
+/// Indian default -- which is the same mistake the booking screen made.
+String? _money(dynamic raw, {String? currencyCode}) =>
+    formatMoney(raw, currencyCode);
+
+/// True only when [raw] parses to a number strictly greater than zero.
+bool _isPositive(dynamic raw) {
+  if (raw == null) return false;
+  final value = raw is num ? raw.toDouble() : double.tryParse(raw.toString());
+  return value != null && value > 0;
+}
+
+/// A single labelled amount.
+class FareLine extends StatelessWidget {
+  const FareLine(
+    this.label,
+    this.value, {
+    super.key,
+    Color? color,
+    this.bold = false,
+    this.note,
+  }) : _color = color;
+
+  final String label;
+  final String value;
+  final Color? _color;
+  Color get color => _color ?? SgColors.ink;
+  final bool bold;
+
+  /// Optional smaller line under the label, for explaining a charge rather
+  /// than leaving the rider to guess what it is.
+  final String? note;
+
+  @override
+  Widget build(BuildContext context) {
+    final style = TextStyle(
+      color: color,
+      fontSize: bold ? SgText.sizeTitle : SgText.sizeBody,
+      fontWeight: bold ? FontWeight.w600 : FontWeight.w400,
+    );
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 6),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(label, style: style),
+                if (note != null)
+                  Padding(
+                    padding: const EdgeInsets.only(top: 2),
+                    child: Text(
+                      note!,
+                      style: TextStyle(
+                        color: SgColors.inkMuted,
+                        fontSize: SgText.sizeSmall,
+                        fontWeight: FontWeight.w400,
+                      ),
+                    ),
+                  ),
+              ],
+            ),
+          ),
+          const SizedBox(width: 12),
+          Text(value, style: style),
+        ],
+      ),
+    );
+  }
+}
+
+/// The breakdown panel.
+///
+/// [fareData] is a `/ride/estimate-fare/` response or a trip detail payload.
+/// Both carry `estimated_fare`/`total_fare` and a `fare_breakdown` map.
+///
+/// Every line is null-guarded, so a field the server does not send simply does
+/// not appear rather than rendering a zero the rider would read as a real
+/// charge. `waiting_fare` and `taxes` are not in the quote response today; they
+/// will render the day it includes them, with no change here.
+class FareBreakdown extends StatelessWidget {
+  const FareBreakdown({super.key, this.fareData, this.showHeading = true});
+
+  final Map<String, dynamic>? fareData;
+  final bool showHeading;
+
+  @override
+  Widget build(BuildContext context) {
+    final breakdown = fareData?['fare_breakdown'] as Map<String, dynamic>?;
+    // One currency for the whole panel: every line in a quote is denominated
+    // in the currency of that quote.
+    final currencyCode = fareData?['currency'] as String?;
+    final total = formatServerMoney(
+      fareData?['total_fare'] ?? fareData?['estimated_fare'],
+      currencyCode,
+    );
+
+    final lines = <Widget>[];
+
+    void add(String label, dynamic raw, {String? note, Color? color}) {
+      final formatted = _money(raw, currencyCode: currencyCode);
+      if (formatted == null) return;
+      lines.add(
+        FareLine(label, formatted, note: note, color: color ?? SgColors.ink),
+      );
+    }
+
+    if (breakdown != null) {
+      add('Base fare', breakdown['base_fare'], note: 'Charged on every trip');
+      add(
+        'Distance',
+        breakdown['distance_fare'],
+        note: 'For the distance travelled',
+      );
+      add('Time', breakdown['time_fare'], note: 'For the time the trip takes');
+      add(
+        'Waiting',
+        breakdown['waiting_fare'],
+        note: 'If your driver waits at pickup',
+      );
+      add('Taxes and fees', breakdown['taxes']);
+
+      // Surge is disclosed, not hidden. A rider paying a multiplier is entitled
+      // to be told, and India's Motor Vehicles Aggregator Guidelines 2020 both
+      // cap surge and require it to be shown. Only rendered when it is actually
+      // above 1x, so an ordinary trip is not cluttered by "1.0x".
+      final surge = breakdown['surge_multiplier'];
+      final surgeValue = surge is num
+          ? surge.toDouble()
+          : double.tryParse(surge?.toString() ?? '');
+      if (surgeValue != null && surgeValue > 1.0) {
+        lines.add(
+          FareLine(
+            'Busy-time surcharge',
+            '${surgeValue.toStringAsFixed(1)}x',
+            note: 'Demand is high right now, so fares are raised',
+            color: SgColors.goldText,
+          ),
+        );
+      }
+
+      // A minimum fare that has kicked in is the difference between the rider's
+      // arithmetic and ours, so it gets said out loud -- but only once. When the
+      // server sends an explicit `minimum_fare` adjustment with the actual uplift,
+      // that line is strictly better than this valueless flag, so this one stands
+      // down rather than showing the same fact twice.
+      final adjustmentCodes = <String>{
+        for (final a
+            in (fareData?['fare_adjustments'] is List
+                ? fareData!['fare_adjustments'] as List
+                : const []))
+          if (a is Map && a['code'] != null) a['code'].toString(),
+      };
+      if (breakdown['min_fare_applied'] == true &&
+          !adjustmentCodes.contains('minimum_fare')) {
+        lines.add(
+          const FareLine(
+            'Minimum fare applied',
+            '',
+            note: 'Short trips are charged a minimum',
+          ),
+        );
+      }
+
+      // Named adjustment lines from the server that close the gap between the
+      // metered components and the amount charged.
+      //
+      // Without these the panel showed base + distance + time beside a total they
+      // did not sum to -- QA trip 45 displayed 60.00 + 55.59 + 19.62 next to a
+      // charged 135.22. A rider who adds up an itemised fare and gets a different
+      // number has been handed a reason to distrust the whole receipt.
+      //
+      // The server decides what these are and what they are called; this widget
+      // renders them and does no arithmetic of its own.
+      final adjustments = fareData?['fare_adjustments'];
+      if (adjustments is List) {
+        for (final raw in adjustments) {
+          if (raw is! Map) continue;
+          final amount = _money(raw['amount'], currencyCode: currencyCode);
+          if (amount == null) continue;
+          final label = (raw['label'] ?? raw['code'] ?? 'Adjustment')
+              .toString();
+          final code = (raw['code'] ?? '').toString();
+          lines.add(
+            FareLine(
+              label,
+              amount,
+              note: code == 'rounding'
+                  ? 'Rounded to the nearest paisa'
+                  : (code == 'minimum_fare'
+                        ? 'Short trips are charged a minimum'
+                        : null),
+              color: code == 'surge' ? SgColors.goldText : SgColors.ink,
+            ),
+          );
+        }
+      }
+
+      // Promotions are not live. `_isPositive` means an inactive promo sending
+      // "0.00" cannot render a "Promo discount" line worth nothing, which would
+      // read as a broken promise.
+      if (_isPositive(breakdown['discount'])) {
+        lines.add(
+          FareLine(
+            'Promo discount',
+            '-${_money(breakdown['discount'], currencyCode: currencyCode)}',
+            color: SgColors.goldText,
+          ),
+        );
+      }
+
+      // US (additive tax): the sales tax and the per-trip regulatory fee are
+      // added on top of the fare and are collected and remitted by SaaradhiGo.
+      // They are shown apart from the fare, never as part of it. India's
+      // quotes carry `tax_mode: inclusive`, which adds no line here.
+      if (breakdown['tax_mode']?.toString() == 'additive') {
+        const note = 'Collected and remitted by SaaradhiGo';
+        if (_isPositive(breakdown['tax_amount'])) {
+          final label =
+              (breakdown['tax_label']?.toString().trim().isNotEmpty ?? false)
+              ? breakdown['tax_label'].toString()
+              : 'Sales tax';
+          final pct = breakdown['tax_percent']?.toString();
+          add(
+            pct == null || pct.isEmpty ? label : '$label ($pct%)',
+            breakdown['tax_amount'],
+            note: note,
+          );
+        }
+        if (_isPositive(breakdown['per_trip_fee'])) {
+          add('Regulatory fee', breakdown['per_trip_fee'], note: note);
+        }
+      }
+    }
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        if (showHeading)
+          Padding(
+            padding: EdgeInsets.only(bottom: 4),
+            child: Text(
+              'Fare details',
+              style: TextStyle(
+                color: SgColors.ink,
+                fontSize: SgText.sizeBody,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ),
+        ...lines,
+        if (lines.isNotEmpty) Divider(color: SgColors.lineStrong, height: 20),
+        FareLine('Estimated total', total ?? '—', bold: true),
+        Padding(
+          padding: EdgeInsets.only(top: 6),
+          child: Text(
+            'An estimate. The final fare can change if the route or '
+            'waiting time does.',
+            style: TextStyle(
+              color: SgColors.inkMuted,
+              fontSize: SgText.sizeSmall,
+              fontWeight: FontWeight.w400,
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+/// Shows [FareBreakdown] in a bottom sheet.
+Future<void> showFareBreakdownSheet(
+  BuildContext context,
+  Map<String, dynamic>? fareData,
+) {
+  return showModalBottomSheet<void>(
+    context: context,
+    backgroundColor: SgColors.bg200,
+    isScrollControlled: true,
+    shape: const RoundedRectangleBorder(
+      borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+    ),
+    builder: (context) => SafeArea(
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(20, 16, 20, 20),
+        child: SingleChildScrollView(child: FareBreakdown(fareData: fareData)),
+      ),
+    ),
+  );
+}

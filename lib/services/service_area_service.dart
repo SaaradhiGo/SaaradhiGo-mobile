@@ -1,8 +1,16 @@
+import '../utils/position.dart';
 import 'dart:math' as math;
 import 'package:flutter/foundation.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:latlong2/latlong.dart';
+import '../core/market/market_config_store.dart';
 
+/// Is a point inside the area we serve?
+///
+/// The live cities and their service-area boxes come from app-config. The
+/// Hyderabad polygon below is only the BUILT-IN fallback, used while the server
+/// has named no city (no fresh or cached config yet), so behaviour is today's.
+/// The server still has the final say on every booking.
 class ServiceAreaService {
   static const LatLng hyderabadCenter = LatLng(17.3850, 78.4867);
 
@@ -85,7 +93,15 @@ class ServiceAreaService {
     return false;
   }
 
-  static bool isWithinHyderabad(LatLng location) {
+  /// Configured live cities first; built-in Hyderabad area when none are known.
+  static bool isWithinServiceArea(LatLng location, {MarketConfigStore? store}) {
+    final configured = (store ?? MarketConfigStore.instance)
+        .insideConfiguredArea(location);
+    if (configured != null) return configured;
+    return _isWithinBuiltInArea(location);
+  }
+
+  static bool _isWithinBuiltInArea(LatLng location) {
     if (_isPointInsidePolygon(location, hyderabadPolygon)) {
       return true;
     }
@@ -125,26 +141,23 @@ class ServiceAreaService {
         return false;
       }
 
-      final position = await Geolocator.getCurrentPosition(
-        locationSettings: const LocationSettings(
-          accuracy: LocationAccuracy.high,
-        ),
-      );
+      final position = await currentOrLastKnownPosition();
+      if (position == null) return false;
 
       final location = LatLng(position.latitude, position.longitude);
       debugPrint(
         'Current location: lat=${location.latitude}, lng=${location.longitude}',
       );
 
-      return isWithinHyderabad(location);
+      return isWithinServiceArea(location);
     } catch (e) {
       debugPrint('Error checking location: $e');
       return false;
     }
   }
 
-  static bool isPickupWithinHyderabad(LatLng? pickupLatLng) {
+  static bool isPickupWithinServiceArea(LatLng? pickupLatLng) {
     if (pickupLatLng == null) return false;
-    return isWithinHyderabad(pickupLatLng);
+    return isWithinServiceArea(pickupLatLng);
   }
 }

@@ -1,9 +1,35 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:vahango/providers/auth_provider.dart';
-import 'package:vahango/services/api_service.dart';
+import 'package:saaradhigo_rider/providers/auth_provider.dart';
+import 'package:saaradhigo_rider/services/api_service.dart';
 
 class _FakeAuthApiClient implements AuthApiClient {
+  // Email auth. Recorded so a test can assert what the provider sent, and
+  // scripted so a test can drive the error branches.
+  String? emailLoginEmail;
+  String? emailLoginPassword;
+  String? emailLoginMfaCode;
+  Map<String, dynamic>? emailLoginResponse;
+  String? passwordResetEmail;
+  bool passwordResetResult = true;
+
+  @override
+  Future<Map<String, dynamic>?> emailLogin({
+    required String email,
+    required String password,
+    String? mfaCode,
+  }) async {
+    emailLoginEmail = email;
+    emailLoginPassword = password;
+    emailLoginMfaCode = mfaCode;
+    return emailLoginResponse;
+  }
+
+  @override
+  Future<bool> requestPasswordReset(String email) async {
+    passwordResetEmail = email;
+    return passwordResetResult;
+  }
   Map<String, dynamic>? verifyOtpResponse;
   Map<String, dynamic>? updateProfileResponse;
   bool clearSessionCalled = false;
@@ -31,6 +57,7 @@ class _FakeAuthApiClient implements AuthApiClient {
     required String street,
     required String city,
     required String zipCode,
+    String? homeCity,
   }) async {
     return updateProfileResponse;
   }
@@ -39,10 +66,19 @@ class _FakeAuthApiClient implements AuthApiClient {
   Future<Map<String, dynamic>?> verifyOtpAndLogin(
     String phoneNumber,
     String otp,
-    String deviceToken,
+    String? deviceToken,
   ) async {
     return verifyOtpResponse;
   }
+  @override
+  Future<bool> registerPushToken(String token) async {
+    registeredPushTokens.add(token);
+    return true;
+  }
+
+  /// Tokens the app asked the server to store after an FCM rotation.
+  final List<String> registeredPushTokens = <String>[];
+
 }
 
 void main() {

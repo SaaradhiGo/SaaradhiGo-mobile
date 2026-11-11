@@ -1,13 +1,40 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:go_router/go_router.dart';
-import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:vahango/providers/auth_provider.dart';
-import 'package:vahango/screens/profile/privacy_security_screen.dart';
-import 'package:vahango/services/api_service.dart';
+import 'package:saaradhigo_rider/providers/auth_provider.dart';
+import 'package:saaradhigo_rider/screens/profile/privacy_security_screen.dart';
+import 'package:saaradhigo_rider/services/api_service.dart';
+
+import 'support/screen_test_harness.dart';
 
 class _FakeAuthApiClient implements AuthApiClient {
+  // Email auth. Recorded so a test can assert what the provider sent, and
+  // scripted so a test can drive the error branches.
+  String? emailLoginEmail;
+  String? emailLoginPassword;
+  String? emailLoginMfaCode;
+  Map<String, dynamic>? emailLoginResponse;
+  String? passwordResetEmail;
+  bool passwordResetResult = true;
+
+  @override
+  Future<Map<String, dynamic>?> emailLogin({
+    required String email,
+    required String password,
+    String? mfaCode,
+  }) async {
+    emailLoginEmail = email;
+    emailLoginPassword = password;
+    emailLoginMfaCode = mfaCode;
+    return emailLoginResponse;
+  }
+
+  @override
+  Future<bool> requestPasswordReset(String email) async {
+    passwordResetEmail = email;
+    return passwordResetResult;
+  }
   @override
   Future<void> clearSession() async {}
 
@@ -29,6 +56,7 @@ class _FakeAuthApiClient implements AuthApiClient {
     required String street,
     required String city,
     required String zipCode,
+    String? homeCity,
   }) async {
     return null;
   }
@@ -37,10 +65,19 @@ class _FakeAuthApiClient implements AuthApiClient {
   Future<Map<String, dynamic>?> verifyOtpAndLogin(
     String phoneNumber,
     String otp,
-    String deviceToken,
+    String? deviceToken,
   ) async {
     return null;
   }
+  @override
+  Future<bool> registerPushToken(String token) async {
+    registeredPushTokens.add(token);
+    return true;
+  }
+
+  /// Tokens the app asked the server to store after an FCM rotation.
+  final List<String> registeredPushTokens = <String>[];
+
 }
 
 GoRouter _buildRouter({String initialLocation = '/privacy-security'}) {
@@ -75,8 +112,8 @@ Future<void> _pumpScreen(
   String initialLocation = '/privacy-security',
 }) async {
   await tester.pumpWidget(
-    ChangeNotifierProvider<AuthProvider>.value(
-      value: provider,
+    wrapWithRiderProviders(
+      auth: provider,
       child: MaterialApp.router(
         routerConfig: _buildRouter(initialLocation: initialLocation),
       ),
@@ -87,11 +124,13 @@ Future<void> _pumpScreen(
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
+  setUp(stubStartupPluginChannels);
 
   group('PrivacySecurityScreen redesign', () {
     testWidgets('renders sections, rows, toggles, and bottom nav', (
       tester,
     ) async {
+      usePhoneSurface(tester);
       final provider = await _buildProvider({});
       await _pumpScreen(tester, provider);
 
@@ -101,7 +140,8 @@ void main() {
       expect(find.text('Two-Factor Authentication'), findsOneWidget);
       expect(find.text('Change Password'), findsOneWidget);
       expect(find.text('Location Permissions'), findsOneWidget);
-      expect(find.text('Marketing Preferences'), findsOneWidget);
+      expect(find.text('Notification Preferences'), findsOneWidget);
+      expect(find.text('Marketing Preferences'), findsNothing);
       expect(find.text('Manage My Data'), findsOneWidget);
 
       expect(find.byKey(const Key('privacy-back')), findsOneWidget);
@@ -110,19 +150,23 @@ void main() {
       expect(find.byKey(const Key('privacy-nav-wallet')), findsOneWidget);
       expect(find.byKey(const Key('privacy-nav-profile')), findsOneWidget);
 
-      final twoFactorSwitch = tester.widget<Switch>(
-        find.byKey(const Key('privacy-toggle-two-factor')),
-      );
-      final marketingSwitch = tester.widget<Switch>(
-        find.byKey(const Key('privacy-toggle-marketing')),
-      );
+      final twoFactorSwitch = tester.widget<Switch>(find.descendant(
+        of: find.byKey(const Key('privacy-toggle-two-factor')),
+        matching: find.byType(Switch),
+      ));
       expect(twoFactorSwitch.value, isTrue);
-      expect(marketingSwitch.value, isFalse);
+      // One notification screen, not a second local switch beside it.
+      expect(
+        find.byKey(const Key('privacy-row-notification-preferences')),
+        findsOneWidget,
+      );
+      expect(find.byKey(const Key('privacy-toggle-marketing')), findsNothing);
     });
 
     testWidgets('back button routes to /home?tab=3 when no back stack', (
       tester,
     ) async {
+      usePhoneSurface(tester);
       final provider = await _buildProvider({});
       await _pumpScreen(tester, provider);
 
@@ -133,6 +177,7 @@ void main() {
     });
 
     testWidgets('row taps show temporary snackbar feedback', (tester) async {
+      usePhoneSurface(tester);
       final provider = await _buildProvider({});
       await _pumpScreen(tester, provider);
 
@@ -161,6 +206,7 @@ void main() {
     });
 
     testWidgets('bottom nav routes to /home?tab=0..3', (tester) async {
+      usePhoneSurface(tester);
       final targets = <String, int>{
         'privacy-nav-home': 0,
         'privacy-nav-history': 1,
@@ -182,29 +228,43 @@ void main() {
     testWidgets('toggle updates persist across provider rebuild', (
       tester,
     ) async {
+      usePhoneSurface(tester);
       final provider = await _buildProvider({});
       await _pumpScreen(tester, provider);
 
-      await tester.tap(find.byKey(const Key('privacy-toggle-two-factor')));
-      await tester.pumpAndSettle();
-      await tester.tap(find.byKey(const Key('privacy-toggle-marketing')));
-      await tester.pumpAndSettle();
+      // Scrolled into view before tapping. On a phone-sized surface these rows
+      // are below the fold, so tap() computed a centre outside the viewport and
+      // silently missed -- "the widget is actually off-screen, or another widget
+      // is obscuring it". The toggle never changed, and the failure looked like a
+      // persistence bug.
+      Future<void> toggle(String key) async {
+        // Tap the Switch, not the row that carries the key. The key identifies
+        // _PrivacyToggleRow, whose centre is in its title text -- getCenter()
+        // resolved to a point the Switch does not occupy, so the tap missed with
+        // "the widget is actually off-screen, or another widget is obscuring it"
+        // and the toggle never changed. The failure then looked like a
+        // persistence bug rather than a mis-aimed tap.
+        final row = find.byKey(Key(key));
+        final control = find.descendant(of: row, matching: find.byType(Switch));
+        await tester.ensureVisible(control);
+        await tester.pumpAndSettle();
+        await tester.tap(control);
+        await tester.pumpAndSettle();
+      }
+
+      await toggle('privacy-toggle-two-factor');
 
       expect(provider.twoFactorEnabled, isFalse);
-      expect(provider.marketingOptIn, isTrue);
 
       final rehydratedProvider = AuthProvider(apiService: _FakeAuthApiClient());
       await rehydratedProvider.initializationFuture;
       await _pumpScreen(tester, rehydratedProvider);
 
-      final twoFactorSwitch = tester.widget<Switch>(
-        find.byKey(const Key('privacy-toggle-two-factor')),
-      );
-      final marketingSwitch = tester.widget<Switch>(
-        find.byKey(const Key('privacy-toggle-marketing')),
-      );
+      final twoFactorSwitch = tester.widget<Switch>(find.descendant(
+        of: find.byKey(const Key('privacy-toggle-two-factor')),
+        matching: find.byType(Switch),
+      ));
       expect(twoFactorSwitch.value, isFalse);
-      expect(marketingSwitch.value, isTrue);
     });
   });
 }

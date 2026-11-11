@@ -1,12 +1,16 @@
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'dart:async';
+import '../services/session_events.dart';
 import '../services/wallet_service.dart';
 import '../services/payment_service.dart';
 import '../services/models/wallet_model.dart';
 
 class WalletProvider extends ChangeNotifier {
-  final WalletService _walletService = WalletService();
+  WalletProvider({WalletService? walletService})
+    : _walletService = walletService ?? WalletService();
+
+  final WalletService _walletService;
   final PaymentService _paymentService = PaymentService();
 
   Wallet? _wallet;
@@ -21,36 +25,60 @@ class WalletProvider extends ChangeNotifier {
 
   double get balance => _wallet?.balance ?? 0.0;
 
+  bool _balanceFailed = false;
+  bool _transactionsLoaded = false;
+
+  /// The balance could not be loaded (and none is on screen): show the error
+  /// with Try again, never a balance of zero.
+  bool get balanceFailed => _balanceFailed;
+
+  /// The transactions list came back from the server at least once, so an
+  /// empty list really means "No transactions yet".
+  bool get transactionsLoaded => _transactionsLoaded;
+
+  /// Loads the balance and the transactions independently, each capped at
+  /// kLoadTimeout: one failing does not hide the other. A refused session
+  /// is handled by ApiService (sign-out to Log in).
   Future<void> refreshWallet() async {
-    _isLoading = true;
-    _errorMessage = null;
-    notifyListeners();
-
-    try {
-      final prefs = await SharedPreferences.getInstance();
-      final token = prefs.getString('access_token');
-
-      if (token == null) {
-        _errorMessage = 'Authentication token not found. Please log in again.';
-        _isLoading = false;
-        notifyListeners();
-        return;
-      }
-
-      final results = await Future.wait([
-        _walletService.fetchWalletBalance(token),
-        _walletService.fetchTransactionHistory(token),
-      ]);
-
-      _wallet = results[0] as Wallet?;
-      _transactions = results[1] as List<Transaction>;
-    } catch (e) {
-      _errorMessage = 'Failed to load wallet data. Please try again later.';
-      debugPrint('WalletProvider Error: $e');
-    } finally {
+    final prefs = await SharedPreferences.getInstance();
+    if (prefs.getString('access_token') == null) {
+      // No session at all: say so, and let the app take the rider to Log in.
+      _balanceFailed = _wallet == null;
+      _errorMessage = "We couldn't load your transactions.";
       _isLoading = false;
       notifyListeners();
+      SessionEvents.emitExpired();
+      return;
     }
+
+    _isLoading = true;
+    _errorMessage = null;
+    _balanceFailed = false;
+    notifyListeners();
+
+    await Future.wait([
+      _walletService.loadBalance().then((w) => _wallet = w).catchError((
+        Object e,
+      ) {
+        debugPrint('Wallet balance failed: $e');
+        if (_wallet == null) _balanceFailed = true;
+        return _wallet ?? Wallet(balance: 0);
+      }),
+      _walletService
+          .loadTransactions()
+          .then((t) {
+            _transactions = t;
+            _transactionsLoaded = true;
+            return t;
+          })
+          .catchError((Object e) {
+            debugPrint('Wallet transactions failed: $e');
+            _errorMessage = "We couldn't load your transactions.";
+            return _transactions;
+          }),
+    ]);
+    _isLoading = false;
+    notifyListeners();
   }
 
   Future<bool> topUp(double amount, BuildContext context) async {
@@ -110,15 +138,13 @@ class WalletProvider extends ChangeNotifier {
           context: context,
         );
 
-        if (successResponse != null &&
-            successResponse.paymentId != null &&
-            successResponse.signature != null) {
+        if (successResponse != null) {
           // Verify payment
           final verifyResult = await _walletService.verifyTopUpPayment(
             token,
             orderId,
-            successResponse.paymentId!,
-            successResponse.signature!,
+            successResponse.paymentId,
+            successResponse.signature,
           );
 
           if (verifyResult != null &&
@@ -139,46 +165,33 @@ class WalletProvider extends ChangeNotifier {
     }
   }
 
-  /// Pay for a ride directly from wallet
-  /// Returns: Map with new_balance and transaction_id on success, null on failure
-  Future<Map<String, dynamic>?> payForRide({
-    required double amount,
-    required int tripId,
-    String? purpose,
-  }) async {
+  /// Pay for a ride directly from the wallet. The server picks the amount;
+  /// the outcome carries what it charged.
+  Future<WalletPayOutcome> payForRide({required int tripId}) async {
     try {
       final prefs = await SharedPreferences.getInstance();
       final token = prefs.getString('access_token');
-      if (token == null) return null;
+      if (token == null) return const WalletPayOutcome(paid: false);
 
-      final idempotencyKey =
-          'trip_${tripId}_${DateTime.now().millisecondsSinceEpoch}';
-
-      final result = await _walletService.directWalletPayment(
-        token: token,
-        amount: amount,
-        purpose: purpose ?? 'Trip payment',
-        referenceId: tripId.toString(),
-        idempotencyKey: idempotencyKey,
+      final outcome = WalletPayOutcome.fromResponse(
+        await _walletService.directWalletPayment(token: token, tripId: tripId),
       );
 
-      if (result != null && result['status'] == 'success') {
-        if (result['data'] != null) {
-          final newBalance = result['data']['new_balance'];
-          if (_wallet != null && newBalance != null) {
-            _wallet = Wallet(
-              balance:
-                  double.tryParse(newBalance.toString()) ?? _wallet!.balance,
-            );
-            notifyListeners();
-          }
+      if (outcome.paid) {
+        final newBalance = outcome.newBalance;
+        if (_wallet != null && newBalance != null) {
+          _wallet = Wallet(
+            balance: double.tryParse(newBalance.toString()) ?? _wallet!.balance,
+            pendingReview: _wallet!.pendingReview,
+            currency: _wallet!.currency,
+          );
+          notifyListeners();
         }
-        return result['data'];
       }
-      return result;
+      return outcome;
     } catch (e) {
       debugPrint('payForRide error: $e');
-      return null;
+      return const WalletPayOutcome(paid: false);
     }
   }
 }

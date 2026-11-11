@@ -1,11 +1,14 @@
+import '../../ui/appearance_settings.dart' show sgStrings;
 import 'dart:async';
 
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../services/chat_service.dart';
+
+import '../../ui/sg_tokens.dart';
+import '../../ui/sg_text.dart';
 
 /// In-trip chat screen.
 ///
@@ -112,24 +115,21 @@ class _TripChatScreenState extends State<TripChatScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFF15140F),
+      backgroundColor: SgColors.bg000,
       appBar: AppBar(
-        backgroundColor: const Color(0xFF15140F),
+        backgroundColor: SgColors.bg000,
         title: Text(
           'Trip chat',
-          style: GoogleFonts.inter(
-            color: Colors.white,
-            fontWeight: FontWeight.w600,
-          ),
+          style: TextStyle(color: SgColors.ink, fontWeight: FontWeight.w600),
         ),
-        iconTheme: const IconThemeData(color: Colors.white),
+        iconTheme: IconThemeData(color: SgColors.ink),
       ),
       body: Column(
         children: [
           Expanded(
             child: _loading
-                ? const Center(
-                    child: CircularProgressIndicator(color: Color(0xFFEEBD2B)),
+                ? Center(
+                    child: CircularProgressIndicator(color: SgColors.gold500),
                   )
                 : ListView.builder(
                     controller: _scroll,
@@ -156,21 +156,21 @@ class _TripChatScreenState extends State<TripChatScreen> {
           SafeArea(
             top: false,
             child: Container(
-              color: const Color(0xFF1E1B14),
+              color: SgColors.bg200,
               padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
               child: Row(
                 children: [
                   Expanded(
                     child: TextField(
                       controller: _ctrl,
-                      style: const TextStyle(color: Colors.white),
+                      style: TextStyle(color: SgColors.ink),
                       maxLines: 4,
                       minLines: 1,
                       decoration: InputDecoration(
-                        hintText: 'Message your driver',
-                        hintStyle: const TextStyle(color: Color(0xFF94A3B8)),
+                        hintText: sgStrings(context).messageDriverHint,
+                        hintStyle: TextStyle(color: SgColors.inkMuted),
                         filled: true,
-                        fillColor: const Color(0xFF24211C),
+                        fillColor: SgColors.bg300,
                         border: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(20),
                           borderSide: BorderSide.none,
@@ -184,7 +184,7 @@ class _TripChatScreenState extends State<TripChatScreen> {
                   ),
                   const SizedBox(width: 8),
                   IconButton(
-                    icon: const Icon(Icons.send, color: Color(0xFFEEBD2B)),
+                    icon: Icon(Icons.send, color: SgColors.goldText),
                     onPressed: _send,
                   ),
                 ],
@@ -217,18 +217,18 @@ class _Bubble extends StatelessWidget {
         child: Center(
           child: Text(
             body,
-            style: GoogleFonts.inter(
-              color: const Color(0xFF94A3B8),
+            style: TextStyle(
+              color: SgColors.inkMuted,
               fontStyle: FontStyle.italic,
-              fontSize: 12,
+              fontSize: SgText.sizeSmall,
             ),
           ),
         ),
       );
     }
     final align = isMine ? Alignment.centerRight : Alignment.centerLeft;
-    final bg = isMine ? const Color(0xFFEEBD2B) : const Color(0xFF24211C);
-    final fg = isMine ? Colors.black : Colors.white;
+    final bg = isMine ? SgColors.gold500 : SgColors.bg300;
+    final fg = isMine ? SgColors.onGold : SgColors.ink;
     return Align(
       alignment: align,
       child: Container(
@@ -244,14 +244,17 @@ class _Bubble extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(body, style: GoogleFonts.inter(color: fg, fontSize: 14)),
+            Text(
+              body,
+              style: TextStyle(color: fg, fontSize: SgText.sizeSmall),
+            ),
             if (createdAt != null) ...[
               const SizedBox(height: 4),
               Text(
                 _formatTime(createdAt!),
-                style: GoogleFonts.inter(
+                style: TextStyle(
                   color: fg.withValues(alpha: 0.6),
-                  fontSize: 10,
+                  fontSize: SgText.sizeSmall,
                 ),
               ),
             ],

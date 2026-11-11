@@ -3,6 +3,9 @@ import 'package:go_router/go_router.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:geolocator/geolocator.dart';
+import '../../ui/sg_brand.dart';
+import '../../ui/sg_text.dart';
+import '../../ui/sg_tokens.dart';
 
 class SplashScreen extends StatefulWidget {
   const SplashScreen({super.key});
@@ -83,104 +86,28 @@ class _SplashScreenState extends State<SplashScreen> {
     );
   }
 
+  /// The badge, "Saaradhi Go" and a plain spinner. No progress figure: the app
+  /// does not know how far along it is, so it does not pretend to.
   Widget _buildInitializingPage() {
-    final colorScheme = Theme.of(context).colorScheme;
-    return Column(
-      mainAxisAlignment: MainAxisAlignment.center,
-      children: [
-        const Spacer(),
-        Container(
-          height: 96,
-          width: 96,
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(16),
-            gradient: LinearGradient(
-              colors: [
-                colorScheme.primary,
-                colorScheme.primary.withValues(alpha: 0.4),
-              ],
+    return Center(
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          const SgBrandBadge(size: 120),
+          const SizedBox(height: SgSpace.s4),
+          Text('Saaradhi Go', style: SgText.brandLockup(32)),
+          const SizedBox(height: SgSpace.s6),
+          SizedBox(
+            width: 28,
+            height: 28,
+            child: CircularProgressIndicator(
+              key: Key('splash_spinner'),
+              strokeWidth: 2.5,
+              color: SgColors.gold500,
             ),
-            boxShadow: [
-              BoxShadow(
-                color: colorScheme.primary.withValues(alpha: 0.2),
-                blurRadius: 24,
-                offset: const Offset(0, 8),
-              ),
-            ],
           ),
-          padding: const EdgeInsets.all(2),
-          child: Container(
-            decoration: BoxDecoration(
-              color: colorScheme.surface,
-              borderRadius: BorderRadius.circular(14),
-            ),
-            child: Icon(Icons.navigation, size: 60, color: colorScheme.primary),
-          ),
-        ),
-        const SizedBox(height: 24),
-        RichText(
-          text: TextSpan(
-            style: TextStyle(
-              fontSize: 36,
-              fontWeight: FontWeight.bold,
-              color: colorScheme.onSurface,
-            ),
-            children: [
-              const TextSpan(text: 'Saaradhi'),
-              TextSpan(
-                text: 'Go',
-                style: TextStyle(color: colorScheme.primary),
-              ),
-            ],
-          ),
-        ),
-        const Spacer(),
-        Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 48, vertical: 48),
-          child: Column(
-            children: [
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Text(
-                    'INITIALIZING',
-                    style: TextStyle(
-                      fontSize: 10,
-                      letterSpacing: 2,
-                      color: colorScheme.onSurface.withValues(alpha: 0.5),
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                  Text(
-                    '64%',
-                    style: TextStyle(
-                      fontSize: 10,
-                      color: colorScheme.primary,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 8),
-              LinearProgressIndicator(
-                value: 0.64,
-                backgroundColor: colorScheme.primary.withValues(alpha: 0.1),
-                color: colorScheme.primary,
-                minHeight: 2,
-              ),
-              const SizedBox(height: 24),
-              Text(
-                'PRIORITIZING DRIVERS & RIDERS',
-                style: TextStyle(
-                  fontSize: 11,
-                  letterSpacing: 3,
-                  color: colorScheme.onSurface.withValues(alpha: 0.4),
-                ),
-              ),
-            ],
-          ),
-        ),
-      ],
+        ],
+      ),
     );
   }
 
@@ -228,8 +155,8 @@ class _SplashScreenState extends State<SplashScreen> {
                     Text(
                       'Our Inspiration',
                       style: TextStyle(
-                        fontSize: 32,
-                        fontWeight: FontWeight.bold,
+                        fontSize: SgText.sizeDisplay,
+                        fontWeight: FontWeight.w600,
                         color: colorScheme.onSurface,
                       ),
                     ),
@@ -238,7 +165,7 @@ class _SplashScreenState extends State<SplashScreen> {
                       "We believe a happy driver provides the best service. That's why we prioritize driver welfare.",
                       textAlign: TextAlign.center,
                       style: TextStyle(
-                        fontSize: 16,
+                        fontSize: SgText.sizeBody,
                         color: colorScheme.onSurface.withValues(alpha: 0.7),
                       ),
                     ),
@@ -281,7 +208,7 @@ class _SplashScreenState extends State<SplashScreen> {
                         children: const [
                           Text(
                             'Next',
-                            style: TextStyle(fontWeight: FontWeight.bold),
+                            style: TextStyle(fontWeight: FontWeight.w600),
                           ),
                           SizedBox(width: 8),
                           Icon(Icons.arrow_forward, size: 18),
@@ -333,8 +260,8 @@ class _SplashScreenState extends State<SplashScreen> {
           Text(
             'Built for You',
             style: TextStyle(
-              fontSize: 32,
-              fontWeight: FontWeight.bold,
+              fontSize: SgText.sizeDisplay,
+              fontWeight: FontWeight.w600,
               color: colorScheme.onSurface,
             ),
           ),
@@ -345,7 +272,7 @@ class _SplashScreenState extends State<SplashScreen> {
               "From seamless bookings to premium rides, every detail is crafted for your comfort and safety.",
               textAlign: TextAlign.center,
               style: TextStyle(
-                fontSize: 16,
+                fontSize: SgText.sizeBody,
                 color: colorScheme.onSurface.withValues(alpha: 0.7),
               ),
             ),
@@ -375,9 +302,12 @@ class _SplashScreenState extends State<SplashScreen> {
                     borderRadius: BorderRadius.circular(16),
                   ),
                 ),
-                child: const Text(
+                child: Text(
                   'Next',
-                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                  style: TextStyle(
+                    fontSize: SgText.sizeTitle,
+                    fontWeight: FontWeight.w600,
+                  ),
                 ),
               ),
             ),
@@ -435,8 +365,8 @@ class _SplashScreenState extends State<SplashScreen> {
               Text(
                 'Better Together',
                 style: TextStyle(
-                  fontSize: 32,
-                  fontWeight: FontWeight.bold,
+                  fontSize: SgText.sizeDisplay,
+                  fontWeight: FontWeight.w600,
                   color: colorScheme.onSurface,
                 ),
               ),
@@ -447,7 +377,7 @@ class _SplashScreenState extends State<SplashScreen> {
                   "SaaradhiGo is more than an app; it's a commitment to a transparent and fair mobility ecosystem.",
                   textAlign: TextAlign.center,
                   style: TextStyle(
-                    fontSize: 16,
+                    fontSize: SgText.sizeBody,
                     color: colorScheme.onSurface.withValues(alpha: 0.7),
                   ),
                 ),
@@ -470,11 +400,11 @@ class _SplashScreenState extends State<SplashScreen> {
                         borderRadius: BorderRadius.circular(16),
                       ),
                     ),
-                    child: const Text(
+                    child: Text(
                       'Get Started',
                       style: TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.bold,
+                        fontSize: SgText.sizeTitle,
+                        fontWeight: FontWeight.w600,
                       ),
                     ),
                   ),
@@ -490,7 +420,7 @@ class _SplashScreenState extends State<SplashScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Theme.of(context).colorScheme.surface,
+      backgroundColor: SgColors.bg000,
       body: PageView(
         controller: _pageController,
         onPageChanged: (index) {

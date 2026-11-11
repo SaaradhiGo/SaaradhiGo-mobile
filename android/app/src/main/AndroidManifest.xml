@@ -36,13 +36,28 @@
                 <category android:name="android.intent.category.DEFAULT" />
             </intent-filter>
         </activity>
+        <!-- Push notifications show the one-colour badge, not the launcher icon. -->
+        <meta-data
+            android:name="com.google.firebase.messaging.default_notification_icon"
+            android:resource="@drawable/ic_stat_notify" />
         <!-- Don't delete the meta-data below.
              This is used by the Flutter tool to generate GeneratedPluginRegistrant.java -->
         <meta-data
             android:name="flutterEmbedding"
             android:value="2" />
+        <!-- Google Maps Android SDK key.
+             The literal key that used to sit here was committed in the
+             initial commit and is therefore in git history and must be
+             treated as compromised: it needs rotating or restricting in
+             Google Cloud, which removing it from HEAD does not do.
+
+             Since 2026-11-02 (owner decision D1) the app renders maps with
+             the Google Maps SDK. The value is supplied at build time
+             (-Pmaps.apiKey, from the MAPS_API_KEY_ANDROID CI secret) and the
+             key is restricted to this package and the QA signing SHA-1.
+             Never commit a literal key here. -->
         <meta-data android:name="com.google.android.geo.API_KEY"
-            android:value="AIzaSyC7t999s1L9nsUNDptQyihlQ2_wIUyVpLQ"/>
+            android:value="${MAPS_API_KEY}"/>
 
         <service
             android:name="id.flutter.flutter_background_service.BackgroundService"

@@ -10,9 +10,11 @@ import 'package:flutter_cashfree_pg_sdk/utils/cfenums.dart';
 import 'package:flutter_cashfree_pg_sdk/api/cferrorresponse/cferrorresponse.dart';
 import '../core/app_config.dart';
 import 'dart:io' show Platform;
-import 'package:google_fonts/google_fonts.dart';
 
 import 'web_payment_stub.dart' if (dart.library.html) 'web_payment_helper.dart';
+
+import '../ui/sg_tokens.dart';
+import '../ui/sg_text.dart';
 
 class GatewaySuccessResponse {
   final String orderId;
@@ -108,12 +110,12 @@ class PaymentService {
       CFSession session = sessionBuilder.build();
 
       CFThemeBuilder themeBuilder = CFThemeBuilder()
-        ..setNavigationBarBackgroundColorColor('#EEBD2B')
-        ..setNavigationBarTextColor('#FFFFFF')
-        ..setButtonBackgroundColor('#EEBD2B')
-        ..setButtonTextColor('#FFFFFF')
-        ..setPrimaryTextColor('#000000')
-        ..setSecondaryTextColor('#000000');
+        ..setNavigationBarBackgroundColorColor(sgHex(SgColors.gold500))
+        ..setNavigationBarTextColor(sgHex(SgColors.onGold))
+        ..setButtonBackgroundColor(sgHex(SgColors.gold500))
+        ..setButtonTextColor(sgHex(SgColors.onGold))
+        ..setPrimaryTextColor(sgHex(SgColors.black))
+        ..setSecondaryTextColor(sgHex(SgColors.black));
 
       CFTheme theme = themeBuilder.build();
 
@@ -160,20 +162,20 @@ class PaymentService {
   OverlayEntry _createOverlayEntry(BuildContext context) {
     return OverlayEntry(
       builder: (context) => Container(
-        color: Colors.black.withValues(alpha: 0.6),
+        color: SgColors.scrim,
         child: Center(
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              const CircularProgressIndicator(color: Color(0xFFEEBD2B)),
+              CircularProgressIndicator(color: SgColors.gold500),
               const SizedBox(height: 20),
               Material(
                 color: Colors.transparent,
                 child: Text(
                   'Initiating secure payment...',
-                  style: GoogleFonts.inter(
-                    color: Colors.white,
-                    fontSize: 16,
+                  style: TextStyle(
+                    color: SgColors.white,
+                    fontSize: SgText.sizeBody,
                     fontWeight: FontWeight.w600,
                   ),
                 ),

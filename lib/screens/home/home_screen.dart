@@ -1,20 +1,35 @@
-import 'dart:ui';
+import '../../utils/position.dart';
+import '../../ui/sg_layout.dart';
 
-import 'package:cached_network_image_ce/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
-import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
 import 'package:latlong2/latlong.dart';
 import '../../providers/notification_provider.dart';
 import 'package:geolocator/geolocator.dart';
 
+import '../../core/market/market_config_store.dart';
+import '../../ui/account_widgets.dart';
+import '../../ui/home_widgets.dart';
+import '../../ui/sg_appearance.dart';
+import '../../services/home_fares.dart';
+import '../../ui/sg_text.dart';
+import '../../ui/sg_tokens.dart';
+import '../../ui/sg_widgets.dart';
 import '../../providers/auth_provider.dart';
 import '../../providers/map_provider.dart';
 import '../../services/map_service.dart';
+import '../components/market_overlays.dart' show marketOf;
 import '../../screens/components/coming_soon_overlay.dart';
 import 'history_screen.dart';
 import 'wallet_screen.dart';
+import '../../ui/appearance_settings.dart';
+import '../../core/rider_flags.dart';
+import '../../core/maps/sg_map.dart';
+import '../../l10n/app_localizations.dart';
+import '../../services/api_service.dart';
+import '../../ui/home_sheet.dart';
+import '../profile/place_sheet.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key, this.initialTabIndex = 0});
@@ -27,6 +42,8 @@ class HomeScreen extends StatefulWidget {
 
 class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
   late int _tabIndex;
+  final ValueNotifier<bool> _searchOpen = ValueNotifier<bool>(false);
+  final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
   final TextEditingController _pickupController = TextEditingController();
   final TextEditingController _dropController = TextEditingController();
   final FocusNode _pickupFocusNode = FocusNode();
@@ -67,6 +84,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
     _dropController.dispose();
     _pickupFocusNode.dispose();
     _dropFocusNode.dispose();
+    _searchOpen.dispose();
     super.dispose();
   }
 
@@ -142,7 +160,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
       if (!isAutomatic) {
         try {
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
+            SnackBar(
               content: Row(
                 children: [
                   SizedBox(
@@ -150,11 +168,11 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                     height: 20,
                     child: CircularProgressIndicator(
                       strokeWidth: 2,
-                      color: Color(0xFFEEBD2B),
+                      color: SgColors.gold500,
                     ),
                   ),
                   SizedBox(width: 16),
-                  Text('Resuming your active ride...'),
+                  Text(sgStrings(context).resumingRide),
                 ],
               ),
               duration: Duration(seconds: 1),
@@ -214,24 +232,21 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        backgroundColor: const Color(0xFF1E1C18),
+        backgroundColor: SgColors.bg200,
         title: Text(
-          'Active Ride',
-          style: GoogleFonts.inter(
-            color: Colors.white,
-            fontWeight: FontWeight.bold,
-          ),
+          sgStrings(context).activeRideTitle,
+          style: TextStyle(color: SgColors.ink, fontWeight: FontWeight.w600),
         ),
         content: Text(
-          'You already have an active ride request or trip. Would you like to view it?',
-          style: GoogleFonts.inter(color: Colors.white70),
+          sgStrings(context).activeRideBody,
+          style: TextStyle(color: SgColors.inkMuted),
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
             child: Text(
-              'Dismiss',
-              style: GoogleFonts.inter(color: Colors.white54),
+              sgStrings(context).dismiss,
+              style: TextStyle(color: SgColors.inkMuted),
             ),
           ),
           TextButton(
@@ -241,9 +256,9 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
             },
             child: Text(
               'View Ride',
-              style: GoogleFonts.inter(
-                color: const Color(0xFFEEBD2B),
-                fontWeight: FontWeight.bold,
+              style: TextStyle(
+                color: SgColors.goldText,
+                fontWeight: FontWeight.w600,
               ),
             ),
           ),
@@ -262,11 +277,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
       if (!serviceEnabled) {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text(
-                'Location services are disabled. Please enable them in settings.',
-              ),
-            ),
+            SnackBar(content: Text(sgStrings(context).locationServicesOff)),
           );
         }
         return;
@@ -278,7 +289,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
         if (permission == LocationPermission.denied) {
           if (mounted) {
             ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(content: Text('Location permissions are denied.')),
+              SnackBar(content: Text(sgStrings(context).locationDenied)),
             );
           }
           return;
@@ -288,19 +299,21 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
       if (permission == LocationPermission.deniedForever) {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text(
-                'Location permissions are permanently denied, we cannot request permissions.',
-              ),
-            ),
+            SnackBar(content: Text(sgStrings(context).locationDeniedForever)),
           );
         }
         return;
       }
 
-      Position position = await Geolocator.getCurrentPosition(
-        desiredAccuracy: LocationAccuracy.bestForNavigation,
-      );
+      final position = await currentOrLastKnownPosition();
+      if (position == null) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text(sgStrings(context).locationNotFound)),
+          );
+        }
+        return;
+      }
 
       if (mounted) {
         setState(() {
@@ -309,7 +322,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
       }
 
       if (mounted) {
-        String addressText = "Current Location";
+        String addressText = sgStrings(context).currentLocation;
         final mapService = MapService();
         final fetchedAddress = await mapService.getAddressFromCoordinates(
           position.latitude,
@@ -356,30 +369,164 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
         isGettingLocation: _isGettingLocation,
         currentPosition: _currentPosition,
         onActiveRideTap: _showActiveRideBookingGuard,
+        onMenuTap: () => _scaffoldKey.currentState?.openDrawer(),
+        onProfileTap: () => setState(() => _tabIndex = 3),
+        searchOpen: _searchOpen,
       ),
       const HistoryScreen(),
       const WalletScreen(),
-      const _ProfileTab(),
+      _ProfileTab(
+        onWallet: () => setState(() => _tabIndex = 2),
+        onTrips: () => setState(() => _tabIndex = 1),
+        onBack: () => setState(() => _tabIndex = 0),
+      ),
     ];
 
-    return Scaffold(
-      backgroundColor: const Color(0xFF1A1814),
-      body: Stack(
-        children: [
-          SafeArea(
+    return PopScope(
+      // Back from History, Wallet or Profile returns home.
+      canPop: _tabIndex == 0,
+      onPopInvokedWithResult: (didPop, _) {
+        if (!didPop) setState(() => _tabIndex = _tabIndex == 2 ? 3 : 0);
+      },
+      child: Scaffold(
+        key: _scaffoldKey,
+        backgroundColor: SgColors.bg000,
+        drawer: _MenuDrawer(
+          onTab: (index) => setState(() => _tabIndex = index),
+        ),
+        // No tab bar (signed-in design rider-app-home): the map's menu
+        // button opens the drawer, and Trips, Wallet and Account each carry
+        // a back button.
+        body: switch (_tabIndex) {
+          0 => tabs[0],
+          3 => SafeArea(child: tabs[3]),
+          _ => SafeArea(
             child: Padding(
-              padding: const EdgeInsets.fromLTRB(24, 20, 24, 85),
-              child: tabs[_tabIndex],
+              padding: const EdgeInsets.fromLTRB(24, 4, 24, 0),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  IconButton(
+                    key: const Key('page_back'),
+                    tooltip: 'Back',
+                    constraints: const BoxConstraints(
+                      minWidth: kSgTouch,
+                      minHeight: kSgTouch,
+                    ),
+                    padding: EdgeInsets.zero,
+                    onPressed: () =>
+                        setState(() => _tabIndex = _tabIndex == 2 ? 3 : 0),
+                    icon: SgIcon(SgIcons.back, size: 24, color: SgColors.ink),
+                  ),
+                  Expanded(child: tabs[_tabIndex]),
+                ],
+              ),
             ),
           ),
-          _BottomNav(
-            selectedIndex: _tabIndex,
-            onItemTap: (index) {
-              FocusManager.instance.primaryFocus?.unfocus();
-              setState(() => _tabIndex = index);
-            },
+        },
+      ),
+    );
+  }
+}
+
+/// The menu: who is signed in, then every place the app has.
+class _MenuDrawer extends StatelessWidget {
+  const _MenuDrawer({required this.onTab});
+
+  final ValueChanged<int> onTab;
+
+  @override
+  Widget build(BuildContext context) {
+    Widget row(
+      String icon,
+      String label,
+      VoidCallback onTap, {
+      int count = 0,
+      Key? key,
+    }) => SgListRow(
+      key: key,
+      icon: icon,
+      label: label,
+      count: count,
+      onTap: () {
+        Navigator.of(context).pop();
+        onTap();
+      },
+    );
+
+    final auth = context.watch<AuthProvider>();
+    final unread = context.watch<NotificationProvider>().unreadCount;
+    return Drawer(
+      backgroundColor: SgColors.bg100,
+      shape: const RoundedRectangleBorder(),
+      child: SafeArea(
+        child: ListView(
+          padding: const EdgeInsets.fromLTRB(
+            SgSpace.s5,
+            SgSpace.s4,
+            SgSpace.s5,
+            SgSpace.s4,
           ),
-        ],
+          children: [
+            SgPersonHeader(
+              name: auth.fullName,
+              rating: auth.rating,
+              avatarUrl: auth.avatarUrl,
+              onTap: () {
+                Navigator.of(context).pop();
+                onTab(3);
+              },
+            ),
+            const SizedBox(height: SgSpace.s3),
+            Divider(height: 1, color: SgColors.line),
+            const SizedBox(height: SgSpace.s2),
+            row(
+              SgIcons.history,
+              sgStrings(context).yourRides,
+              () => onTab(1),
+              key: const Key('menu_rides'),
+            ),
+            row(
+              SgIcons.wallet,
+              'Wallet',
+              () => onTab(2),
+              key: const Key('menu_wallet'),
+            ),
+            row(
+              kCardIcon,
+              sgStrings(context).paymentMethods,
+              () => context.push('/payment-methods'),
+            ),
+            row(
+              SgIcons.bell,
+              sgStrings(context).notifications,
+              () => context.push('/notifications'),
+              count: unread,
+            ),
+            if (MarketConfigStore.instance.current.referralsAvailable)
+              row(
+                kGiftIcon,
+                sgStrings(context).referFriend,
+                () => context.push('/refer'),
+              ),
+            row(
+              SgIcons.user,
+              sgStrings(context).tabAccount,
+              () => onTab(3),
+              key: const Key('menu_profile'),
+            ),
+            row(
+              SgIcons.lock,
+              sgStrings(context).privacySecurity,
+              () => context.push('/privacy-security'),
+            ),
+            row(
+              SgIcons.help,
+              sgStrings(context).helpSupport,
+              () => context.push('/help-support'),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -395,6 +542,9 @@ class _HomeTab extends StatelessWidget {
     required this.isGettingLocation,
     this.currentPosition,
     required this.onActiveRideTap,
+    required this.onMenuTap,
+    required this.onProfileTap,
+    required this.searchOpen,
   });
 
   final TextEditingController pickupController;
@@ -405,237 +555,324 @@ class _HomeTab extends StatelessWidget {
   final bool isGettingLocation;
   final LatLng? currentPosition;
   final VoidCallback onActiveRideTap;
+  final VoidCallback onMenuTap;
+  final VoidCallback onProfileTap;
+  final ValueNotifier<bool> searchOpen;
+
+  Future<void> _goTo(
+    BuildContext context,
+    String dropPlaceId, {
+    String? dropName,
+  }) async {
+    final provider = context.read<MapProvider>();
+    if (provider.isTripInProgress) {
+      onActiveRideTap();
+      return;
+    }
+    // Check if pickup is loaded before navigating
+    if (provider.pickupLocation == null && currentPosition == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(sgStrings(context).selectPickupFirst),
+          backgroundColor: SgColors.gold500,
+          duration: Duration(seconds: 2),
+        ),
+      );
+      return;
+    }
+
+    // Navigate immediately, calculate route in background
+    context.push('/route-map');
+    try {
+      await provider.prepareAndCalculateRoute(
+        pickupName: pickupController.text.isNotEmpty
+            ? pickupController.text
+            : sgStrings(context).currentLocation,
+        presetPickup: currentPosition,
+        dropPlaceId: dropPlaceId,
+        dropName: dropName,
+      );
+    } catch (e) {
+      // Pickup outside our service area: show ComingSoonOverlay and stop.
+      if (e.toString().contains('Pickup location outside our service area')) {
+        if (context.mounted) {
+          showDialog(
+            context: context,
+            builder: (context) => const ComingSoonOverlay(),
+          );
+        }
+        return;
+      }
+      rethrow;
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
     final mapProvider = context.watch<MapProvider>();
-    final favorites = mapProvider.favoriteLocations;
-    final recents = mapProvider.recentLocations;
+    final l = sgStrings(context);
+    final here = mapProvider.pickupLocation?.latLng ?? currentPosition;
+    final near = homePlaceFilter(marketOf(context), here);
+    void open(double lat, double lng, String name) =>
+        _goTo(context, '$lat,$lng', dropName: name);
 
-    return ScrollConfiguration(
-      behavior: ScrollConfiguration.of(context).copyWith(scrollbars: false),
-      child: ListView(
-        children: [
-          const _TopHeader(),
-          const SizedBox(height: 24),
-          const Text(
-            'Where are you\ngoing today?',
-            style: TextStyle(
-              color: Colors.white,
-              fontSize: 42,
-              fontWeight: FontWeight.w600,
-              height: 1.05,
-            ),
-          ),
-          const SizedBox(height: 24),
-          _LocationCard(
-            pickupController: pickupController,
-            dropController: dropController,
-            pickupFocusNode: pickupFocusNode,
-            dropFocusNode: dropFocusNode,
-            onLocationTap: onLocationTap,
-            isGettingLocation: isGettingLocation,
-            currentPosition: currentPosition,
-            onActiveRideTap: onActiveRideTap,
-          ),
-          const SizedBox(height: 26),
-          const Text(
-            'RECENT & SAVED',
-            style: TextStyle(
-              color: Color(0xFF94A3B8),
-              fontSize: 11,
-              fontWeight: FontWeight.w700,
-              letterSpacing: 2.2,
-            ),
-          ),
-          const SizedBox(height: 12),
-          if (mapProvider.isLoadingHomeData &&
-              favorites.isEmpty &&
-              recents.isEmpty)
-            const Padding(
-              padding: EdgeInsets.all(20.0),
-              child: Center(
-                child: CircularProgressIndicator(color: Color(0xFFEEBD2B)),
-              ),
-            )
-          else ...[
-            // Active Ride Tile
-            if (mapProvider.isTripInProgress)
-              Padding(
-                padding: const EdgeInsets.only(bottom: 12),
-                child: _ActiveRideTile(onTap: onActiveRideTap),
-              ),
+    Future<void> addPlace({
+      String label = 'other',
+      String? address,
+      LatLng? at,
+      String? name,
+    }) async {
+      final saved = await showPlaceSheet(
+        context,
+        service: mapProvider.placesService,
+        label: label,
+        address: address,
+        at: at,
+        name: name,
+        near: here,
+      );
+      if (saved != null && context.mounted) {
+        await context.read<MapProvider>().fetchDynamicHomeData();
+      }
+    }
 
-            // Favorites
-            ...favorites.map(
-              (fav) => Padding(
-                padding: const EdgeInsets.only(bottom: 10),
-                child: _SavedTile(
-                  icon: Icons.bookmark,
-                  title: 'Saved',
-                  subtitle: fav.addressText,
-                  onTap: () async {
-                    final provider = context.read<MapProvider>();
-                    if (provider.isTripInProgress) {
-                      onActiveRideTap();
-                      return;
-                    }
-                    // Check if pickup is loaded before navigating
-                    if (provider.pickupLocation == null &&
-                        currentPosition == null) {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(
-                          content: Text('Please select pickup location first'),
-                          backgroundColor: Color(0xFFEEBD2B),
-                          duration: Duration(seconds: 2),
-                        ),
-                      );
-                      return;
-                    }
+    // Saved places from GET /rider/places/: Home and Work first (one tap
+    // fills the destination; "Set home"/"Set work" when unset), then others.
+    final saved = mapProvider.favoriteLocations
+        .where((f) => f.latitude != 0 || f.longitude != 0)
+        .toList();
+    SavedChipData placeChip(FavoriteLocation f) => SavedChipData(
+      label: savedPlaceLabel(l, f),
+      icon: switch (RiderFlags.homeWorkLabels ? f.label : null) {
+        'home' => SgIcons.home,
+        'work' => SgIcons.work,
+        _ => SgIcons.pin,
+      },
+      onTap: () => open(f.latitude, f.longitude, f.addressText),
+    );
+    final known = mapProvider.savedPlacesLoaded;
+    final home = saved.where((f) => f.label == 'home').firstOrNull;
+    final work = saved.where((f) => f.label == 'work').firstOrNull;
+    final chips = <SavedChipData>[
+      if (home != null)
+        placeChip(home)
+      else if (known && RiderFlags.addPlaceChip)
+        SavedChipData(
+          label: l.placeSetHome,
+          icon: SgIcons.home,
+          onTap: () => addPlace(label: 'home'),
+        ),
+      if (work != null)
+        placeChip(work)
+      else if (known && RiderFlags.addPlaceChip)
+        SavedChipData(
+          label: l.placeSetWork,
+          icon: SgIcons.work,
+          onTap: () => addPlace(label: 'work'),
+        ),
+      for (final f
+          in saved.where((f) => f.label != 'home' && f.label != 'work').take(2))
+        placeChip(f),
+      // "Add a place" does not depend on what loaded; "Set home"/"Set work"
+      // wait for a successful load so they never offer a Home that exists.
+      if (RiderFlags.addPlaceChip)
+        SavedChipData(
+          label: l.placeAdd,
+          icon: _kPlusIcon,
+          onTap: () => addPlace(),
+        ),
+    ];
+    // Recent drops from the rider's own trips, nearest first in time.
+    final seen = <String>{};
+    final recents = <RecentPlaceData>[];
+    for (final t in mapProvider.recentLocations) {
+      final lat = t.destinationLat, lng = t.destinationLng;
+      final addr = t.destinationAddress.trim();
+      if (recents.length >= 3 || lat == null || lng == null || addr.isEmpty) {
+        continue;
+      }
+      if (near != null && !near(LatLng(lat, lng))) continue;
+      if (!seen.add(addr.toLowerCase())) continue;
+      final p = splitPlace(addr);
+      recents.add(
+        RecentPlaceData(
+          name: p.name,
+          address: p.address,
+          onTap: () => open(lat, lng, addr),
+          onLongPress: RiderFlags.addPlaceChip
+              ? () => _offerSave(
+                  context,
+                  () => addPlace(
+                    address: addr,
+                    at: LatLng(lat, lng),
+                    name: p.name,
+                  ),
+                )
+              : null,
+        ),
+      );
+    }
 
-                    // Navigate immediately, calculate route in background
-                    context.push('/route-map');
-                    try {
-                      await provider.prepareAndCalculateRoute(
-                        pickupName: pickupController.text.isNotEmpty
-                            ? pickupController.text
-                            : 'Current Location',
-                        presetPickup: currentPosition,
-                        dropPlaceId: fav.latitude != 0
-                            ? '${fav.latitude},${fav.longitude}'
-                            : 'current',
-                      );
-                    } catch (e) {
-                      // Check if error is due to pickup location outside Hyderabad
-                      if (e.toString().contains(
-                        'Pickup location outside Hyderabad',
-                      )) {
-                        // Show ComingSoonOverlay
-                        if (context.mounted) {
-                          showDialog(
-                            context: context,
-                            builder: (context) => const ComingSoonOverlay(),
-                          );
-                        }
-                        return; // Don't proceed with route calculation
-                      }
-                      // Re-throw other errors
-                      rethrow;
-                    }
-                  },
-                  trailing: IconButton(
-                    icon: const Icon(
-                      Icons.bookmark_remove,
-                      color: Colors.white38,
-                      size: 20,
-                    ),
-                    onPressed: () {
-                      context.read<MapProvider>().deleteLocation(fav.id);
-                    },
+    return ValueListenableBuilder<bool>(
+      valueListenable: searchOpen,
+      builder: (context, open, _) => PopScope(
+        canPop: !open,
+        onPopInvokedWithResult: (didPop, _) {
+          if (didPop) return;
+          pickupFocusNode.unfocus();
+          dropFocusNode.unfocus();
+        },
+        child: LayoutBuilder(
+          builder: (context, box) {
+            final top = MediaQuery.paddingOf(context).top;
+            final sheetMax = box.maxHeight * 0.55;
+            return Stack(
+              children: [
+                Positioned.fill(
+                  child: _HomeMap(here: here, bottomInset: sheetMax - 24),
+                ),
+                Positioned(
+                  top: top + SgSpace.s4,
+                  left: SgSpace.s4,
+                  child: SgMapButton(
+                    key: const Key('home_menu'),
+                    icon: SgIcons.menu,
+                    label: l.menu,
+                    onTap: onMenuTap,
                   ),
                 ),
-              ),
-            ),
-            // Recents
-            ...recents.map(
-              (trip) => Padding(
-                padding: const EdgeInsets.only(bottom: 10),
-                child: _SavedTile(
-                  icon: Icons.history,
-                  title: 'Recent Trip',
-                  subtitle: trip.destinationAddress,
-                  onTap: () async {
-                    final provider = context.read<MapProvider>();
-                    if (provider.isTripInProgress) {
-                      onActiveRideTap();
-                      return;
-                    }
-                    // Check if pickup is loaded before navigating
-                    if (provider.pickupLocation == null &&
-                        currentPosition == null) {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(
-                          content: Text('Please select pickup location first'),
-                          backgroundColor: Color(0xFFEEBD2B),
-                          duration: Duration(seconds: 2),
-                        ),
-                      );
-                      return;
-                    }
-
-                    // Navigate immediately, calculate route in background
-                    context.push('/route-map');
-                    if (trip.destinationLat != null &&
-                        trip.destinationLng != null) {
-                      try {
-                        await provider.prepareAndCalculateRoute(
-                          pickupName: pickupController.text.isNotEmpty
-                              ? pickupController.text
-                              : 'Current Location',
-                          presetPickup: currentPosition,
-                          dropPlaceId:
-                              '${trip.destinationLat},${trip.destinationLng}',
-                        );
-                      } catch (e) {
-                        // Check if error is due to pickup location outside Hyderabad
-                        if (e.toString().contains(
-                          'Pickup location outside Hyderabad',
-                        )) {
-                          // Show ComingSoonOverlay
-                          if (context.mounted) {
-                            showDialog(
-                              context: context,
-                              builder: (context) => const ComingSoonOverlay(),
-                            );
-                          }
-                          return; // Don't proceed with route calculation
-                        }
-                        // Re-throw other errors
-                        rethrow;
-                      }
-                    } else {
-                      provider.fetchSuggestions(trip.destinationAddress);
-                    }
-                  },
-                  trailing: IconButton(
-                    icon: const Icon(
-                      Icons.bookmark_add_outlined,
-                      color: Color(0xFFEEBD2B),
-                      size: 20,
+                Positioned(
+                  key: const ValueKey('home-sheet'),
+                  left: 0,
+                  right: 0,
+                  bottom: 0,
+                  top: open ? top + SgSpace.s2 : null,
+                  child: ConstrainedBox(
+                    constraints: BoxConstraints(
+                      maxHeight: open ? double.infinity : sheetMax,
                     ),
-                    onPressed: () {
-                      if (trip.destinationLat != null &&
-                          trip.destinationLng != null) {
-                        context.read<MapProvider>().saveLocation(
-                          trip.destinationAddress,
-                          trip.destinationLat!,
-                          trip.destinationLng!,
-                        );
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(
-                            content: Text('Location saved to favorites'),
-                          ),
-                        );
-                      }
-                    },
+                    child: SgReadableWidth(
+                      child: HomeSheet(
+                        expanded: open,
+                        loading: mapProvider.isLoadingHomeData,
+                        failed: mapProvider.homeDataFailed,
+                        onRetry: mapProvider.fetchDynamicHomeData,
+                        banner: mapProvider.isTripInProgress
+                            ? _ActiveRideTile(onTap: onActiveRideTap)
+                            : null,
+                        chips: chips,
+                        recents: recents,
+                        search: _LocationCard(
+                          pickupController: pickupController,
+                          dropController: dropController,
+                          pickupFocusNode: pickupFocusNode,
+                          dropFocusNode: dropFocusNode,
+                          onLocationTap: onLocationTap,
+                          isGettingLocation: isGettingLocation,
+                          currentPosition: currentPosition,
+                          onActiveRideTap: onActiveRideTap,
+                          searchOpen: searchOpen,
+                        ),
+                      ),
+                    ),
                   ),
                 ),
-              ),
-            ),
-
-            if (favorites.isEmpty && recents.isEmpty)
-              Padding(
-                padding: const EdgeInsets.symmetric(vertical: 20),
-                child: Text(
-                  'No recent or saved locations',
-                  textAlign: TextAlign.center,
-                  style: GoogleFonts.inter(color: Colors.white54, fontSize: 13),
-                ),
-              ),
-          ],
-          const SizedBox(height: 20),
-        ],
+              ],
+            );
+          },
+        ),
       ),
+    );
+  }
+}
+
+const _kPlusIcon = '<path d="M12 5v14M5 12h14"/>';
+
+/// Long-press on a recent destination: "Save this place".
+void _offerSave(BuildContext context, VoidCallback onSave) {
+  final l = sgStrings(context);
+  showModalBottomSheet<void>(
+    context: context,
+    backgroundColor: Colors.transparent,
+    builder: (c) => SgSheetSurface(
+      child: InkWell(
+        key: const Key('recent_save_place'),
+        onTap: () {
+          Navigator.pop(c);
+          onSave();
+        },
+        child: Padding(
+          padding: const EdgeInsets.symmetric(vertical: SgSpace.s3),
+          child: Row(
+            children: [
+              SgIcon(SgIcons.pin, size: 20, color: SgColors.goldText),
+              const SizedBox(width: SgSpace.s3),
+              Text(
+                l.placeSaveThis,
+                style: SgText.body.copyWith(fontWeight: FontWeight.w600),
+              ),
+            ],
+          ),
+        ),
+      ),
+    ),
+  );
+}
+
+/// A saved place's chip label: Home/Work when labels are on and the server
+/// sent one, else the rider's name for it or the first part of the address.
+String savedPlaceLabel(AppLocalizations l, FavoriteLocation f) {
+  if (RiderFlags.homeWorkLabels && f.label == 'home') return l.navHome;
+  if (RiderFlags.homeWorkLabels && f.label == 'work') return l.savedWork;
+  if (f.name.isNotEmpty) return f.name;
+  return splitPlace(f.addressText).name;
+}
+
+/// The map behind the home sheet: the rider's position, centred when known.
+class _HomeMap extends StatefulWidget {
+  const _HomeMap({required this.here, required this.bottomInset});
+
+  final LatLng? here;
+  final double bottomInset;
+
+  @override
+  State<_HomeMap> createState() => _HomeMapState();
+}
+
+class _HomeMapState extends State<_HomeMap> {
+  SgMapController? _map;
+
+  @override
+  void didUpdateWidget(covariant _HomeMap old) {
+    super.didUpdateWidget(old);
+    final here = widget.here;
+    if (here != null && here != old.here) _map?.moveTo(here);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final here = widget.here;
+    return SgMap(
+      initialCenter:
+          here ??
+          marketOf(context).cities.firstOrNull?.center ??
+          const LatLng(17.385044, 78.4867),
+      initialZoom: 15,
+      padding: EdgeInsets.only(bottom: widget.bottomInset),
+      markers: [
+        if (here != null)
+          SgMarker(
+            id: 'here',
+            point: here,
+            icon: sgPickupIcon,
+            anchor: sgJourneyAnchor,
+          ),
+      ],
+      onMapCreated: (c) {
+        _map = c;
+        final h = widget.here;
+        if (h != null) c.moveTo(h);
+      },
     );
   }
 }
@@ -647,327 +884,142 @@ class _HomeTab extends StatelessWidget {
 // Profile tab implementation
 
 class _ProfileTab extends StatelessWidget {
-  const _ProfileTab();
+  const _ProfileTab({
+    required this.onWallet,
+    required this.onTrips,
+    required this.onBack,
+  });
 
-  static const String _fallbackName = 'John Doe';
-  static const String _fallbackRating = '4.98';
-  static const String _fallbackAvatarUrl =
-      'https://lh3.googleusercontent.com/aida-public/AB6AXuAPKZPGwmJqpCAihXSwtX1NVoImyBkmHzRpQ-VAOuMNCg1NdDM1Y5z1do2yqtE65Qal8OTMrMZednPquFBXo2pxr8NkTMmVDfafUMbVqlrJyooB_iaOuuthn_amKR15p3JWbeC17NBHKxjjTU4nZ3NU_L4DzcY5k1GbTVLX_ylAcrXRisGB6uoEAnuSpO8BJ-JJGe-Ogqdo_EKr7tMfCMRn22AmRjgpGPqbxrGZX-u_F5Y28uaFp0zNckZKrsJfwfzF_QET1MyTl1c';
+  final VoidCallback onWallet;
+  final VoidCallback onTrips;
+  final VoidCallback onBack;
 
   @override
   Widget build(BuildContext context) {
     final auth = context.watch<AuthProvider>();
-    final displayName = (auth.fullName?.trim().isNotEmpty ?? false)
-        ? auth.fullName!.trim()
-        : _fallbackName;
-    final displayRating = (auth.rating?.trim().isNotEmpty ?? false)
-        ? auth.rating!.trim()
-        : _fallbackRating;
-    final displayAvatar = (auth.avatarUrl?.trim().isNotEmpty ?? false)
-        ? auth.avatarUrl!.trim()
-        : _fallbackAvatarUrl;
-
-    return ScrollConfiguration(
-      behavior: ScrollConfiguration.of(context).copyWith(scrollbars: false),
-      child: ListView(
-        padding: EdgeInsets.zero,
-        children: [
-          const _ProfileHeader(),
-          const SizedBox(height: 24),
-          const Text(
-            'Profile',
-            style: TextStyle(
-              color: Colors.white,
-              fontSize: 42,
-              fontWeight: FontWeight.w600,
-              height: 1.05,
-            ),
+    final map = context.watch<MapProvider>();
+    final saved = map.favoriteLocations;
+    final l = sgStrings(context);
+    final a = SgAppearance.instance;
+    final names = [for (final f in saved.take(2)) savedPlaceLabel(l, f)];
+    return AccountView(
+      title: l.tabAccount,
+      name: auth.fullName,
+      phoneLine: maskedPhone(auth.countryCode, auth.phoneNumber),
+      avatarUrl: auth.avatarUrl,
+      onBack: onBack,
+      onHeader: () => context.push('/personal-info'),
+      rows: [
+        AccountRowData(
+          key: const Key('account_trips'),
+          icon: kListIcon,
+          label: l.accountYourTrips,
+          subtitle: l.accountTripsHint,
+          onTap: onTrips,
+        ),
+        AccountRowData(
+          key: const Key('account_saved'),
+          icon: SgIcons.home,
+          label: l.accountSavedPlaces,
+          subtitle: names.isEmpty ? null : names.join(', '),
+          onTap: () => context.push('/saved-places'),
+        ),
+        AccountRowData(
+          key: const Key('profile_wallet'),
+          icon: kCardIcon,
+          label: l.accountPayment,
+          // The method the booking flow will use (Cash, Wallet, Online).
+          subtitle: paymentMethodLabel(l, map.selectedPaymentMethod),
+          onTap: () => context.push('/payment-methods'),
+        ),
+        // Safety ("2 trusted contacts") waits for a trusted-contacts API.
+        if (RiderFlags.trustedContacts)
+          AccountRowData(
+            key: const Key('account_safety'),
+            icon: SgIcons.shield,
+            label: l.safety,
+            subtitle: l.trustedContacts,
+            onTap: () => context.push('/trusted-contacts'),
           ),
-          const SizedBox(height: 24),
-          Center(child: _ProfileAvatar(imageUrl: displayAvatar)),
-          const SizedBox(height: 16),
-          Center(
+        AccountRowData(
+          key: const Key('profile_language'),
+          icon: SgIcons.language,
+          label: l.language,
+          subtitle: languageLabel(l, a.language),
+          onTap: () => showLanguagePicker(context),
+        ),
+        AccountRowData(
+          key: const Key('profile_appearance'),
+          icon: SgIcons.moon,
+          label: l.accountTheme,
+          subtitle: themeChoiceLabel(l, a.theme),
+          onTap: () => showThemePicker(context),
+        ),
+        // Only while a referral offer is live for riders in this market.
+        if (MarketConfigStore.instance.current.referralsAvailable)
+          AccountRowData(
+            key: const Key('account_refer'),
+            icon: kGiftIcon,
+            label: l.referFriend,
+            onTap: () => context.push('/refer'),
+          ),
+        AccountRowData(
+          key: const Key('account_help'),
+          icon: SgIcons.help,
+          label: l.accountHelp,
+          onTap: () => context.push('/help-support'),
+        ),
+      ],
+      signOutLabel: l.accountSignOut,
+      onSignOut: () async {
+        await context.read<AuthProvider>().logout();
+        if (!context.mounted) return;
+        context.go('/login');
+      },
+      deleteLabel: l.accountDelete,
+      onDelete: () => _confirmDelete(context),
+    );
+  }
+
+  Future<void> _confirmDelete(BuildContext context) async {
+    final l = sgStrings(context);
+    final yes = await showDialog<bool>(
+      context: context,
+      builder: (c) => AlertDialog(
+        backgroundColor: SgColors.bg100,
+        title: Text(l.deleteAccountTitle, style: SgText.title),
+        content: Text(l.deleteAccountBody, style: SgText.body),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(c, false),
+            child: Text(l.cancel, style: SgText.body),
+          ),
+          TextButton(
+            key: const Key('account_delete_confirm'),
+            onPressed: () => Navigator.pop(c, true),
             child: Text(
-              displayName,
-              style: GoogleFonts.inter(
-                color: const Color(0xFFF8FAFC),
-                fontSize: 24,
+              l.deleteAccountConfirm,
+              style: SgText.body.copyWith(
+                color: SgColors.danger,
                 fontWeight: FontWeight.w600,
-                letterSpacing: -0.4,
-              ),
-            ),
-          ),
-          const SizedBox(height: 4),
-          Center(
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Text(
-                  displayRating,
-                  style: GoogleFonts.inter(
-                    color: const Color(0xFFEEBD2B),
-                    fontSize: 20,
-                    fontWeight: FontWeight.w600,
-                    letterSpacing: 0.2,
-                  ),
-                ),
-                const SizedBox(width: 4),
-                const Icon(
-                  Icons.star_rounded,
-                  color: Color(0xFFEEBD2B),
-                  size: 18,
-                ),
-              ],
-            ),
-          ),
-          const SizedBox(height: 24),
-          _ProfileMenuTile(
-            icon: Icons.person,
-            title: 'Personal Information',
-            onTap: () => context.push('/personal-info'),
-          ),
-          const SizedBox(height: 8),
-          _ProfileMenuTile(
-            icon: Icons.credit_card,
-            title: 'Payment Methods',
-            onTap: () => context.push('/payment-methods'),
-          ),
-          const SizedBox(height: 8),
-          _ProfileMenuTile(
-            icon: Icons.lock,
-            title: 'Privacy & Security',
-            onTap: () => context.push('/privacy-security'),
-          ),
-          const SizedBox(height: 8),
-          _ProfileMenuTile(
-            icon: Icons.help,
-            title: 'Help & Support',
-            onTap: () => context.push('/help-support'),
-          ),
-          const SizedBox(height: 8),
-          const _ProfileMenuTile(icon: Icons.sell, title: 'Refer & Earn'),
-          const SizedBox(height: 26),
-          OutlinedButton(
-            onPressed: () async {
-              await context.read<AuthProvider>().logout();
-              if (!context.mounted) return;
-              context.go('/login');
-            },
-            style: OutlinedButton.styleFrom(
-              backgroundColor: const Color(0xFF211D18),
-              foregroundColor: const Color(0xFFF87171),
-              side: const BorderSide(color: Color(0x33EF4444)),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(16),
-              ),
-              padding: const EdgeInsets.symmetric(vertical: 18),
-            ),
-            child: Text(
-              'Log Out',
-              style: GoogleFonts.inter(
-                fontSize: 22,
-                fontWeight: FontWeight.w700,
               ),
             ),
           ),
         ],
       ),
     );
-  }
-}
-
-class _ProfileHeader extends StatelessWidget {
-  const _ProfileHeader();
-
-  @override
-  Widget build(BuildContext context) {
-    return Row(
-      children: [
-        const Expanded(
-          child: Text(
-            'SaaradhiGo',
-            style: TextStyle(
-              color: Color(0xFFEEBD2B),
-              fontSize: 23,
-              fontWeight: FontWeight.w700,
-              letterSpacing: 2.6,
-            ),
-          ),
-        ),
-        Consumer<NotificationProvider>(
-          builder: (context, provider, child) => GestureDetector(
-            onTap: () => context.push('/notifications'),
-            child: Stack(
-              clipBehavior: Clip.none,
-              children: [
-                Padding(
-                  padding: const EdgeInsets.only(top: 3, right: 3),
-                  child: Container(
-                    width: 40,
-                    height: 40,
-                    decoration: const BoxDecoration(
-                      color: Color(0x14FFFFFF),
-                      shape: BoxShape.circle,
-                    ),
-                    child: const Icon(
-                      Icons.notifications,
-                      color: Color(0xFFE2E8F0),
-                      size: 21,
-                    ),
-                  ),
-                ),
-                if (provider.unreadCount > 0)
-                  Positioned(
-                    top: 0,
-                    right: 0,
-                    child: Container(
-                      padding: const EdgeInsets.all(4),
-                      decoration: const BoxDecoration(
-                        color: Color(0xFFEF4444),
-                        shape: BoxShape.circle,
-                      ),
-                      constraints: const BoxConstraints(
-                        minWidth: 16,
-                        minHeight: 16,
-                      ),
-                      child: Text(
-                        '${provider.unreadCount}',
-                        style: const TextStyle(
-                          color: Colors.white,
-                          fontSize: 8,
-                          fontWeight: FontWeight.bold,
-                        ),
-                        textAlign: TextAlign.center,
-                      ),
-                    ),
-                  ),
-              ],
-            ),
-          ),
-        ),
-      ],
-    );
-  }
-}
-
-class _ProfileAvatar extends StatelessWidget {
-  const _ProfileAvatar({required this.imageUrl});
-
-  final String imageUrl;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      width: 116,
-      height: 116,
-      padding: const EdgeInsets.all(3),
-      decoration: const BoxDecoration(
-        shape: BoxShape.circle,
-        color: Color(0xFFEEBD2B),
-        boxShadow: [
-          BoxShadow(color: Color(0x99EEBD2B), blurRadius: 22, spreadRadius: 1),
-        ],
-      ),
-      child: ClipOval(
-        child: CachedNetworkImage(
-          imageUrl: imageUrl,
-          fit: BoxFit.cover,
-          memCacheWidth: 200,
-          memCacheHeight: 200,
-          fadeInDuration: const Duration(milliseconds: 200),
-          placeholder: (context, url) => Container(
-            color: const Color(0xFF24211C),
-            alignment: Alignment.center,
-            child: const SizedBox(
-              width: 22,
-              height: 22,
-              child: CircularProgressIndicator(
-                strokeWidth: 2,
-                color: Color(0xFFEEBD2B),
-              ),
-            ),
-          ),
-          errorWidget: (context, url, error) => Container(
-            color: const Color(0xFF24211C),
-            child: const Icon(Icons.person, size: 56, color: Color(0xFFCBD5E1)),
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-class _TopHeader extends StatelessWidget {
-  const _TopHeader();
-
-  @override
-  Widget build(BuildContext context) {
-    return Row(
-      children: [
-        const Expanded(
-          child: Text(
-            'SaaradhiGo',
-            style: TextStyle(
-              color: Color(0xFFEEBD2B),
-              fontSize: 23,
-              fontWeight: FontWeight.w700,
-              letterSpacing: 2.6,
-            ),
-          ),
-        ),
-        Consumer<NotificationProvider>(
-          builder: (context, provider, child) => GestureDetector(
-            onTap: () => context.push('/notifications'),
-            child: Stack(
-              clipBehavior: Clip.none,
-              children: [
-                Padding(
-                  padding: const EdgeInsets.only(top: 3, right: 3),
-                  child: Container(
-                    width: 40,
-                    height: 40,
-                    decoration: const BoxDecoration(
-                      color: Color(0x14FFFFFF),
-                      shape: BoxShape.circle,
-                    ),
-                    child: const Icon(
-                      Icons.notifications,
-                      color: Color(0xFFE2E8F0),
-                      size: 21,
-                    ),
-                  ),
-                ),
-                if (provider.unreadCount > 0)
-                  Positioned(
-                    top: 0,
-                    right: 0,
-                    child: Container(
-                      padding: const EdgeInsets.all(4),
-                      decoration: const BoxDecoration(
-                        color: Color(0xFFEF4444),
-                        shape: BoxShape.circle,
-                      ),
-                      constraints: const BoxConstraints(
-                        minWidth: 16,
-                        minHeight: 16,
-                      ),
-                      child: Text(
-                        '${provider.unreadCount}',
-                        style: const TextStyle(
-                          color: Colors.white,
-                          fontSize: 8,
-                          fontWeight: FontWeight.bold,
-                        ),
-                        textAlign: TextAlign.center,
-                      ),
-                    ),
-                  ),
-              ],
-            ),
-          ),
-        ),
-      ],
-    );
+    if (yes != true || !context.mounted) return;
+    final ok = await ApiService().deleteMyAccount();
+    if (!context.mounted) return;
+    if (!ok) {
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(l.deleteAccountFailed)));
+      return;
+    }
+    await context.read<AuthProvider>().logout();
+    if (!context.mounted) return;
+    context.go('/login');
   }
 }
 
@@ -981,6 +1033,7 @@ class _LocationCard extends StatefulWidget {
     required this.isGettingLocation,
     this.currentPosition,
     required this.onActiveRideTap,
+    required this.searchOpen,
   });
 
   final TextEditingController pickupController;
@@ -991,225 +1044,139 @@ class _LocationCard extends StatefulWidget {
   final bool isGettingLocation;
   final LatLng? currentPosition;
   final VoidCallback onActiveRideTap;
+  final ValueNotifier<bool> searchOpen;
 
   @override
   State<_LocationCard> createState() => _LocationCardState();
 }
 
 class _LocationCardState extends State<_LocationCard> {
-  OverlayEntry? _overlayEntry;
-  final LayerLink _layerLink = LayerLink();
-  bool _isSearching = false;
   bool _isPickupFocused = false;
+
+  bool get _open =>
+      widget.dropFocusNode.hasFocus || widget.pickupFocusNode.hasFocus;
 
   @override
   void initState() {
     super.initState();
-    widget.dropFocusNode.addListener(() {
-      if (!mounted) return;
-      if (widget.dropFocusNode.hasFocus) {
-        setState(() => _isPickupFocused = false);
-        if (widget.dropController.text.length >= 4) {
-          _showOverlay();
-        } else {
-          _hideOverlay();
-        }
-      }
-    });
-
-    widget.pickupFocusNode.addListener(() {
-      if (!mounted) return;
-      if (widget.pickupFocusNode.hasFocus) {
-        setState(() => _isPickupFocused = true);
-        // Only show overlay on focus if empty (to suggest Current Loc) or already has search text
-        final text = widget.pickupController.text;
-        if (text.isEmpty || (text.length >= 4 && text != 'Current Location')) {
-          _showOverlay();
-        } else {
-          _hideOverlay();
-        }
-      }
-    });
-
-    widget.pickupController.addListener(_onPickupSearchChanged);
-    widget.dropController.addListener(_onSearchChanged);
+    widget.dropFocusNode.addListener(_onFocusChanged);
+    widget.pickupFocusNode.addListener(_onFocusChanged);
+    widget.pickupController.addListener(_onPickupTextChanged);
+    widget.dropController.addListener(_onDropTextChanged);
   }
 
   @override
   void dispose() {
-    widget.pickupController.removeListener(_onPickupSearchChanged);
-    widget.dropController.removeListener(_onSearchChanged);
+    widget.dropFocusNode.removeListener(_onFocusChanged);
+    widget.pickupFocusNode.removeListener(_onFocusChanged);
+    widget.pickupController.removeListener(_onPickupTextChanged);
+    widget.dropController.removeListener(_onDropTextChanged);
     super.dispose();
   }
 
-  void _onPickupSearchChanged() {
+  /// Results open only while a field has focus: a tap, never programmatic text.
+  void _onFocusChanged() {
+    if (!mounted) return;
+    final open = _open;
+    setState(() => _isPickupFocused = widget.pickupFocusNode.hasFocus);
+    if (widget.searchOpen.value != open) widget.searchOpen.value = open;
+    if (!open) context.read<MapProvider>().clearSuggestions();
+  }
+
+  void _onPickupTextChanged() {
+    if (!mounted || !widget.pickupFocusNode.hasFocus) return;
     final text = widget.pickupController.text;
-
-    // Safety check for user-defined threshold and specific strings
-    if (text == 'Current Location' || text.isEmpty) {
-      if (text.isEmpty && widget.pickupFocusNode.hasFocus) {
-        _showOverlay();
-      } else {
-        _hideOverlay();
-      }
-      return;
-    }
-
-    if (text.length >= 4) {
-      context.read<MapProvider>().fetchSuggestions(text);
-      if (!_isSearching) {
-        setState(() {
-          _isSearching = true;
-          _isPickupFocused = true;
-        });
-        _showOverlay();
-      }
+    final provider = context.read<MapProvider>();
+    if (text.length >= 4 && text != sgStrings(context).currentLocation) {
+      provider.fetchSuggestions(text);
     } else {
-      context.read<MapProvider>().clearSuggestions();
-      if (_isSearching && _isPickupFocused) {
-        // If we were searching and now deleted below 4 chars,
-        // hide unless it's empty (which is handled above)
-        setState(() => _isSearching = false);
-        _hideOverlay();
-      }
+      provider.clearSuggestions();
     }
   }
 
-  void _onSearchChanged() {
+  void _onDropTextChanged() {
+    if (!mounted || !widget.dropFocusNode.hasFocus) return;
     final text = widget.dropController.text;
+    final provider = context.read<MapProvider>();
     if (text.length >= 4) {
-      context.read<MapProvider>().fetchSuggestions(text);
-      if (!_isSearching) {
-        setState(() {
-          _isSearching = true;
-          _isPickupFocused = false;
-        });
-        _showOverlay();
-      }
+      provider.fetchSuggestions(text);
     } else {
-      context.read<MapProvider>().clearSuggestions();
-      if (_isSearching && !_isPickupFocused) {
-        setState(() => _isSearching = false);
-        _hideOverlay();
-      }
+      provider.clearSuggestions();
     }
   }
 
-  void _showOverlay() {
-    if (_overlayEntry != null) return;
-
-    RenderBox renderBox = context.findRenderObject() as RenderBox;
-    var size = renderBox.size;
-
-    _overlayEntry = OverlayEntry(
-      builder: (context) => CompositedTransformFollower(
-        link: _layerLink,
-        showWhenUnlinked: false,
-        offset: Offset(0.0, size.height + 8),
-        child: Align(
-          alignment: Alignment.topLeft,
-          child: SizedBox(
-            width: size.width,
-            child: TapRegion(
-              groupId: 'location_search',
-              child: MouseRegion(
-                cursor: SystemMouseCursors.click,
-                child: DefaultTextStyle(
-                  style: const TextStyle(decoration: TextDecoration.none),
-                  child: _buildSuggestionsList(),
-                ),
-              ),
-            ),
-          ),
-        ),
-      ),
-    );
-
-    Overlay.of(context).insert(_overlayEntry!);
+  void _close() {
+    widget.dropFocusNode.unfocus();
+    widget.pickupFocusNode.unfocus();
   }
 
-  void _hideOverlay() {
-    _overlayEntry?.remove();
-    _overlayEntry = null;
-  }
-
-  Widget _buildSuggestionsList() {
-    return Material(
-      color: Colors.transparent,
-      child: Consumer<MapProvider>(
-        builder: (context, mapProvider, child) {
-          if (mapProvider.isLoadingSuggestions) {
-            return _buildOverlayContainer(
-              child: const Padding(
-                padding: EdgeInsets.all(24.0),
+  Widget _results() {
+    return Consumer<MapProvider>(
+      builder: (context, mapProvider, child) {
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Divider(height: SgSpace.s4, color: SgColors.line),
+            if (_isPickupFocused) _buildCurrentLocationOption(),
+            if (mapProvider.isLoadingSuggestions)
+              Padding(
+                padding: EdgeInsets.all(SgSpace.s4),
                 child: Center(
-                  child: CircularProgressIndicator(color: Color(0xFFEEBD2B)),
-                ),
-              ),
-            );
-          }
-
-          if (mapProvider.suggestions.isEmpty &&
-              (!_isPickupFocused || widget.pickupController.text.isNotEmpty)) {
-            return const SizedBox.shrink();
-          }
-
-          return _buildOverlayContainer(
-            child: SingleChildScrollView(
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  if (_isPickupFocused) _buildCurrentLocationOption(),
-                  if (mapProvider.suggestions.isNotEmpty)
-                    ListView.separated(
-                      padding: EdgeInsets.zero,
-                      shrinkWrap: true,
-                      physics: const NeverScrollableScrollPhysics(),
-                      itemCount: mapProvider.suggestions.length,
-                      separatorBuilder: (context, index) =>
-                          const Divider(height: 1, color: Color(0x1AFFFFFF)),
-                      itemBuilder: (context, index) {
-                        final suggestion = mapProvider.suggestions[index];
-                        return _buildSuggestionTile(suggestion);
-                      },
+                  child: SizedBox(
+                    width: 20,
+                    height: 20,
+                    child: CircularProgressIndicator(
+                      strokeWidth: 2,
+                      color: SgColors.gold500,
                     ),
-                ],
-              ),
-            ),
-          );
-        },
-      ),
-    );
-  }
-
-  Widget _buildCurrentLocationOption() {
-    return ListTile(
-      leading: const Icon(Icons.my_location, color: Color(0xFFEEBD2B)),
-      title: const Text(
-        'Current Location',
-        style: TextStyle(color: Colors.white),
-      ),
-      onTap: () {
-        if (context.read<MapProvider>().isTripInProgress) {
-          _hideOverlay();
-          widget.onActiveRideTap();
-          return;
-        }
-        widget.onLocationTap();
-        _hideOverlay();
-        setState(() => _isSearching = false);
+                  ),
+                ),
+              )
+            else
+              for (final s in mapProvider.suggestions) _buildSuggestionTile(s),
+          ],
+        );
       },
     );
   }
 
+  Widget _buildCurrentLocationOption() {
+    return InkWell(
+      onTap: () {
+        if (context.read<MapProvider>().isTripInProgress) {
+          _close();
+          widget.onActiveRideTap();
+          return;
+        }
+        widget.onLocationTap();
+        _close();
+      },
+      child: Container(
+        constraints: const BoxConstraints(minHeight: 56),
+        child: Row(
+          children: [
+            Padding(
+              padding: EdgeInsets.symmetric(horizontal: SgSpace.s3),
+              child: Icon(
+                Icons.my_location,
+                color: SgColors.goldText,
+                size: 20,
+              ),
+            ),
+            Text(sgStrings(context).currentLocation, style: SgText.body),
+          ],
+        ),
+      ),
+    );
+  }
+
   Widget _buildSuggestionTile(PlaceSuggestion suggestion) {
-    return GestureDetector(
-      behavior: HitTestBehavior.opaque,
+    return InkWell(
       onTap: () async {
         final provider = context.read<MapProvider>();
 
         if (provider.isTripInProgress) {
-          _hideOverlay();
+          _close();
           widget.onActiveRideTap();
           return;
         }
@@ -1219,14 +1186,13 @@ class _LocationCardState extends State<_LocationCard> {
           await provider.setPickupLocation(suggestion.placeId);
         } else {
           widget.dropController.text = suggestion.mainText;
-          widget.dropFocusNode.unfocus();
 
           if (provider.pickupLocation == null &&
               widget.currentPosition == null) {
             ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(
-                content: Text('Please select pickup location first'),
-                backgroundColor: Color(0xFFEEBD2B),
+              SnackBar(
+                content: Text(sgStrings(context).selectPickupFirst),
+                backgroundColor: SgColors.gold500,
                 duration: Duration(seconds: 2),
               ),
             );
@@ -1241,58 +1207,57 @@ class _LocationCardState extends State<_LocationCard> {
             await provider.prepareAndCalculateRoute(
               pickupName: widget.pickupController.text.isNotEmpty
                   ? widget.pickupController.text
-                  : 'Current Location',
+                  : sgStrings(context).currentLocation,
               presetPickup:
                   provider.pickupLocation?.latLng ?? widget.currentPosition,
               dropPlaceId: suggestion.placeId,
             );
           } catch (e) {
-            // Check if error is due to pickup location outside Hyderabad
-            if (e.toString().contains('Pickup location outside Hyderabad')) {
-              // Show ComingSoonOverlay
+            // Pickup outside our service area: show ComingSoonOverlay and stop.
+            if (e.toString().contains(
+              'Pickup location outside our service area',
+            )) {
               if (mounted) {
                 showDialog(
                   context: context,
                   builder: (context) => const ComingSoonOverlay(),
                 );
               }
-              _hideOverlay();
-              return; // Don't proceed with route calculation
+              _close();
+              return;
             }
-            // Re-throw other errors
             rethrow;
           }
         }
 
-        _hideOverlay();
-        setState(() => _isSearching = false);
+        _close();
       },
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      child: Container(
+        constraints: const BoxConstraints(minHeight: 56),
+        padding: const EdgeInsets.symmetric(vertical: SgSpace.s2),
         child: Row(
           children: [
-            const Icon(Icons.location_on, color: Color(0xFF94A3B8)),
-            const SizedBox(width: 16),
+            const Padding(
+              padding: EdgeInsets.symmetric(horizontal: SgSpace.s3),
+              child: SgIcon(SgIcons.pin, size: 20),
+            ),
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
                     suggestion.mainText,
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontSize: 16,
-                      fontWeight: FontWeight.w600,
-                    ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: SgText.body.copyWith(fontWeight: FontWeight.w600),
                   ),
-                  const SizedBox(height: 4),
-                  Text(
-                    suggestion.secondaryText,
-                    style: const TextStyle(
-                      color: Color(0xFF94A3B8),
-                      fontSize: 13,
+                  if (suggestion.secondaryText.isNotEmpty)
+                    Text(
+                      suggestion.secondaryText,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: SgText.caption,
                     ),
-                  ),
                 ],
               ),
             ),
@@ -1302,461 +1267,85 @@ class _LocationCardState extends State<_LocationCard> {
     );
   }
 
-  Widget _buildOverlayContainer({required Widget child}) {
-    return Container(
-      constraints: const BoxConstraints(maxHeight: 300),
-      decoration: BoxDecoration(
-        color: const Color(0xFF24211C),
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: const Color(0x33FFFFFF)),
-        boxShadow: const [
-          BoxShadow(
-            color: Color(0x22000000),
-            blurRadius: 18,
-            offset: Offset(0, 8),
-          ),
-        ],
-      ),
-      child: ClipRRect(borderRadius: BorderRadius.circular(16), child: child),
-    );
-  }
-
   @override
   Widget build(BuildContext context) {
+    final l = sgStrings(context);
+    final provider = context.watch<MapProvider>();
+    // "You are here" only when the pickup really is the device's location.
+    final atCurrent =
+        provider.pickupLocation?.placeId == 'current' &&
+        widget.currentPosition != null &&
+        !_isPickupFocused;
     return TapRegion(
       groupId: 'location_search',
-      onTapOutside: (_) {
-        widget.dropFocusNode.unfocus();
-        if (mounted) _hideOverlay();
-      },
-      child: CompositedTransformTarget(
-        link: _layerLink,
-        child: Container(
-          decoration: BoxDecoration(
-            color: const Color(0xFF24211C),
-            borderRadius: BorderRadius.circular(18),
-            border: Border.all(color: const Color(0x33FFFFFF)),
-            boxShadow: const [
-              BoxShadow(
-                color: Color(0x22000000),
-                blurRadius: 18,
-                offset: Offset(0, 8),
-              ),
-            ],
-          ),
-          padding: const EdgeInsets.fromLTRB(16, 16, 16, 12),
-          child: Column(
-            children: [
-              Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Column(
-                    children: [
-                      Container(
-                        width: 28,
-                        height: 28,
-                        decoration: const BoxDecoration(
-                          color: Color(0x1AEEBD2B),
-                          shape: BoxShape.circle,
-                        ),
-                        child: const Center(
-                          child: SizedBox(
-                            width: 10,
-                            height: 10,
-                            child: DecoratedBox(
-                              decoration: BoxDecoration(
-                                color: Color(0xFFEEBD2B),
-                                shape: BoxShape.circle,
-                              ),
-                            ),
-                          ),
-                        ),
-                      ),
-                      const SizedBox(height: 6),
-                      Container(
-                        width: 2,
-                        height: 34,
-                        color: const Color(0x1AFFFFFF),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: _InputSection(
-                      label: 'CURRENT LOCATION',
-                      controller: widget.pickupController,
-                      focusNode: widget.pickupFocusNode,
-                      hint: 'Enter pickup point',
-                      readOnly: false,
-                      suffixIcon: widget.isGettingLocation
-                          ? const SizedBox(
-                              width: 18,
-                              height: 18,
-                              child: CircularProgressIndicator(
-                                strokeWidth: 2,
-                                color: Color(0xFFEEBD2B),
-                              ),
-                            )
-                          : InkWell(
-                              onTap: () {
-                                if (context
-                                    .read<MapProvider>()
-                                    .isTripInProgress) {
-                                  widget.onActiveRideTap();
-                                  return;
-                                }
-                                widget.onLocationTap();
-                              },
-                              borderRadius: BorderRadius.circular(12),
-                              child: const Padding(
-                                padding: EdgeInsets.all(4.0),
-                                child: Icon(
-                                  Icons.my_location,
-                                  color: Color(0xFFEEBD2B),
-                                  size: 18,
-                                ),
-                              ),
-                            ),
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 6),
-              Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const SizedBox(
-                    width: 28,
-                    height: 28,
-                    child: Center(
-                      child: Icon(
-                        Icons.location_on,
-                        color: Color(0xFFEEBD2B),
-                        size: 22,
-                      ),
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: _InputSection(
-                      label: 'DESTINATION',
-                      controller: widget.dropController,
-                      focusNode: widget.dropFocusNode,
-                      hint: 'Search destination',
-                      isHintBig: true,
-                    ),
-                  ),
-                ],
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-class _InputSection extends StatelessWidget {
-  final String label;
-  final TextEditingController controller;
-  final FocusNode? focusNode;
-  final String hint;
-  final bool isHintBig;
-  final bool readOnly;
-  final Widget? suffixIcon;
-
-  const _InputSection({
-    required this.label,
-    required this.controller,
-    this.focusNode,
-    required this.hint,
-    this.isHintBig = false,
-    this.readOnly = false,
-    this.suffixIcon,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          label,
-          style: const TextStyle(
-            color: Color(0xFF64748B),
-            fontSize: 11,
-            fontWeight: FontWeight.w700,
-            letterSpacing: 1.8,
-          ),
-        ),
-        const SizedBox(height: 2),
-        Row(
-          crossAxisAlignment: CrossAxisAlignment.center,
+      onTapOutside: (_) => _close(),
+      child: HomeFromToCard(
+        youAreHere: atCurrent ? l.youAreHere : null,
+        from: Row(
           children: [
             Expanded(
               child: TextField(
-                controller: controller,
-                focusNode: focusNode,
-                readOnly: readOnly,
-                style: TextStyle(
-                  color: Colors.white,
-                  fontSize: isHintBig ? 22 : 18,
-                  fontWeight: FontWeight.w600,
-                ),
+                controller: widget.pickupController,
+                focusNode: widget.pickupFocusNode,
+                style: SgText.body,
+                maxLines: 1,
                 decoration: InputDecoration(
                   isDense: true,
                   border: InputBorder.none,
-                  hintText: hint,
-                  hintStyle: TextStyle(
-                    color: const Color(0xFF94A3B8),
-                    fontSize: isHintBig ? 22 : 18,
-                    fontWeight: FontWeight.w600,
-                  ),
+                  hintText: l.pickupHint,
+                  hintStyle: SgText.body.copyWith(color: SgColors.inkSubtle),
                   contentPadding: EdgeInsets.zero,
                 ),
               ),
             ),
-            if (suffixIcon != null) ...[const SizedBox(width: 8), suffixIcon!],
-          ],
-        ),
-        if (label == 'CURRENT LOCATION') ...[
-          const SizedBox(height: 10),
-          Container(height: 1, color: const Color(0x1AFFFFFF)),
-        ],
-      ],
-    );
-  }
-}
-
-class _SavedTile extends StatelessWidget {
-  const _SavedTile({
-    required this.icon,
-    required this.title,
-    required this.subtitle,
-    this.onTap,
-    this.trailing,
-  });
-
-  final IconData icon;
-  final String title;
-  final String subtitle;
-  final VoidCallback? onTap;
-  final Widget? trailing;
-
-  @override
-  Widget build(BuildContext context) {
-    return Material(
-      color: Colors.transparent,
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(16),
-        child: Container(
-          padding: const EdgeInsets.all(14),
-          decoration: BoxDecoration(
-            color: const Color(0x14FFFFFF),
-            borderRadius: BorderRadius.circular(16),
-          ),
-          child: Row(
-            children: [
-              Container(
-                width: 48,
-                height: 48,
-                decoration: const BoxDecoration(
-                  color: Color(0xFF1A1814),
-                  shape: BoxShape.circle,
+            if (widget.isGettingLocation)
+              Padding(
+                padding: EdgeInsets.all(SgSpace.s3),
+                child: SizedBox(
+                  width: 18,
+                  height: 18,
+                  child: CircularProgressIndicator(
+                    strokeWidth: 2,
+                    color: SgColors.gold500,
+                  ),
                 ),
-                child: Icon(icon, color: const Color(0xFFEEBD2B)),
-              ),
-              const SizedBox(width: 14),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      title,
-                      style: const TextStyle(
-                        color: Colors.white,
-                        fontSize: 17,
-                        fontWeight: FontWeight.w700,
-                      ),
-                    ),
-                    const SizedBox(height: 2),
-                    Text(
-                      subtitle,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(
-                        color: Color(0xFF94A3B8),
-                        fontSize: 14,
-                      ),
-                    ),
-                  ],
+              )
+            else if (!atCurrent)
+              IconButton(
+                tooltip: sgStrings(context).useMyLocation,
+                constraints: const BoxConstraints(
+                  minWidth: kSgTouch,
+                  minHeight: kSgTouch,
+                ),
+                onPressed: () {
+                  if (context.read<MapProvider>().isTripInProgress) {
+                    widget.onActiveRideTap();
+                    return;
+                  }
+                  widget.onLocationTap();
+                },
+                icon: Icon(
+                  Icons.my_location,
+                  color: SgColors.goldText,
+                  size: 20,
                 ),
               ),
-              ?trailing,
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-class _ProfileMenuTile extends StatelessWidget {
-  const _ProfileMenuTile({required this.icon, required this.title, this.onTap});
-
-  final IconData icon;
-  final String title;
-  final VoidCallback? onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    return InkWell(
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(20),
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 18),
-        decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(20),
-          gradient: const LinearGradient(
-            begin: Alignment.centerLeft,
-            end: Alignment.centerRight,
-            colors: [Color(0xFF24211C), Color(0xFF221F1A)],
-          ),
-          border: Border.all(color: const Color(0x1AFFFFFF)),
-          boxShadow: const [
-            BoxShadow(
-              color: Color(0x24000000),
-              blurRadius: 20,
-              offset: Offset(0, 8),
-            ),
           ],
         ),
-        child: Row(
-          children: [
-            Icon(icon, color: const Color(0xFF94A3B8), size: 22),
-            const SizedBox(width: 14),
-            Expanded(
-              child: Text(
-                title,
-                style: GoogleFonts.inter(
-                  color: const Color(0xFFE2E8F0),
-                  fontSize: 16,
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
-            ),
-            const Icon(Icons.chevron_right, color: Color(0xFF64748B), size: 24),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-class _BottomNav extends StatelessWidget {
-  const _BottomNav({required this.selectedIndex, required this.onItemTap});
-
-  final int selectedIndex;
-  final ValueChanged<int> onItemTap;
-
-  @override
-  Widget build(BuildContext context) {
-    return Align(
-      alignment: Alignment.bottomCenter,
-      child: ClipRect(
-        child: BackdropFilter(
-          filter: ImageFilter.blur(sigmaX: 12, sigmaY: 12),
-          child: Container(
-            height: 84,
-            padding: const EdgeInsets.fromLTRB(24, 12, 24, 24),
-            decoration: const BoxDecoration(
-              color: Color(0xE61A1814),
-              border: Border(top: BorderSide(color: Color(0x0DFFFFFF))),
-            ),
-            child: Row(
-              children: [
-                _NavItem(
-                  icon: Icons.home,
-                  label: 'Home',
-                  selected: selectedIndex == 0,
-                  onTap: () => onItemTap(0),
-                ),
-                _NavItem(
-                  icon: Icons.history,
-                  label: 'History',
-                  selected: selectedIndex == 1,
-                  glowWhenSelected: true,
-                  onTap: () => onItemTap(1),
-                ),
-                _NavItem(
-                  icon: Icons.account_balance_wallet,
-                  label: 'Wallet',
-                  selected: selectedIndex == 2,
-                  glowWhenSelected: true,
-                  onTap: () => onItemTap(2),
-                ),
-                _NavItem(
-                  icon: Icons.person,
-                  label: 'Profile',
-                  selected: selectedIndex == 3,
-                  glowWhenSelected: true,
-                  onTap: () => onItemTap(3),
-                ),
-              ],
-            ),
+        compact: !_open,
+        to: TextField(
+          controller: widget.dropController,
+          focusNode: widget.dropFocusNode,
+          style: SgText.body,
+          decoration: InputDecoration(
+            isDense: true,
+            border: InputBorder.none,
+            hintText: l.searchADestination,
+            hintStyle: SgText.body.copyWith(color: SgColors.inkMuted),
+            contentPadding: EdgeInsets.zero,
           ),
         ),
-      ),
-    );
-  }
-}
-
-class _NavItem extends StatelessWidget {
-  const _NavItem({
-    required this.icon,
-    required this.label,
-    required this.selected,
-    this.glowWhenSelected = false,
-    required this.onTap,
-  });
-
-  final IconData icon;
-  final String label;
-  final bool selected;
-  final bool glowWhenSelected;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    final Color itemColor = selected
-        ? const Color(0xFFEEBD2B)
-        : const Color(0xFF94A3B8);
-    final List<Shadow>? shadows = selected && glowWhenSelected
-        ? const [Shadow(color: Color(0x80EEBD2B), blurRadius: 8)]
-        : null;
-
-    return Expanded(
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(10),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(icon, color: itemColor, size: 24, shadows: shadows),
-            const SizedBox(height: 4),
-            Text(
-              label,
-              style: TextStyle(
-                color: itemColor,
-                fontSize: 10,
-                fontWeight: FontWeight.w500,
-                letterSpacing: 0.2,
-                shadows: shadows,
-              ),
-            ),
-          ],
-        ),
+        results: _open ? _results() : null,
       ),
     );
   }
@@ -1770,7 +1359,8 @@ class _ActiveRideTile extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final mapProvider = context.watch<MapProvider>();
-    final destination = mapProvider.destinationAddress ?? 'Active Ride';
+    final destination =
+        mapProvider.destinationAddress ?? sgStrings(context).activeRideTitle;
 
     return Material(
       color: Colors.transparent,
@@ -1780,25 +1370,20 @@ class _ActiveRideTile extends StatelessWidget {
         child: Container(
           padding: const EdgeInsets.all(14),
           decoration: BoxDecoration(
-            color: const Color(0xFFEEBD2B).withValues(alpha: 0.15),
+            color: SgColors.gold500.withValues(alpha: 0.15),
             borderRadius: BorderRadius.circular(16),
-            border: Border.all(
-              color: const Color(0xFFEEBD2B).withValues(alpha: 0.3),
-            ),
+            border: Border.all(color: SgColors.goldText.withValues(alpha: 0.3)),
           ),
           child: Row(
             children: [
               Container(
                 width: 48,
                 height: 48,
-                decoration: const BoxDecoration(
-                  color: Color(0xFFEEBD2B),
+                decoration: BoxDecoration(
+                  color: SgColors.gold500,
                   shape: BoxShape.circle,
                 ),
-                child: const Icon(
-                  Icons.directions_car,
-                  color: Color(0xFF1A1814),
-                ),
+                child: Icon(Icons.directions_car, color: SgColors.onGold),
               ),
               const SizedBox(width: 14),
               Expanded(
@@ -1807,12 +1392,12 @@ class _ActiveRideTile extends StatelessWidget {
                   children: [
                     Row(
                       children: [
-                        const Text(
+                        Text(
                           'Ongoing Ride',
                           style: TextStyle(
-                            color: Color(0xFFEEBD2B),
-                            fontSize: 14,
-                            fontWeight: FontWeight.w700,
+                            color: SgColors.goldText,
+                            fontSize: SgText.sizeSmall,
+                            fontWeight: FontWeight.w600,
                           ),
                         ),
                         const SizedBox(width: 8),
@@ -1822,15 +1407,15 @@ class _ActiveRideTile extends StatelessWidget {
                             vertical: 2,
                           ),
                           decoration: BoxDecoration(
-                            color: Colors.redAccent,
+                            color: SgColors.danger,
                             borderRadius: BorderRadius.circular(4),
                           ),
-                          child: const Text(
+                          child: Text(
                             'LIVE',
                             style: TextStyle(
-                              color: Colors.white,
-                              fontSize: 9,
-                              fontWeight: FontWeight.bold,
+                              color: SgColors.ink,
+                              fontSize: SgText.sizeSmall,
+                              fontWeight: FontWeight.w600,
                             ),
                           ),
                         ),
@@ -1841,16 +1426,16 @@ class _ActiveRideTile extends StatelessWidget {
                       destination,
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(
-                        color: Colors.white,
-                        fontSize: 17,
+                      style: TextStyle(
+                        color: SgColors.ink,
+                        fontSize: SgText.sizeBody,
                         fontWeight: FontWeight.w600,
                       ),
                     ),
                   ],
                 ),
               ),
-              const Icon(Icons.chevron_right, color: Color(0xFFEEBD2B)),
+              Icon(Icons.chevron_right, color: SgColors.goldText),
             ],
           ),
         ),

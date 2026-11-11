@@ -1,17 +1,219 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 
+/// Build-time configuration for the rider app.
+///
+/// Resolution order, highest first:
+///   1. `--dart-define` (compile-time, cannot be swapped after the build)
+///   2. `assets/.env` via dotenv, when one was loaded (local development)
+///   3. the QA host -- DEBUG BUILDS ONLY
+///
+/// A RELEASE build that resolves to nothing, or to a dev/staging/qa/localhost
+/// host, refuses to start; see [misconfiguration]. Previously the fallback pointed
+/// at QA unconditionally, so a store build with a missing or stale `.env` shipped
+/// talking to test data with nothing in the app to say so -- riders would have
+/// booked rides that did not exist against drivers who were not there.
+///
+/// `assets/.env` is also no longer declared in pubspec. It was gitignored, so CI
+/// could never have it, and anything bundled as a Flutter asset can be extracted
+/// from the APK -- which made it the wrong place for a key in the first place.
+///
+/// Build with:
+///   flutter build apk --dart-define=BASE_URL=https://api.saaradhigo.com/api/v1 \
+///                     --dart-define=WS_BASE_URL=wss://api.saaradhigo.com/ws
 class AppConfig {
+  static const String _defineBaseUrl = String.fromEnvironment('BASE_URL');
+  static const String _defineWsBaseUrl = String.fromEnvironment('WS_BASE_URL');
+
+  // THE QA SERVER, BY THE ONLY HOSTNAME THAT ANSWERS.
+  //
+  // These were dev.api.saaradhigo.in, which resolves (16.112.4.47) and
+  // then times out on 443 -- a debug build looked configured and failed
+  // every call. The official domain is saaradhigo.com now, but
+  // api.saaradhigo.com has no DNS record yet, so pointing the default at
+  // it would be the same trap with a new spelling. The Railway hostname
+  // is what actually serves QA, and `railway.app` is in the
+  // non-production markers below, so a release build aimed here is still
+  // refused unless it opts in.
+  static const String _devBaseUrl =
+      'https://backend-qa-811d.up.railway.app/api/v1';
+  static const String _devWsBaseUrl = 'wss://backend-qa-811d.up.railway.app/ws';
+
+  static const bool isProduction = bool.fromEnvironment('dart.vm.product');
+
+  /// Lets a RELEASE build point at a non-production server on purpose.
+  ///
+  /// A QA acceptance build has to be a real release build -- minified, shrunk,
+  /// signed, the same code path a rider runs -- while talking to the QA API.
+  /// Without this flag [misconfiguration] refuses exactly that build, so QA
+  /// would have to certify a debug binary and hope.
+  ///
+  /// It does not weaken the guard it opens: a release build with NO server
+  /// configured is still refused, the flag is compile-time so a store build
+  /// cannot acquire it later, and [environmentLabel] still reports QA so the
+  /// badge stays on every screen.
+  static const bool allowNonProductionHost = bool.fromEnvironment(
+    'ALLOW_NON_PRODUCTION_HOST',
+  );
+
+  /// Reads dotenv without throwing when no `.env` was ever loaded.
+  static String _fromDotenv(String key) {
+    try {
+      return dotenv.isInitialized ? (dotenv.env[key] ?? '') : '';
+    } on Object {
+      return '';
+    }
+  }
+
+  static String _resolve(String define, String key, String devFallback) {
+    if (define.isNotEmpty) return define;
+    final fromFile = _fromDotenv(key);
+    if (fromFile.isNotEmpty) return fromFile;
+    return isProduction ? '' : devFallback;
+  }
+
   static String get baseUrl =>
-      dotenv.env['BASE_URL'] ?? 'https://dev.api.saaradhigo.in/api/v1';
+      _resolve(_defineBaseUrl, 'BASE_URL', _devBaseUrl);
   static String get wsBaseUrl =>
-      dotenv.env['WS_BASE_URL'] ?? 'wss://dev.api.saaradhigo.in/ws';
+      _resolve(_defineWsBaseUrl, 'WS_BASE_URL', _devWsBaseUrl);
+
+  /// Hosts that must never appear in a release build.
+  static const List<String> _nonProductionMarkers = <String>[
+    'dev.',
+    'staging.',
+    'qa.',
+    'localhost',
+    '127.0.0.1',
+    '10.0.2.2',
+    // Railway's generated hostnames, e.g. backend-qa-811d.up.railway.app.
+    // The QA backend is reachable ONLY at one of these today, and the string
+    // 'qa.' above does not match 'backend-qa-811d' -- a hyphen, not a dot. So
+    // a release build aimed at the real QA server passed this guard as though
+    // it were production, and the QA badge keyed off the same judgement. Any
+    // railway.app host is by definition not the production domain, which is
+    // api.saaradhigo.com.
+    'railway.app',
+  ];
+
+  /// Why this build must refuse to start, or null when it is configured sanely.
+  /// Only ever non-null in a RELEASE build.
+  static String? get misconfiguration => evaluate(
+    isProduction: isProduction,
+    allowNonProductionHost: allowNonProductionHost,
+    api: baseUrl,
+    ws: wsBaseUrl,
+  );
+
+  /// The decision itself, with every input passed in.
+  ///
+  /// Separated from [misconfiguration] because the inputs there are
+  /// compile-time constants: `dart.vm.product` is false under `flutter test`,
+  /// so the release branches could only ever be exercised by building a
+  /// release binary and looking at it. A guard nobody can test is a guard
+  /// nobody can trust.
+  @visibleForTesting
+  static String? evaluate({
+    required bool isProduction,
+    required bool allowNonProductionHost,
+    required String api,
+    required String ws,
+  }) {
+    if (!isProduction) return null;
+    if (api.isEmpty || ws.isEmpty) {
+      // Checked BEFORE the opt-in: ALLOW_NON_PRODUCTION_HOST means "QA on
+      // purpose", not "no host at all".
+      return 'This release build was compiled without BASE_URL and WS_BASE_URL. '
+          'Rebuild with --dart-define for the target environment.';
+    }
+    if (allowNonProductionHost) {
+      // Deliberate QA build. The environment badge says so on every screen.
+      return null;
+    }
+    final offending = _nonProductionMarkers.where(
+      (m) => api.contains(m) || ws.contains(m),
+    );
+    if (offending.isNotEmpty) {
+      return 'This release build points at a non-production host '
+          '("${offending.first}"). Rebuild with the production URLs.';
+    }
+    return null;
+  }
+
+  /// Short label for the environment, shown on any build that is not production.
+  /// What each non-production marker should SAY on the badge.
+  ///
+  /// The label used to be derived from the marker itself by stripping dots
+  /// and upper-casing, which only ever read well for 'dev.'. Everything else
+  /// produced something a tester cannot act on: the QA build on Railway
+  /// showed 'RAILWAYAPP', and a build against the loopback address would
+  /// have announced itself as '127001'. The badge exists to tell whoever is
+  /// holding the phone which server they are talking to, so it says that.
+  static const Map<String, String> _environmentLabels = <String, String>{
+    'dev.': 'QA',
+    'qa.': 'QA',
+    'railway.app': 'QA',
+    'staging.': 'STAGING',
+    'localhost': 'LOCAL',
+    '127.0.0.1': 'LOCAL',
+    '10.0.2.2': 'LOCAL',
+  };
+
+  static String get environmentLabel => labelForHost(baseUrl);
+
+  /// The badge text for a given API base URL.
+  ///
+  /// Separated from [environmentLabel] for the same reason [evaluate] is
+  /// separated from [misconfiguration]: the getter reads a compile-time
+  /// constant, so the only way to test what the badge actually renders for a
+  /// given server is to pass the server in.
+  static String labelForHost(String api) {
+    if (api.isEmpty) return 'UNCONFIGURED';
+    for (final marker in _nonProductionMarkers) {
+      if (api.contains(marker)) {
+        // A marker with no entry is still non-production; say so rather
+        // than falling through to 'PRODUCTION', which would be a lie.
+        return _environmentLabels[marker] ?? 'NON-PRODUCTION';
+      }
+    }
+    return 'PRODUCTION';
+  }
+
+  static bool get showEnvironmentBadge => environmentLabel != 'PRODUCTION';
 
   // API Endpoints
   static const String authOtp = '/auth/otp/';
   static const String authLogin = '/auth/login/';
+
+  // Email + password. Additive: phone + OTP above is unchanged and remains
+  // the primary route for a rider.
+  static const String authEmailLogin = '/auth/email/login/';
+  static const String authPasswordForgot = '/auth/password/forgot/';
   static const String authRefresh = '/auth/refresh/';
+
+  // Server-side logout. Blacklists the refresh token and clears the stored
+  // FCM token. Without calling it, a logout is local only: the refresh token
+  // keeps minting access tokens for its full 14-day life, and dispatch keeps
+  // addressing push to a handset whose session has ended.
+  static const String authLogout = '/auth/logout/';
   static const String authUpdate = '/auth/update/';
   static const String authProfile = '/auth/profile/';
+
+  // Safety. `/sos/` persists an SOSEvent and fans out to ops asynchronously;
+  // the driver app has used it since the safety work and the rider app now
+  // does too.
+  static const String sos = '/sos/';
+
+  // Support tickets. The endpoints already existed and the driver app has
+  // used them since its support work; the rider's Help & Support screen was
+  // decorative -- tiles with no handlers -- so a rider with a problem could
+  // reach a screen that looks like support and do nothing from it.
+  static const String supportTickets = '/support/tickets/';
+  static const String supportCreateTicket = '/support/tickets/create/';
+
+  // Rate a completed trip. Live the whole time; neither app could submit
+  // one, so every driver average sat at its default and the figure both
+  // apps display was unchangeable.
+  static const String rateTrip = '/ride/rate-trip/';
 
   static const String riderNotifications = '/rider/notifications/';
   static const String rideHistory = '/ride/ride-history/';
@@ -31,8 +233,24 @@ class AppConfig {
   static const String mapsReverseGeocode = '/ride/maps/reverse-geocode';
   static const String mapsDirections = '/ride/maps/directions';
 
-  // Cashfree
-  static String get cashfreeAppId => dotenv.env['CASHFREE_APP_ID'] ?? '';
-  static String get cashfreeEnvironment =>
-      dotenv.env['CASHFREE_ENVIRONMENT'] ?? 'sandbox';
+  // Cashfree. `--dart-define` first so a release build does not depend on a file
+  // that is not in the repository. The environment defaults to sandbox, which is
+  // the safe direction to fail: a build that forgets the flag cannot take real
+  // money.
+  static const String _defineCashfreeAppId = String.fromEnvironment(
+    'CASHFREE_APP_ID',
+  );
+  static const String _defineCashfreeEnv = String.fromEnvironment(
+    'CASHFREE_ENVIRONMENT',
+  );
+
+  static String get cashfreeAppId => _defineCashfreeAppId.isNotEmpty
+      ? _defineCashfreeAppId
+      : _fromDotenv('CASHFREE_APP_ID');
+
+  static String get cashfreeEnvironment {
+    if (_defineCashfreeEnv.isNotEmpty) return _defineCashfreeEnv;
+    final fromFile = _fromDotenv('CASHFREE_ENVIRONMENT');
+    return fromFile.isNotEmpty ? fromFile : 'sandbox';
+  }
 }

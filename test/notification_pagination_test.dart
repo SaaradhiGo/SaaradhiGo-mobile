@@ -2,9 +2,9 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:mockito/mockito.dart';
 import 'package:mockito/annotations.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:vahango/providers/notification_provider.dart';
-import 'package:vahango/services/notification_service.dart';
-import 'package:vahango/services/models/notification_model.dart';
+import 'package:saaradhigo_rider/providers/notification_provider.dart';
+import 'package:saaradhigo_rider/services/notification_service.dart';
+import 'package:saaradhigo_rider/services/models/notification_model.dart';
 
 @GenerateMocks([NotificationService])
 import 'notification_pagination_test.mocks.dart';

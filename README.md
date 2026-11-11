@@ -56,8 +56,8 @@ Runtime configuration is loaded from `assets/.env` via `flutter_dotenv` and is *
 Create `assets/.env` with:
 
 ```env
-BASE_URL=https://dev.api.saaradhigo.in/api/v1
-WS_BASE_URL=wss://dev.api.saaradhigo.in/ws
+BASE_URL=https://backend-qa-811d.up.railway.app/api/v1
+WS_BASE_URL=wss://backend-qa-811d.up.railway.app/ws
 GOOGLE_MAPS_API_KEY=your_google_maps_key
 CASHFREE_APP_ID=your_cashfree_app_id
 CASHFREE_ENVIRONMENT=sandbox

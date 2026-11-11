@@ -1,5 +1,10 @@
+import '../../ui/appearance_settings.dart' show sgStrings;
+import '../components/market_overlays.dart';
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
+import '../../ui/account_widgets.dart';
+import '../../ui/sg_text.dart';
+import '../../ui/sg_tokens.dart';
+import '../../ui/sg_widgets.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 import 'package:intl/intl.dart';
@@ -7,6 +12,7 @@ import '../../providers/wallet_provider.dart';
 import '../../providers/notification_provider.dart';
 import '../../providers/remote_config_provider.dart';
 import '../../services/models/wallet_model.dart';
+import '../../utils/money.dart';
 
 class WalletScreen extends StatefulWidget {
   const WalletScreen({super.key});
@@ -68,35 +74,27 @@ class _WalletScreenState extends State<WalletScreen> {
           behavior: ScrollConfiguration.of(context).copyWith(scrollbars: false),
           child: RefreshIndicator(
             onRefresh: provider.refreshWallet,
-            color: const Color(0xFFEEBD2B),
-            backgroundColor: const Color(0xFF24211C),
+            color: SgColors.gold500,
+            backgroundColor: SgColors.bg200,
             child: ListView(
               padding: EdgeInsets.zero,
               physics: const AlwaysScrollableScrollPhysics(),
               children: [
-                const _WalletHeader(),
-                const SizedBox(height: 24),
-                Consumer<RemoteConfigProvider>(
-                  builder: (context, cfg, _) {
-                    final title = cfg.walletCreditsOnly
-                        ? 'VahanGo Credits'
-                        : 'Wallet';
-                    return Text(
-                      title,
-                      style: const TextStyle(
-                        color: Colors.white,
-                        fontSize: 42,
-                        fontWeight: FontWeight.w600,
-                        height: 1.05,
-                      ),
-                    );
-                  },
-                ),
-                const SizedBox(height: 24),
+                const SgPageTitle('Wallet'),
                 Consumer<RemoteConfigProvider>(
                   builder: (context, cfg, _) => _WalletBalanceCard(
                     balance: provider.balance,
+                    pendingReview: provider.wallet?.hasPendingReview == true
+                        ? formatServerMoney(
+                            provider.wallet!.pendingReview,
+                            provider.wallet!.currency,
+                          )
+                        : null,
                     isLoading: provider.isLoading,
+                    loaded: provider.wallet != null,
+                    failed: provider.balanceFailed,
+                    currency: provider.wallet?.currency,
+                    onRetry: provider.refreshWallet,
                     topupsEnabled: cfg.walletTopupsEnabled,
                     creditsOnly: cfg.walletCreditsOnly,
                   ),
@@ -109,12 +107,7 @@ class _WalletScreenState extends State<WalletScreen> {
                       child: Text(
                         'Earned from refunds, promos, and customer support credits. '
                         'Apply at checkout on your next ride.',
-                        style: GoogleFonts.inter(
-                          color: const Color(0xFF94A3B8),
-                          fontSize: 12,
-                          fontWeight: FontWeight.w500,
-                          height: 1.4,
-                        ),
+                        style: SgText.caption,
                       ),
                     );
                   },
@@ -122,18 +115,12 @@ class _WalletScreenState extends State<WalletScreen> {
                 const SizedBox(height: 28),
                 _buildFilterChips(),
                 const SizedBox(height: 16),
-                if (provider.isLoading && provider.transactions.isEmpty)
-                  const Center(
-                    child: Padding(
-                      padding: EdgeInsets.all(40.0),
-                      child: CircularProgressIndicator(
-                        color: Color(0xFFEEBD2B),
-                      ),
-                    ),
-                  )
-                else if (provider.errorMessage != null &&
-                    provider.transactions.isEmpty)
+                if (provider.errorMessage != null &&
+                    provider.transactions.isEmpty &&
+                    !provider.isLoading)
                   _ErrorState(message: provider.errorMessage!)
+                else if (provider.transactions.isEmpty && provider.isLoading)
+                  const _TransactionsSkeleton()
                 else if (provider.transactions.isEmpty)
                   const _EmptyTransactionsState()
                 else
@@ -184,15 +171,16 @@ class _WalletScreenState extends State<WalletScreen> {
           child: ElevatedButton(
             onPressed: _loadMore,
             style: ElevatedButton.styleFrom(
-              backgroundColor: const Color(0xFFEEBD2B),
-              foregroundColor: Colors.black,
+              backgroundColor: SgColors.bg300,
+              foregroundColor: SgColors.ink,
+              elevation: 0,
               padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 12),
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(12),
               ),
             ),
             child: const Text(
-              'Load More',
+              'Show more',
               style: TextStyle(fontWeight: FontWeight.w600),
             ),
           ),
@@ -212,7 +200,7 @@ class _WalletScreenState extends State<WalletScreen> {
           child: Row(
             children: [
               _FilterChip(
-                label: 'All',
+                label: sgStrings(context).filterAll,
                 isSelected: _selectedFilter == 'All',
                 onTap: () => setState(() {
                   _selectedFilter = 'All';
@@ -233,7 +221,7 @@ class _WalletScreenState extends State<WalletScreen> {
               ),
               const SizedBox(width: 8),
               _FilterChip(
-                label: 'Payments',
+                label: sgStrings(context).filterPayments,
                 isSelected: _selectedFilter == 'Payments',
                 onTap: () => setState(() {
                   _selectedFilter = 'Payments';
@@ -248,113 +236,50 @@ class _WalletScreenState extends State<WalletScreen> {
   }
 }
 
-class _WalletHeader extends StatelessWidget {
-  const _WalletHeader();
-
-  @override
-  Widget build(BuildContext context) {
-    return Row(
-      children: [
-        const Expanded(
-          child: Text(
-            'SaaradhiGo',
-            style: TextStyle(
-              color: Color(0xFFEEBD2B),
-              fontSize: 23,
-              fontWeight: FontWeight.w700,
-              letterSpacing: 2.6,
-            ),
-          ),
-        ),
-        Consumer<NotificationProvider>(
-          builder: (context, provider, child) => GestureDetector(
-            onTap: () => context.push('/notifications'),
-            child: Stack(
-              clipBehavior: Clip.none,
-              children: [
-                Padding(
-                  padding: const EdgeInsets.only(top: 3, right: 3),
-                  child: Container(
-                    width: 40,
-                    height: 40,
-                    decoration: const BoxDecoration(
-                      color: Color(0x14FFFFFF),
-                      shape: BoxShape.circle,
-                    ),
-                    child: const Icon(
-                      Icons.notifications,
-                      color: Color(0xFFE2E8F0),
-                      size: 21,
-                    ),
-                  ),
-                ),
-                if (provider.unreadCount > 0)
-                  Positioned(
-                    top: 0,
-                    right: 0,
-                    child: Container(
-                      padding: const EdgeInsets.all(4),
-                      decoration: const BoxDecoration(
-                        color: Color(0xFFEF4444),
-                        shape: BoxShape.circle,
-                      ),
-                      constraints: const BoxConstraints(
-                        minWidth: 16,
-                        minHeight: 16,
-                      ),
-                      child: Text(
-                        '${provider.unreadCount}',
-                        style: const TextStyle(
-                          color: Colors.white,
-                          fontSize: 8,
-                          fontWeight: FontWeight.bold,
-                        ),
-                        textAlign: TextAlign.center,
-                      ),
-                    ),
-                  ),
-              ],
-            ),
-          ),
-        ),
-      ],
-    );
-  }
-}
-
 class _WalletBalanceCard extends StatelessWidget {
   const _WalletBalanceCard({
     required this.balance,
     required this.isLoading,
     required this.topupsEnabled,
     required this.creditsOnly,
+    this.pendingReview,
+    this.loaded = true,
+    this.failed = false,
+    this.currency,
+    this.onRetry,
   });
   final double balance;
+
+  /// The balance came back from the server; until then a skeleton.
+  final bool loaded;
+
+  /// The balance could not be loaded: the error and Try again, not ₹0.00.
+  final bool failed;
+  final String? currency;
+  final VoidCallback? onRetry;
+
+  /// A reward held for review, already formatted; null hides the line.
+  final String? pendingReview;
   final bool isLoading;
   final bool topupsEnabled;
   final bool creditsOnly;
 
   @override
   Widget build(BuildContext context) {
-    final formatter = NumberFormat.currency(symbol: '₹', decimalDigits: 2);
+    final formatter = NumberFormat.currency(
+      symbol: currency == null
+          ? marketOf(context).currencySymbol
+          : currencySymbol(currency),
+      decimalDigits: 2,
+    );
 
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.all(24),
       decoration: BoxDecoration(
-        gradient: const LinearGradient(
-          colors: [Color(0xFFEEBD2B), Color(0xFFC59A1D)],
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-        ),
-        borderRadius: BorderRadius.circular(24),
-        boxShadow: [
-          BoxShadow(
-            color: const Color(0xFFEEBD2B).withValues(alpha: 0.3),
-            blurRadius: 20,
-            offset: const Offset(0, 10),
-          ),
-        ],
+        color: SgColors.bg100,
+        borderRadius: BorderRadius.circular(SgRadius.lg),
+        border: Border.all(color: SgColors.goldLine),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -363,41 +288,63 @@ class _WalletBalanceCard extends StatelessWidget {
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               Text(
-                creditsOnly ? 'Credit Balance' : 'Current Balance',
-                style: GoogleFonts.inter(
-                  color: Colors.black.withValues(alpha: 0.7),
-                  fontSize: 14,
-                  fontWeight: FontWeight.w600,
-                  letterSpacing: 0.5,
-                ),
+                creditsOnly ? 'SaaradhiGo credits' : 'Balance',
+                style: SgText.body.copyWith(color: SgColors.inkMuted),
               ),
-              const Icon(
-                Icons.account_balance_wallet,
-                color: Colors.black54,
-                size: 20,
-              ),
+              SgIcon(SgIcons.wallet, size: 20, color: SgColors.inkMuted),
             ],
           ),
           const SizedBox(height: 8),
-          isLoading && balance == 0
-              ? const SizedBox(
-                  height: 40,
-                  child: Center(
-                    child: CircularProgressIndicator(
-                      color: Colors.black,
-                      strokeWidth: 2,
-                    ),
-                  ),
-                )
-              : Text(
-                  formatter.format(balance),
-                  style: GoogleFonts.inter(
-                    color: Colors.black,
-                    fontSize: 32,
-                    fontWeight: FontWeight.w700,
-                    letterSpacing: -0.5,
+          if (failed)
+            Row(
+              key: const Key('wallet_balance_error'),
+              children: [
+                Expanded(
+                  child: Text(
+                    sgStrings(context).loadErrWallet,
+                    style: SgText.body,
                   ),
                 ),
+                TextButton(
+                  key: const Key('wallet_balance_retry'),
+                  onPressed: onRetry,
+                  child: Text(
+                    sgStrings(context).tryAgain,
+                    style: SgText.body.copyWith(
+                      color: SgColors.goldText,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ),
+              ],
+            )
+          else if (!loaded)
+            Container(
+              key: const Key('wallet_balance_loading'),
+              width: 160,
+              height: 40,
+              decoration: BoxDecoration(
+                color: SgColors.bg200,
+                borderRadius: BorderRadius.circular(6),
+              ),
+            )
+          else
+            Text(
+              formatter.format(balance),
+              key: const Key('wallet_balance'),
+              style: SgText.fare.copyWith(
+                fontSize: SgText.sizeDisplay,
+                height: 44 / 36,
+              ),
+            ),
+          if (pendingReview != null) ...[
+            const SizedBox(height: 8),
+            Text(
+              'Pending review: $pendingReview (not spendable yet)',
+              key: const Key('wallet_pending_review'),
+              style: SgText.caption,
+            ),
+          ],
           if (topupsEnabled) ...[
             const SizedBox(height: 24),
             Row(
@@ -405,7 +352,7 @@ class _WalletBalanceCard extends StatelessWidget {
                 Expanded(
                   child: _WalletActionButton(
                     icon: Icons.add_rounded,
-                    label: 'Add Money',
+                    label: sgStrings(context).addMoney,
                     onTap: () {
                       context.push('/add-money');
                     },
@@ -427,15 +374,7 @@ class _WalletMonthLabel extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Text(
-      label.toUpperCase(),
-      style: GoogleFonts.inter(
-        color: const Color(0xFF94A3B8),
-        fontSize: 14,
-        fontWeight: FontWeight.w600,
-        letterSpacing: 2.4,
-      ),
-    );
+    return Text(label.toUpperCase(), style: SgText.eyebrow);
   }
 }
 
@@ -456,11 +395,10 @@ class _WalletTxnCard extends StatelessWidget {
 
     Color getStatusColor() {
       final s = transaction.status.toLowerCase();
-      if (s == 'success' || s == 'completed')
-        return const Color(0xFF10B981); // Green
-      if (s == 'failed') return const Color(0xFFEF4444); // Red
-      if (s == 'pending') return const Color(0xFFF59E0B); // Orange
-      return const Color(0xFF94A3B8); // Default
+      if (s == 'success' || s == 'completed') return SgColors.success;
+      if (s == 'failed') return SgColors.danger;
+      if (s == 'pending') return SgColors.goldText;
+      return SgColors.inkMuted;
     }
 
     return Row(
@@ -475,22 +413,12 @@ class _WalletTxnCard extends StatelessWidget {
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
                 color: transaction.isCredit
-                    ? const Color(0xFF10B981)
-                    : const Color(0xFFEEBD2B),
-                boxShadow: [
-                  BoxShadow(
-                    color:
-                        (transaction.isCredit
-                                ? const Color(0xFF10B981)
-                                : const Color(0xFFEEBD2B))
-                            .withValues(alpha: 0.4),
-                    blurRadius: 8,
-                  ),
-                ],
+                    ? SgColors.success
+                    : SgColors.gold500,
               ),
             ),
             if (showTimelineTail)
-              Container(width: 2, height: 48, color: const Color(0x1AFFFFFF)),
+              Container(width: 2, height: 48, color: SgColors.bg300),
           ],
         ),
         const SizedBox(width: 16),
@@ -498,9 +426,9 @@ class _WalletTxnCard extends StatelessWidget {
           child: Container(
             padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(
-              color: const Color(0xFF24211C),
+              color: SgColors.bg300,
               borderRadius: BorderRadius.circular(16),
-              border: Border.all(color: const Color(0x0DFFFFFF)),
+              border: Border.all(color: SgColors.line),
             ),
             child: Row(
               crossAxisAlignment: CrossAxisAlignment.center,
@@ -516,9 +444,9 @@ class _WalletTxnCard extends StatelessWidget {
                               transaction.title,
                               maxLines: 1,
                               overflow: TextOverflow.ellipsis,
-                              style: GoogleFonts.inter(
-                                color: const Color(0xFFF8FAFC),
-                                fontSize: 15,
+                              style: TextStyle(
+                                color: SgColors.ink,
+                                fontSize: SgText.sizeBody,
                                 fontWeight: FontWeight.w600,
                               ),
                             ),
@@ -537,11 +465,8 @@ class _WalletTxnCard extends StatelessWidget {
                             ),
                             child: Text(
                               transaction.status.toUpperCase(),
-                              style: GoogleFonts.inter(
+                              style: SgText.eyebrow.copyWith(
                                 color: getStatusColor(),
-                                fontSize: 9,
-                                fontWeight: FontWeight.w700,
-                                letterSpacing: 0.5,
                               ),
                             ),
                           ),
@@ -550,10 +475,10 @@ class _WalletTxnCard extends StatelessWidget {
                       const SizedBox(height: 4),
                       Text(
                         dateStr,
-                        style: GoogleFonts.inter(
-                          color: const Color(0xFF94A3B8),
-                          fontSize: 12,
-                          fontWeight: FontWeight.w500,
+                        style: TextStyle(
+                          color: SgColors.inkMuted,
+                          fontSize: SgText.sizeSmall,
+                          fontWeight: FontWeight.w600,
                         ),
                       ),
                     ],
@@ -561,13 +486,13 @@ class _WalletTxnCard extends StatelessWidget {
                 ),
                 const SizedBox(width: 16),
                 Text(
-                  '${transaction.isCredit ? '+' : '-'}\u20B9${transaction.amount}',
-                  style: GoogleFonts.inter(
+                  transaction.formattedAmount,
+                  style: TextStyle(
                     color: transaction.isCredit
-                        ? const Color(0xFF10B981)
-                        : const Color(0xFFF8FAFC),
-                    fontSize: 16,
-                    fontWeight: FontWeight.w700,
+                        ? SgColors.success
+                        : SgColors.ink,
+                    fontSize: SgText.sizeBody,
+                    fontWeight: FontWeight.w600,
                   ),
                 ),
               ],
@@ -587,18 +512,14 @@ class _EmptyTransactionsState extends StatelessWidget {
     return Column(
       children: [
         const SizedBox(height: 40),
-        Icon(
-          Icons.history_rounded,
-          size: 64,
-          color: Colors.white.withValues(alpha: 0.1),
-        ),
+        Icon(Icons.history_rounded, size: 64, color: SgColors.inkSubtle),
         const SizedBox(height: 16),
         Text(
           'No transactions yet',
-          style: GoogleFonts.inter(
-            color: const Color(0xFF94A3B8),
-            fontSize: 16,
-            fontWeight: FontWeight.w500,
+          style: TextStyle(
+            color: SgColors.inkMuted,
+            fontSize: SgText.sizeBody,
+            fontWeight: FontWeight.w600,
           ),
         ),
       ],
@@ -615,30 +536,27 @@ class _ErrorState extends StatelessWidget {
     return Column(
       children: [
         const SizedBox(height: 40),
-        const Icon(
-          Icons.error_outline_rounded,
-          size: 64,
-          color: Color(0xFFF87171),
-        ),
+        Icon(Icons.error_outline_rounded, size: 64, color: SgColors.danger),
         const SizedBox(height: 16),
         Padding(
           padding: const EdgeInsets.symmetric(horizontal: 40),
           child: Text(
             message,
             textAlign: TextAlign.center,
-            style: GoogleFonts.inter(
-              color: const Color(0xFFF87171),
-              fontSize: 14,
-              fontWeight: FontWeight.w500,
+            style: TextStyle(
+              color: SgColors.danger,
+              fontSize: SgText.sizeSmall,
+              fontWeight: FontWeight.w600,
             ),
           ),
         ),
         const SizedBox(height: 16),
         TextButton(
+          key: const Key('wallet_transactions_retry'),
           onPressed: () => context.read<WalletProvider>().refreshWallet(),
-          child: const Text(
-            'Retry',
-            style: TextStyle(color: Color(0xFFEEBD2B)),
+          child: Text(
+            sgStrings(context).tryAgain,
+            style: TextStyle(color: SgColors.goldText),
           ),
         ),
       ],
@@ -662,22 +580,20 @@ class _FilterChip extends StatelessWidget {
     return GestureDetector(
       onTap: onTap,
       child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+        constraints: const BoxConstraints(minHeight: 40),
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 9),
         decoration: BoxDecoration(
-          color: isSelected ? const Color(0xFFEEBD2B) : const Color(0xFF24211C),
-          borderRadius: BorderRadius.circular(20),
+          color: isSelected ? SgColors.bg300 : SgColors.bg100,
+          borderRadius: BorderRadius.circular(SgRadius.pill),
           border: Border.all(
-            color: isSelected
-                ? const Color(0xFFEEBD2B)
-                : const Color(0x33FFFFFF),
+            color: isSelected ? SgColors.lineStrong : SgColors.line,
           ),
         ),
         child: Text(
           label,
-          style: GoogleFonts.inter(
-            color: isSelected ? Colors.black : const Color(0xFFE2E8F0),
-            fontSize: 14,
+          style: SgText.body.copyWith(
             fontWeight: FontWeight.w600,
+            color: isSelected ? SgColors.ink : SgColors.inkMuted,
           ),
         ),
       ),
@@ -704,28 +620,69 @@ class _WalletActionButton extends StatelessWidget {
       child: Container(
         padding: const EdgeInsets.symmetric(vertical: 12),
         decoration: BoxDecoration(
-          color: const Color(0xFF1E1C18),
+          color: SgColors.bg200,
           borderRadius: BorderRadius.circular(12),
-          border: Border.all(
-            color: const Color(0xFFEEBD2B).withOpacity(0.3),
-          ),
+          border: Border.all(color: SgColors.goldText.withOpacity(0.3)),
         ),
         child: Row(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(icon, color: const Color(0xFFEEBD2B), size: 20),
+            Icon(icon, color: SgColors.goldText, size: 20),
             const SizedBox(width: 8),
             Text(
               label,
-              style: GoogleFonts.inter(
-                color: const Color(0xFFEEBD2B),
-                fontSize: 14,
+              style: TextStyle(
+                color: SgColors.goldText,
+                fontSize: SgText.sizeSmall,
                 fontWeight: FontWeight.w600,
               ),
             ),
           ],
         ),
       ),
+    );
+  }
+}
+
+/// Three rows the shape of a transaction while the list loads.
+class _TransactionsSkeleton extends StatelessWidget {
+  const _TransactionsSkeleton();
+
+  @override
+  Widget build(BuildContext context) {
+    Widget bar(double w, double h) => Container(
+      width: w,
+      height: h,
+      decoration: BoxDecoration(
+        color: SgColors.bg200,
+        borderRadius: BorderRadius.circular(6),
+      ),
+    );
+    return Column(
+      key: const Key('wallet_transactions_loading'),
+      children: [
+        for (var i = 0; i < 3; i++)
+          Padding(
+            padding: const EdgeInsets.symmetric(vertical: 10),
+            child: Row(
+              children: [
+                bar(40, 40),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      bar(140, 14),
+                      const SizedBox(height: 6),
+                      bar(90, 12),
+                    ],
+                  ),
+                ),
+                bar(64, 16),
+              ],
+            ),
+          ),
+      ],
     );
   }
 }

@@ -1,5 +1,13 @@
+import '../../core/market/market_config_store.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+
+import '../../ui/account_widgets.dart';
+import '../../ui/appearance_settings.dart' show sgStrings;
+import '../../ui/sg_text.dart';
+import '../../ui/sg_tokens.dart';
+import '../../ui/sg_widgets.dart';
+import '../../ui/trip_widgets.dart' show exactMoney;
 
 class PaymentStatusScreen extends StatelessWidget {
   final String status;
@@ -20,9 +28,10 @@ class PaymentStatusScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final isSuccess = status == 'success';
+    if (!isSuccess) return _failed(context);
 
     return Scaffold(
-      backgroundColor: const Color(0xFF0e0e0e),
+      backgroundColor: SgColors.bg000,
       body: SafeArea(
         child: Padding(
           padding: const EdgeInsets.all(24.0),
@@ -56,6 +65,133 @@ class PaymentStatusScreen extends StatelessWidget {
     );
   }
 
+  /// Payment failed (Tier 2 spec, screen 12).
+  Widget _failed(BuildContext context) {
+    final l = sgStrings(context);
+    final market = MarketConfigStore.instance.current;
+    return Scaffold(
+      backgroundColor: SgColors.bg000,
+      body: SafeArea(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Expanded(
+              child: ListView(
+                padding: const EdgeInsets.fromLTRB(
+                  SgSpace.s4,
+                  SgSpace.s5,
+                  SgSpace.s4,
+                  SgSpace.s4,
+                ),
+                children: [
+                  Container(
+                    key: const Key('payment_failed_banner'),
+                    padding: const EdgeInsets.all(SgSpace.s4),
+                    decoration: BoxDecoration(
+                      color: Color.alphaBlend(
+                        SgColors.danger.withValues(alpha: 0.14),
+                        SgColors.bg100,
+                      ),
+                      borderRadius: BorderRadius.circular(SgRadius.lg),
+                      border: Border.all(color: SgColors.danger),
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          children: [
+                            Icon(Icons.error_outline, color: SgColors.danger),
+                            const SizedBox(width: SgSpace.s2),
+                            Expanded(
+                              child: Text(
+                                l.paymentFailed,
+                                style: SgText.title.copyWith(
+                                  color: SgColors.danger,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                        if (errorMessage != null) ...[
+                          const SizedBox(height: SgSpace.s2),
+                          Text(errorMessage!, style: SgText.body),
+                        ],
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: SgSpace.s4),
+                  // The gateway does not confirm whether money moved, so this
+                  // never says "No money left your account".
+                  Text(l.moneyComesBack, style: SgText.body),
+                  // TODO(data): without cancel_policy.refund_days the time
+                  // it takes is not said.
+                  if (market.refundDays != null)
+                    Text(
+                      l.refundWithin(market.refundDays!),
+                      key: const Key('payment_refund_days'),
+                      style: SgText.caption,
+                    ),
+                  if (amount != null) ...[
+                    const SizedBox(height: SgSpace.s5),
+                    SgEyebrow(l.stillToPay, color: SgColors.inkSubtle),
+                    const SizedBox(height: SgSpace.s1),
+                    Text(
+                      exactMoney(amount!, market.currency.code),
+                      key: const Key('payment_still_to_pay'),
+                      style: SgText.fareXl.copyWith(
+                        fontSize: SgText.sizeDisplay,
+                        height: 1,
+                      ),
+                    ),
+                  ],
+                  const SizedBox(height: SgSpace.s5),
+                  SgListGroup([
+                    SgListRow(
+                      key: const Key('payment_support'),
+                      icon: SgIcons.help,
+                      label: l.talkSupportPayment,
+                      chevron: true,
+                      onTap: () => context.push('/help-support'),
+                    ),
+                  ]),
+                ],
+              ),
+            ),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(
+                SgSpace.s4,
+                SgSpace.s2,
+                SgSpace.s4,
+                SgSpace.s4,
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  // Back to the payment choices: retry, or switch method.
+                  SgPrimaryButton(
+                    key: const Key('payment_try_again'),
+                    label: l.tryAnotherWay,
+                    onPressed: () => context.pop(),
+                  ),
+                  TextButton(
+                    onPressed: () => context.go('/home'),
+                    style: TextButton.styleFrom(
+                      minimumSize: const Size.fromHeight(kSgTouch),
+                    ),
+                    child: Text(
+                      l.goHome,
+                      style: SgText.body.copyWith(color: SgColors.inkMuted),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   Widget _buildIcon(bool isSuccess) {
     return Container(
       width: 120,
@@ -63,17 +199,17 @@ class PaymentStatusScreen extends StatelessWidget {
       decoration: BoxDecoration(
         shape: BoxShape.circle,
         color: isSuccess
-            ? const Color(0xFFEEBD2B).withValues(alpha: 0.2)
-            : Colors.red.withValues(alpha: 0.2),
+            ? SgColors.gold500.withValues(alpha: 0.2)
+            : SgColors.danger.withValues(alpha: 0.2),
         border: Border.all(
-          color: isSuccess ? const Color(0xFFEEBD2B) : Colors.red,
+          color: isSuccess ? SgColors.goldText : SgColors.danger,
           width: 3,
         ),
       ),
       child: Icon(
         isSuccess ? Icons.check : Icons.close,
         size: 64,
-        color: isSuccess ? const Color(0xFFEEBD2B) : Colors.red,
+        color: isSuccess ? SgColors.goldText : SgColors.danger,
       ),
     );
   }
@@ -81,21 +217,21 @@ class PaymentStatusScreen extends StatelessWidget {
   Widget _buildTitle(bool isSuccess) {
     return Text(
       isSuccess ? 'Payment Successful' : 'Payment Failed',
-      style: const TextStyle(
-        fontSize: 28,
-        fontWeight: FontWeight.bold,
-        color: Colors.white,
+      style: TextStyle(
+        fontSize: SgText.sizeHeading,
+        fontWeight: FontWeight.w600,
+        color: SgColors.ink,
       ),
     );
   }
 
   Widget _buildAmount() {
     return Text(
-      '₹${amount?.toStringAsFixed(2) ?? '0.00'}',
-      style: const TextStyle(
-        fontSize: 36,
-        fontWeight: FontWeight.bold,
-        color: Color(0xFFEEBD2B),
+      '${MarketConfigStore.instance.current.currencySymbol}${amount?.toStringAsFixed(2) ?? '0.00'}',
+      style: TextStyle(
+        fontSize: SgText.sizeDisplay,
+        fontWeight: FontWeight.w600,
+        color: SgColors.goldText,
       ),
     );
   }
@@ -103,20 +239,14 @@ class PaymentStatusScreen extends StatelessWidget {
   Widget _buildTransactionId() {
     return Text(
       'Transaction ID: ${transactionId ?? "N/A"}',
-      style: TextStyle(
-        fontSize: 14,
-        color: Colors.white.withValues(alpha: 0.7),
-      ),
+      style: TextStyle(fontSize: SgText.sizeSmall, color: SgColors.inkMuted),
     );
   }
 
   Widget _buildNewBalance() {
     return Text(
-      'New Balance: ₹${newBalance?.toStringAsFixed(2) ?? "0.00"}',
-      style: TextStyle(
-        fontSize: 16,
-        color: Colors.white.withValues(alpha: 0.9),
-      ),
+      'New Balance: ${MarketConfigStore.instance.current.currencySymbol}${newBalance?.toStringAsFixed(2) ?? "0.00"}',
+      style: TextStyle(fontSize: SgText.sizeBody, color: SgColors.ink),
     );
   }
 
@@ -126,10 +256,7 @@ class PaymentStatusScreen extends StatelessWidget {
       child: Text(
         message,
         textAlign: TextAlign.center,
-        style: TextStyle(
-          fontSize: 16,
-          color: Colors.white.withValues(alpha: 0.7),
-        ),
+        style: TextStyle(fontSize: SgText.sizeBody, color: SgColors.inkMuted),
       ),
     );
   }
@@ -140,16 +267,19 @@ class PaymentStatusScreen extends StatelessWidget {
       child: ElevatedButton(
         onPressed: () => context.go('/home'),
         style: ElevatedButton.styleFrom(
-          backgroundColor: const Color(0xFFEEBD2B),
-          foregroundColor: const Color(0xFF554100),
+          backgroundColor: SgColors.gold500,
+          foregroundColor: SgColors.onGold,
           padding: const EdgeInsets.symmetric(vertical: 16),
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(12),
           ),
         ),
-        child: const Text(
+        child: Text(
           'Go Home',
-          style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+          style: TextStyle(
+            fontSize: SgText.sizeTitle,
+            fontWeight: FontWeight.w600,
+          ),
         ),
       ),
     );
@@ -163,16 +293,19 @@ class PaymentStatusScreen extends StatelessWidget {
           child: ElevatedButton(
             onPressed: () => context.pop(),
             style: ElevatedButton.styleFrom(
-              backgroundColor: const Color(0xFFEEBD2B),
-              foregroundColor: const Color(0xFF554100),
+              backgroundColor: SgColors.gold500,
+              foregroundColor: SgColors.onGold,
               padding: const EdgeInsets.symmetric(vertical: 16),
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(12),
               ),
             ),
-            child: const Text(
+            child: Text(
               'Retry',
-              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+              style: TextStyle(
+                fontSize: SgText.sizeTitle,
+                fontWeight: FontWeight.w600,
+              ),
             ),
           ),
         ),
@@ -184,16 +317,19 @@ class PaymentStatusScreen extends StatelessWidget {
               context.go('/home');
             },
             style: OutlinedButton.styleFrom(
-              foregroundColor: Colors.white,
-              side: const BorderSide(color: Colors.white),
+              foregroundColor: SgColors.ink,
+              side: BorderSide(color: SgColors.lineStrong),
               padding: const EdgeInsets.symmetric(vertical: 16),
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(12),
               ),
             ),
-            child: const Text(
+            child: Text(
               'Use UPI/Card',
-              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+              style: TextStyle(
+                fontSize: SgText.sizeTitle,
+                fontWeight: FontWeight.w600,
+              ),
             ),
           ),
         ),

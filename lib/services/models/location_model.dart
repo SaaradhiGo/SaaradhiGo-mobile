@@ -38,11 +38,25 @@ class PlaceSuggestion {
     } else {
       // Google Places Autocomplete format
       final structuredFormatting = json['structured_formatting'] ?? {};
+      final description = (json['description'] ?? '').toString();
+      var mainText = (structuredFormatting['main_text'] ?? '').toString();
+      var secondaryText = (structuredFormatting['secondary_text'] ?? '')
+          .toString();
+      if (mainText.trim().isEmpty) {
+        // Places (New) sends only `description`, and a cached answer from
+        // before the backend added the parts still does. Every row rendered
+        // blank (PRODUCT_AUDIT §2, "Where to"): split the description instead.
+        final comma = description.indexOf(',');
+        mainText = comma < 0 ? description : description.substring(0, comma);
+        if (secondaryText.trim().isEmpty && comma >= 0) {
+          secondaryText = description.substring(comma + 1).trim();
+        }
+      }
       return PlaceSuggestion(
         placeId: json['place_id'],
-        description: json['description'] ?? '',
-        mainText: structuredFormatting['main_text'] ?? '',
-        secondaryText: structuredFormatting['secondary_text'] ?? '',
+        description: description,
+        mainText: mainText.trim(),
+        secondaryText: secondaryText.trim(),
       );
     }
   }
@@ -88,12 +102,34 @@ class FavoriteLocation {
   final double latitude;
   final double longitude;
 
+  /// `home`, `work` or `other` when the server labels the place (Night 2
+  /// field); null when it does not.
+  final String? label;
+
+  /// The rider's name for an `other` place (GET /rider/places/); empty for
+  /// Home, Work and places from the older /rider/locations/ list.
+  final String name;
+
+  /// False when the place is outside the service area; [notice] then carries
+  /// the server's line to show under it.
+  final bool inServiceArea;
+  final String? notice;
+
   FavoriteLocation({
     required this.id,
     required this.addressText,
     required this.latitude,
     required this.longitude,
+    this.label,
+    this.name = '',
+    this.inServiceArea = true,
+    this.notice,
   });
+
+  static String? _label(Object? raw) {
+    final v = raw?.toString().trim().toLowerCase();
+    return const {'home', 'work', 'other'}.contains(v) ? v : null;
+  }
 
   factory FavoriteLocation.fromJson(Map<String, dynamic> json) {
     return FavoriteLocation(
@@ -101,6 +137,12 @@ class FavoriteLocation {
       addressText: json['address_text'] as String? ?? '',
       latitude: double.tryParse(json['latitude']?.toString() ?? '0.0') ?? 0.0,
       longitude: double.tryParse(json['longitude']?.toString() ?? '0.0') ?? 0.0,
+      label: _label(json['label']),
+      name: (json['name'] as String?)?.trim() ?? '',
+      inServiceArea: json['in_service_area'] != false,
+      notice: (json['notice'] as String?)?.trim().isEmpty ?? true
+          ? null
+          : (json['notice'] as String).trim(),
     );
   }
 }

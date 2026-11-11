@@ -2,10 +2,22 @@ import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:go_router/go_router.dart';
-import 'package:google_fonts/google_fonts.dart';
+import 'package:flutter_localizations/flutter_localizations.dart';
+import 'l10n/app_localizations.dart';
+import 'ui/sg_appearance.dart';
+import 'ui/sg_text.dart';
+import 'ui/sg_tokens.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import 'package:flutter_dotenv/flutter_dotenv.dart';
+
+import 'dart:async';
+import 'core/app_config.dart';
+import 'core/market/app_http_client.dart';
+import 'core/market/market_config_store.dart';
+import 'package:http/http.dart' as http;
+import 'screens/components/market_overlays.dart';
+import 'screens/components/misconfigured_build_screen.dart';
 
 import 'providers/auth_provider.dart';
 import 'providers/map_provider.dart';
@@ -22,9 +34,13 @@ import 'state/ride_notifier.dart';
 import 'state/ride_state.dart';
 
 import 'screens/splash/splash_screen.dart';
+import 'services/api_service.dart';
+import 'navigation/session_end.dart';
 import 'screens/auth/login_screen.dart';
 import 'screens/auth/otp_verification_screen.dart';
 import 'screens/profile/profile_setup_screen.dart';
+import 'screens/profile/referral_screen.dart';
+import 'screens/profile/notification_preferences_screen.dart';
 import 'screens/home/home_screen.dart';
 import 'screens/home/rider_flow_screens.dart';
 import 'screens/home/wallet_screen.dart';
@@ -36,6 +52,8 @@ import 'screens/profile/privacy_security_screen.dart';
 import 'screens/profile/edit_personal_information_screen.dart';
 import 'screens/profile/help_support_screen.dart';
 import 'screens/profile/manage_payment_methods_screen.dart';
+import 'screens/profile/saved_places_screen.dart';
+import 'screens/profile/trusted_contacts_screen.dart';
 import 'screens/home/add_money_screen.dart';
 import 'screens/home/payment_success_screen.dart';
 
@@ -46,6 +64,7 @@ import 'screens/components/payment_pending_banner.dart';
 import 'services/push_notification_service.dart';
 import 'services/ongoing_ride_notification_service.dart';
 import 'services/ride_foreground_link.dart';
+import 'core/maps/map_style.dart';
 
 @pragma('vm:entry-point')
 Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
@@ -56,7 +75,15 @@ Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
   }
 }
 
-void main() async {
+void main() {
+  // ONE interceptor for every API call: http.runWithClient makes both the top-level
+  // http.get(...) calls and every http.Client() use AppHttpClient, which adds the
+  // X-App-* headers and watches for 426 APP_UPDATE_REQUIRED. The binding and
+  // runApp must share this zone.
+  http.runWithClient(_main, () => AppHttpClient());
+}
+
+Future<void> _main() async {
   WidgetsFlutterBinding.ensureInitialized();
   final container = riverpod.ProviderContainer();
 
@@ -68,52 +95,134 @@ void main() async {
   } catch (e) {
     debugPrint('Firebase initialization error: $e');
   }
-  await dotenv.load(fileName: "assets/.env");
+  // Optional. `assets/.env` is gitignored and no longer declared in pubspec, so a
+  // release build has no such file and must not die looking for one -- its
+  // configuration comes from --dart-define. Local development can still drop a
+  // .env in place and it will be picked up.
+  try {
+    await dotenv.load(fileName: 'assets/.env');
+  } on Object catch (e) {
+    debugPrint(
+      'No assets/.env loaded (${e.runtimeType}); '
+      'using --dart-define configuration.',
+    );
+  }
+
+  // Refuse to run a release build that was compiled without its environment, or
+  // one pointed at a dev/staging host. A store build silently talking to QA would
+  // let riders book rides that do not exist.
+  final misconfiguration = AppConfig.misconfiguration;
+  if (misconfiguration != null) {
+    runApp(MisconfiguredBuildScreen(reason: misconfiguration));
+    return;
+  }
+  // Market config: the cached copy is read before the first frame (local, fast);
+  // the fresh fetch is NOT awaited, so a slow or failed fetch never delays
+  // start-up. Built-in defaults equal today's India behaviour.
+  await MarketConfigStore.instance.restoreCached();
+  unawaited(MarketConfigStore.instance.refresh());
   final prefs = await SharedPreferences.getInstance();
+  // Theme and language before the first frame, so nothing flashes.
+  await SgAppearance.instance.restore(prefs);
+  SgAppearance.onLanguagePicked = (code) {
+    final token = prefs.getString('access_token');
+    if (token == null || token.isEmpty) return;
+    unawaited(ApiService().patchPreferredLanguage(code));
+  };
+  SgAppearance.onThemePicked = (wire) {
+    final token = prefs.getString('access_token');
+    if (token == null || token.isEmpty) return;
+    unawaited(ApiService().patchPreferredTheme(wire));
+  };
+  // The light basemap, before the first map is drawn.
+  await loadLightMapStyle();
   final isFirstLaunch = prefs.getBool('isFirstLaunch') ?? true;
   final token = prefs.getString('access_token');
   final isLoggedIn = token != null && token.isNotEmpty;
 
   runApp(
-    riverpod.UncontrolledProviderScope(
-      container: container,
-      child: MultiProvider(
-        providers: [
-          ChangeNotifierProvider(create: (_) => AuthProvider()),
-          ChangeNotifierProvider(
-            create: (_) => MapProvider(container: container),
+    // Wrapped so a non-production build is identifiable in the hand.
+    EnvironmentBadge(
+      child: riverpod.UncontrolledProviderScope(
+        container: container,
+        child: MultiProvider(
+          providers: [
+            ChangeNotifierProvider<MarketConfigStore>.value(
+              value: MarketConfigStore.instance,
+            ),
+            ChangeNotifierProvider(
+              create: (_) => AuthProvider(market: MarketConfigStore.instance),
+            ),
+            ChangeNotifierProvider(
+              create: (_) => MapProvider(container: container),
+            ),
+            ChangeNotifierProvider(create: (_) => HistoryProvider()),
+            ChangeNotifierProvider(create: (_) => WalletProvider()),
+            ChangeNotifierProvider(create: (_) => NotificationProvider()),
+            // Pulls server-controlled feature flags (e.g. whether wallet
+            // top-ups are enabled). Fires off the fetch immediately so
+            // the wallet screen has the right posture by the time the
+            // user navigates to it; safe defaults are used until the
+            // response lands.
+            ChangeNotifierProvider(
+              create: (_) => RemoteConfigProvider()..fetch(),
+            ),
+          ],
+          child: SaaradhiGoApp(
+            isFirstLaunch: isFirstLaunch,
+            isLoggedIn: isLoggedIn,
           ),
-          ChangeNotifierProvider(create: (_) => HistoryProvider()),
-          ChangeNotifierProvider(create: (_) => WalletProvider()),
-          ChangeNotifierProvider(create: (_) => NotificationProvider()),
-          // Pulls server-controlled feature flags (e.g. whether wallet
-          // top-ups are enabled). Fires off the fetch immediately so
-          // the wallet screen has the right posture by the time the
-          // user navigates to it; safe defaults are used until the
-          // response lands.
-          ChangeNotifierProvider(
-            create: (_) => RemoteConfigProvider()..fetch(),
-          ),
-        ],
-        child: VahanGoApp(isFirstLaunch: isFirstLaunch, isLoggedIn: isLoggedIn),
+        ),
       ),
     ),
   );
 }
 
-class VahanGoApp extends StatelessWidget {
+class SaaradhiGoApp extends StatefulWidget {
   final bool isFirstLaunch;
   final bool isLoggedIn;
 
-  const VahanGoApp({
+  const SaaradhiGoApp({
     super.key,
     required this.isFirstLaunch,
     required this.isLoggedIn,
   });
 
   @override
-  Widget build(BuildContext context) {
-    final GoRouter router = GoRouter(
+  State<SaaradhiGoApp> createState() => _SaaradhiGoAppState();
+}
+
+class _SaaradhiGoAppState extends State<SaaradhiGoApp> {
+  // Built once: a theme or language change rebuilds the app and must not
+  // reset where the rider is.
+  late final GoRouter router = _buildRouter();
+
+  StreamSubscription<void>? _sessionSub;
+
+  @override
+  void initState() {
+    super.initState();
+    // A refused session ends here: forget the profile and go to Log in with
+    // the reason, instead of leaving screens waiting on calls that fail.
+    _sessionSub = goToLoginOnSessionEnd(
+      router,
+      beforeGo: () async {
+        if (mounted) await context.read<AuthProvider>().logout();
+      },
+    );
+  }
+
+  @override
+  void dispose() {
+    _sessionSub?.cancel();
+    super.dispose();
+  }
+
+  bool get isFirstLaunch => widget.isFirstLaunch;
+  bool get isLoggedIn => widget.isLoggedIn;
+
+  GoRouter _buildRouter() {
+    return GoRouter(
       initialLocation: isFirstLaunch
           ? '/splash'
           : (isLoggedIn ? '/home' : '/login'),
@@ -125,8 +234,9 @@ class VahanGoApp extends StatelessWidget {
         ),
         GoRoute(
           path: '/login',
-          builder: (BuildContext context, GoRouterState state) =>
-              const LoginScreen(),
+          builder: (BuildContext context, GoRouterState state) => LoginScreen(
+            sessionExpired: state.uri.queryParameters['expired'] == '1',
+          ),
         ),
         GoRoute(
           path: '/otp',
@@ -166,14 +276,40 @@ class VahanGoApp extends StatelessWidget {
               const PrivacySecurityScreen(),
         ),
         GoRoute(
+          path: '/notification-preferences',
+          builder: (BuildContext context, GoRouterState state) =>
+              const NotificationPreferencesScreen(),
+        ),
+        GoRoute(
           path: '/personal-info',
           builder: (BuildContext context, GoRouterState state) =>
               const EditPersonalInformationScreen(),
         ),
         GoRoute(
+          path: '/refer',
+          builder: (BuildContext context, GoRouterState state) =>
+              const ReferralScreen(),
+        ),
+        GoRoute(
           path: '/help-support',
           builder: (BuildContext context, GoRouterState state) =>
               const HelpSupportScreen(),
+        ),
+        GoRoute(
+          path: '/saved-places',
+          builder: (BuildContext context, GoRouterState state) {
+            final map = context.read<MapProvider>();
+            return SavedPlacesScreen(
+              service: map.placesService,
+              onChanged: map.setSavedPlaces,
+              near: map.pickupLocation?.latLng,
+            );
+          },
+        ),
+        GoRoute(
+          path: '/trusted-contacts',
+          builder: (BuildContext context, GoRouterState state) =>
+              const TrustedContactsScreen(pickContact: pickNativeContact),
         ),
         GoRoute(
           path: '/payment-methods',
@@ -217,8 +353,17 @@ class VahanGoApp extends StatelessWidget {
         ),
         GoRoute(
           path: '/rate-driver',
-          builder: (BuildContext context, GoRouterState state) =>
-              const RateReviewDriverScreen(),
+          builder: (BuildContext context, GoRouterState state) {
+            final extra = state.extra is Map ? state.extra as Map : const {};
+            return RateReviewDriverScreen(
+              tripId: extra['trip_id']?.toString(),
+              driverName: extra['driver_name']?.toString(),
+              fareText: extra['fare_text']?.toString(),
+              method: extra['method']?.toString(),
+              paid: extra['paid'] != false,
+              detail: extra['detail']?.toString() ?? '',
+            );
+          },
         ),
         GoRoute(
           path: '/add-money',
@@ -260,77 +405,105 @@ class VahanGoApp extends StatelessWidget {
         ),
       ],
     );
+  }
 
-    return RideNavigationHandler(
-      child: LifecycleObserver(
-        child: MaterialApp.router(
-          title: 'VahanGo',
-          debugShowCheckedModeBanner: false,
-          builder: (context, child) {
-            return riverpod.Consumer(
-              builder: (context, ref, _) {
-                // Wire the foreground-service notification into ride
-                // lifecycle. Listener is attached once per Consumer
-                // build and persists for the app's lifetime — without
-                // it the rider's app gets killed mid-trip on Xiaomi /
-                // Vivo / Oppo / Realme.
-                wireRideForegroundService(ref);
+  @override
+  Widget build(BuildContext context) {
+    return SgAppearanceScope(
+      builder: (context, appearance) => RideNavigationHandler(
+        router: router,
+        child: LifecycleObserver(
+          child: MaterialApp.router(
+            // The name shown in the Android task switcher. Was 'VahanGo'
+            // while the launcher label said SaaradhiGo.
+            title: 'SaaradhiGo',
+            debugShowCheckedModeBanner: false,
+            builder: (context, child) {
+              // The type scale's size class, from the window (Tier 1).
+              return SgSizeScope(
+                child: MarketOverlays(
+                  child: riverpod.Consumer(
+                    builder: (context, ref, _) {
+                      // Wire the foreground-service notification into ride
+                      // lifecycle. Listener is attached once per Consumer
+                      // build and persists for the app's lifetime — without
+                      // it the rider's app gets killed mid-trip on Xiaomi /
+                      // Vivo / Oppo / Realme.
+                      wireRideForegroundService(ref);
 
-                final rideState = ref.watch(rideNotifierProvider);
-                return Stack(
-                  children: [
-                    if (child != null) child,
-                    if (rideState.isSyncing) const SyncOverlay(),
-                    if (rideState.showCancelledOverlay)
-                      const CancelledOverlay(),
-                    if (rideState.status == RideStatus.paymentPending)
-                      const Positioned(
-                        top: 0,
-                        left: 0,
-                        right: 0,
-                        child: PaymentPendingBanner(),
-                      ),
-                  ],
-                );
-              },
-            );
-          },
-          theme: ThemeData(
-            useMaterial3: true,
-            colorScheme: ColorScheme.fromSeed(
-              seedColor: const Color(0xFFEEBD2B),
-              primary: const Color(0xFFEEBD2B),
-              surface: const Color(0xFFF8F7F6),
-              brightness: Brightness.light,
-            ),
-            textTheme: GoogleFonts.plusJakartaSansTextTheme(
-              Theme.of(context).textTheme,
-            ),
-          ),
-          darkTheme: ThemeData(
-            useMaterial3: true,
-            colorScheme: ColorScheme.fromSeed(
-              seedColor: const Color(0xFFEEBD2B),
-              primary: const Color(0xFFEEBD2B),
-              surface: const Color(0xFF221D10),
-              brightness: Brightness.dark,
-            ),
-            textTheme: GoogleFonts.plusJakartaSansTextTheme(
-              ThemeData(brightness: Brightness.dark).textTheme,
-            ),
-          ),
-          themeMode: ThemeMode.dark,
-          routerConfig: router,
-          scrollBehavior: const MaterialScrollBehavior().copyWith(
-            dragDevices: {
-              PointerDeviceKind.mouse,
-              PointerDeviceKind.touch,
-              PointerDeviceKind.stylus,
-              PointerDeviceKind.unknown,
+                      final rideState = ref.watch(rideNotifierProvider);
+                      final pending =
+                          rideState.status == RideStatus.paymentPending;
+                      return Stack(
+                        children: [
+                          if (child != null)
+                            // The payment banner takes its own room above the
+                            // screen instead of covering its header (it hid
+                            // the home header's theme and language buttons).
+                            // Not on the receipt itself, which says the same.
+                            ListenableBuilder(
+                              listenable: router.routerDelegate,
+                              // One shape always (a Column), so the router's
+                              // navigator never moves in the tree.
+                              builder: (context, _) {
+                                final show = pending && !_onReceipt(router);
+                                return Column(
+                                  children: [
+                                    if (show)
+                                      PaymentPendingBanner(
+                                        onOpen: () =>
+                                            router.go('/ride-summary'),
+                                      ),
+                                    Expanded(
+                                      child: MediaQuery.removePadding(
+                                        context: context,
+                                        removeTop: show,
+                                        child: child,
+                                      ),
+                                    ),
+                                  ],
+                                );
+                              },
+                            ),
+                          if (rideState.isSyncing) const SyncOverlay(),
+                          if (rideState.showCancelledOverlay)
+                            const CancelledOverlay(),
+                        ],
+                      );
+                    },
+                  ),
+                ),
+              );
             },
+            theme: sgTheme(SgPalette.light),
+            darkTheme: sgTheme(SgPalette.dark),
+            themeMode: appearance.themeMode,
+            locale: appearance.locale,
+            supportedLocales: AppLocalizations.supportedLocales,
+            localizationsDelegates: const [
+              AppLocalizations.delegate,
+              GlobalMaterialLocalizations.delegate,
+              GlobalWidgetsLocalizations.delegate,
+              GlobalCupertinoLocalizations.delegate,
+            ],
+            routerConfig: router,
+            scrollBehavior: const MaterialScrollBehavior().copyWith(
+              dragDevices: {
+                PointerDeviceKind.mouse,
+                PointerDeviceKind.touch,
+                PointerDeviceKind.stylus,
+                PointerDeviceKind.unknown,
+              },
+            ),
           ),
         ),
       ),
     );
   }
+}
+
+/// True while the receipt is the screen on top (pushed or gone to).
+bool _onReceipt(GoRouter router) {
+  final c = router.routerDelegate.currentConfiguration;
+  return c.isNotEmpty && c.last.matchedLocation == '/ride-summary';
 }

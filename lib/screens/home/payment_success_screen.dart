@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
 import 'package:go_router/go_router.dart';
+
+import '../../ui/sg_tokens.dart';
+import '../../ui/sg_text.dart';
 
 class PaymentSuccessScreen extends StatelessWidget {
   const PaymentSuccessScreen({super.key});
@@ -8,7 +10,7 @@ class PaymentSuccessScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFF12110E),
+      backgroundColor: SgColors.bg000,
       body: SafeArea(
         child: Padding(
           padding: const EdgeInsets.symmetric(horizontal: 24.0),
@@ -20,22 +22,22 @@ class PaymentSuccessScreen extends StatelessWidget {
               Container(
                 padding: const EdgeInsets.all(24),
                 decoration: BoxDecoration(
-                  color: const Color(0xFF10B981).withValues(alpha: 0.1),
+                  color: SgColors.success.withValues(alpha: 0.1),
                   shape: BoxShape.circle,
                 ),
-                child: const Icon(
+                child: Icon(
                   Icons.check_circle_rounded,
-                  color: Color(0xFF10B981),
+                  color: SgColors.success,
                   size: 80,
                 ),
               ),
               const SizedBox(height: 32),
               Text(
                 'Payment Successful',
-                style: GoogleFonts.inter(
-                  color: Colors.white,
-                  fontSize: 24,
-                  fontWeight: FontWeight.w700,
+                style: TextStyle(
+                  color: SgColors.ink,
+                  fontSize: SgText.sizeHeading,
+                  fontWeight: FontWeight.w600,
                 ),
                 textAlign: TextAlign.center,
               ),
@@ -49,9 +51,9 @@ class PaymentSuccessScreen extends StatelessWidget {
                     returnRoute != null
                         ? 'Your wallet has been topped up. Continue to complete your ride payment.'
                         : 'Your wallet balance has been updated successfully.',
-                    style: GoogleFonts.inter(
-                      color: const Color(0xFF94A3B8),
-                      fontSize: 16,
+                    style: TextStyle(
+                      color: SgColors.inkMuted,
+                      fontSize: SgText.sizeBody,
                       fontWeight: FontWeight.w400,
                       height: 1.5,
                     ),
@@ -80,8 +82,8 @@ class PaymentSuccessScreen extends StatelessWidget {
                         }
                       },
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: const Color(0xFFEEBD2B),
-                        foregroundColor: Colors.black,
+                        backgroundColor: SgColors.gold500,
+                        foregroundColor: SgColors.onGold,
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(16),
                         ),
@@ -89,9 +91,9 @@ class PaymentSuccessScreen extends StatelessWidget {
                       ),
                       child: Text(
                         hasReturnRoute ? 'Continue to Payment' : 'Back to Home',
-                        style: GoogleFonts.inter(
-                          fontSize: 16,
-                          fontWeight: FontWeight.w700,
+                        style: TextStyle(
+                          fontSize: SgText.sizeBody,
+                          fontWeight: FontWeight.w600,
                         ),
                       ),
                     ),

@@ -1,5 +1,8 @@
 import 'dart:async';
+
+import '../core/vehicle_classes.dart';
 import 'package:flutter/material.dart';
+import '../utils/recent_places.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:latlong2/latlong.dart';
 import 'package:uuid/uuid.dart';
@@ -8,6 +11,7 @@ import '../services/fare_service.dart';
 import '../services/driver_service.dart';
 import '../services/favorite_location_service.dart';
 import '../services/ride_service.dart';
+import '../services/session_events.dart';
 import '../services/service_area_service.dart';
 import '../services/models/location_model.dart';
 import '../services/models/trip_model.dart';
@@ -16,7 +20,9 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../state/ride_notifier.dart';
 import '../state/ride_state.dart';
 import '../services/websocket_service.dart';
-import '../screens/components/coming_soon_overlay.dart';
+import '../services/token_store.dart';
+import '../core/promo/promo_selection.dart';
+import '../core/pricing/quote_lock.dart';
 
 enum LocationStatus { unknown, loading, confirmed, failed }
 
@@ -38,7 +44,9 @@ class MapProvider extends ChangeNotifier {
     DriverService? driverService,
     FavoriteLocationService? favoriteLocationService,
     RideService? rideService,
-  }) : _locationService = locationService ?? LocationService(),
+    QuoteLockState? quoteLock,
+  }) : _quoteLock = quoteLock ?? QuoteLockState.instance,
+       _locationService = locationService ?? LocationService(),
        _fareService = fareService ?? FareService(),
        _driverService = driverService ?? DriverService(),
        _favoriteLocationService =
@@ -56,6 +64,42 @@ class MapProvider extends ChangeNotifier {
       }
       notifyListeners();
     });
+    _quoteLock.addListener(_applyFreshQuote);
+  }
+
+  final QuoteLockState _quoteLock;
+
+  /// The server refused the booking's quote and sent a fresh one: it becomes
+  /// the chosen class's fare, so the ticket shows what Confirm will book.
+  void _applyFreshQuote() {
+    final refresh = _quoteLock.pending;
+    if (refresh == null) return;
+    final type =
+        refresh.freshQuote['vehicle_type']?.toString() ??
+        refresh.vehicleType ??
+        _selectedVehicleType;
+    if (type == null) return;
+    if (refresh.freshQuote['estimated_fare'] == null) {
+      // No fare to show: drop the stale quote so Confirm cannot send it.
+      _fareEstimates.remove(type);
+    } else {
+      _fareEstimates[type] = {...?_fareEstimates[type], ...refresh.freshQuote};
+    }
+    notifyListeners();
+  }
+
+  /// The quote the ticket shows for the chosen class, sent with the booking.
+  String? get selectedQuoteId {
+    final type = _selectedVehicleType;
+    final id = type == null ? null : _fareEstimates[type]?['quote_id'];
+    final text = id?.toString();
+    return (text == null || text.isEmpty) ? null : text;
+  }
+
+  @override
+  void dispose() {
+    _quoteLock.removeListener(_applyFreshQuote);
+    super.dispose();
   }
 
   List<PlaceSuggestion> _suggestions = [];
@@ -81,9 +125,26 @@ class MapProvider extends ChangeNotifier {
   List<Trip> _recentLocations = [];
   bool _isLoadingHomeData = false;
   LatLng? _precisePickupLocation;
+  String? _precisePickupAddress;
   bool _showComingSoonOverlay = false;
 
   List<FavoriteLocation> get favoriteLocations => _favoriteLocations;
+
+  /// The saved places came back from the server at least once, so an absent
+  /// Home or Work really is unset ("Set home" rather than nothing).
+  bool _savedPlacesLoaded = false;
+  bool get savedPlacesLoaded => _savedPlacesLoaded;
+
+  /// The saved-places API, for Account > Saved places and the place sheet.
+  FavoriteLocationService get placesService => _favoriteLocationService;
+
+  /// After an add, edit or delete elsewhere: Home's chips follow at once.
+  void setSavedPlaces(List<FavoriteLocation> places) {
+    _favoriteLocations = places;
+    _savedPlacesLoaded = true;
+    notifyListeners();
+  }
+
   List<Trip> get recentLocations => _recentLocations;
   bool get isLoadingHomeData => _isLoadingHomeData;
   bool get showComingSoonOverlay => _showComingSoonOverlay;
@@ -179,7 +240,12 @@ class MapProvider extends ChangeNotifier {
         status == RideStatus.driverArrived;
   }
 
-  void setPrecisePickupLocation(LatLng location) {
+  /// The address of a map point, for the pickup the rider dragged to.
+  Future<String?> addressFor(LatLng point) => _locationService
+      .getAddressFromCoordinates(point.latitude, point.longitude);
+
+  void setPrecisePickupLocation(LatLng location, {String? address}) {
+    _precisePickupAddress = address;
     if (_precisePickupLocation == location) return;
     _precisePickupLocation = location;
     notifyListeners();
@@ -211,6 +277,7 @@ class MapProvider extends ChangeNotifier {
       final results = await _locationService.getPlaceAutocomplete(
         query,
         _sessionToken,
+        near: _precisePickupLocation ?? _pickupLocation?.latLng,
       );
       _suggestions = results;
       _isLoadingSuggestions = false;
@@ -227,36 +294,51 @@ class MapProvider extends ChangeNotifier {
     notifyListeners();
   }
 
+  bool _homeDataFailed = false;
+
+  /// Recent places could not be loaded: Home shows the error and Try again
+  /// instead of "places appear here".
+  bool get homeDataFailed => _homeDataFailed;
+
+  /// Saved and recent places, each on its own and capped at kLoadTimeout.
+  /// A refused session is handled by ApiService (sign-out to Log in).
   Future<void> fetchDynamicHomeData() async {
+    // Signed out (no token): nothing to load, and nothing left waiting.
+    final prefs = await SharedPreferences.getInstance();
+    if (prefs.getString('access_token') == null) return;
+
     _isLoadingHomeData = true;
+    _homeDataFailed = false;
     notifyListeners();
 
-    try {
-      final prefs = await SharedPreferences.getInstance();
-      final token = prefs.getString('access_token');
-
-      // Payment method is no longer stored in preferences - using auto-determined logic
-      // Removed loading of savedPaymentMethod
-
-      if (token != null) {
-        final results = await Future.wait([
-          _favoriteLocationService.fetchFavoriteLocations(),
-          _rideService.fetchRideHistory(token),
-        ]);
-
-        _favoriteLocations = results[0] as List<FavoriteLocation>;
-        final allHistory = results[1] as List<Trip>;
-        _recentLocations = allHistory
-            .where((t) => t.status.toLowerCase() == 'completed')
-            .take(2)
-            .toList();
-      }
-    } catch (e) {
-      debugPrint('Error fetching dynamic home data: $e');
-    } finally {
-      _isLoadingHomeData = false;
-      notifyListeners();
-    }
+    await Future.wait([
+      _favoriteLocationService
+          .fetchFavoriteLocations()
+          .timeout(kLoadTimeout)
+          .then((f) {
+            _savedPlacesLoaded = true;
+            return _favoriteLocations = f;
+          })
+          .catchError((Object e) {
+            debugPrint('Saved places failed: $e');
+            return _favoriteLocations;
+          }),
+      _rideService
+          .loadRideHistory()
+          .then((all) {
+            _recentLocations = distinctRecentTrips(
+              all.where((t) => t.status.toLowerCase() == 'completed'),
+            );
+            return all;
+          })
+          .catchError((Object e) {
+            debugPrint('Recent places failed: $e');
+            if (_recentLocations.isEmpty) _homeDataFailed = true;
+            return <Trip>[];
+          }),
+    ]);
+    _isLoadingHomeData = false;
+    notifyListeners();
   }
 
   Future<String?> checkActiveRide() async {
@@ -376,6 +458,7 @@ class MapProvider extends ChangeNotifier {
     LatLng? presetPickup,
     required String pickupName,
     required String dropPlaceId,
+    String? dropName,
   }) async {
     _isLoadingRoute = true;
     notifyListeners();
@@ -397,10 +480,10 @@ class MapProvider extends ChangeNotifier {
         return;
       }
 
-      // Validate pickup location is within Hyderabad service area
+      // Validate the pickup location is within the service area
       final pickupLatLng = _pickupLocation!.latLng;
-      if (!ServiceAreaService.isPickupWithinHyderabad(pickupLatLng)) {
-        debugPrint('Pickup location outside Hyderabad: $pickupLatLng');
+      if (!ServiceAreaService.isPickupWithinServiceArea(pickupLatLng)) {
+        debugPrint('Pickup location outside our service area: $pickupLatLng');
         // Show the coming soon overlay
         triggerComingSoonOverlay();
         return;
@@ -411,7 +494,20 @@ class MapProvider extends ChangeNotifier {
         _sessionToken,
       );
       if (dropDetails != null) {
-        _dropLocation = dropDetails;
+        // A saved or recent place arrives as bare coordinates; keep its name.
+        final named =
+            dropName != null &&
+            dropName.trim().isNotEmpty &&
+            dropPlaceId.contains(',');
+        _dropLocation = named
+            ? PlaceDetails(
+                placeId: dropDetails.placeId,
+                name: dropName.trim(),
+                formattedAddress: dropDetails.formattedAddress,
+                latitude: dropDetails.latitude,
+                longitude: dropDetails.longitude,
+              )
+            : dropDetails;
         resetSessionToken();
         clearSuggestions();
 
@@ -450,6 +546,7 @@ class MapProvider extends ChangeNotifier {
     _pickupLocation = null;
     _dropLocation = null;
     _precisePickupLocation = null;
+    _precisePickupAddress = null;
     _polylineCoordinates = [];
     _distance = null;
     _duration = null;
@@ -460,11 +557,11 @@ class MapProvider extends ChangeNotifier {
   Future<void> _calculateRoute() async {
     if (_pickupLocation == null || _dropLocation == null) return;
 
-    // Validate pickup location is within Hyderabad service area
+    // Validate the pickup location is within the service area
     final pickupLatLng = _pickupLocation!.latLng;
-    if (!ServiceAreaService.isPickupWithinHyderabad(pickupLatLng)) {
+    if (!ServiceAreaService.isPickupWithinServiceArea(pickupLatLng)) {
       debugPrint(
-        '_calculateRoute: Pickup location outside Hyderabad, skipping route calculation',
+        '_calculateRoute: Pickup location outside our service area, skipping route calculation',
       );
       triggerComingSoonOverlay();
       return;
@@ -505,35 +602,43 @@ class MapProvider extends ChangeNotifier {
 
     _isLoadingFares = true;
     _fareEstimates = {};
+    // A code applied to the previous quote says nothing about this one.
+    PromoSelection.instance.clear();
+    // Nor does a "fare updated" line about the previous quote.
+    _quoteLock.clear();
     notifyListeners();
 
-    final vehicleSpeeds = {
-      'bike': 40,
-      'auto': 30,
-      'car': 35,
-      'car_xl': 35,
-      'car_premium': 40,
-    };
-
     final effectivePickup = _precisePickupLocation ?? _pickupLocation!.latLng;
+    final types =
+        await _fareService.vehicleTypesAt(
+          effectivePickup.latitude,
+          effectivePickup.longitude,
+        ) ??
+        kFallbackVehicleTypes;
 
-    for (var type in vehicleSpeeds.keys) {
-      final estimate = await _fareService.estimateFare(
-        pickupLat: effectivePickup.latitude,
-        pickupLng: effectivePickup.longitude,
-        destinationLat: _dropLocation!.latitude,
-        destinationLng: _dropLocation!.longitude,
-        distanceKm: km,
-        durationMin: mins,
-        vehicleType: type,
-      );
-
-      if (estimate != null) {
-        final speed = vehicleSpeeds[type] ?? 30;
-        final timeToDrop = (km / speed * 60).round();
-        estimate['time_to_drop'] = timeToDrop;
-        _fareEstimates[type] = estimate;
-      }
+    final results = await Future.wait([
+      for (final type in types)
+        _fareService.estimateFare(
+          pickupLat: effectivePickup.latitude,
+          pickupLng: effectivePickup.longitude,
+          destinationLat: _dropLocation!.latitude,
+          destinationLng: _dropLocation!.longitude,
+          distanceKm: km,
+          durationMin: mins,
+          vehicleType: type,
+        ),
+    ]);
+    for (var i = 0; i < types.length; i++) {
+      final estimate = results[i];
+      if (estimate == null || estimate['estimated_fare'] == null) continue;
+      estimate['time_to_drop'] = (km / vehicleClassSpeedKmh(types[i]) * 60)
+          .round();
+      _fareEstimates[types[i]] = estimate;
+    }
+    // A class chosen for the previous route may not be priced on this one.
+    if (_selectedVehicleType != null &&
+        !_fareEstimates.containsKey(_selectedVehicleType)) {
+      _selectedVehicleType = null;
     }
     _isLoadingFares = false;
     notifyListeners();
@@ -542,6 +647,8 @@ class MapProvider extends ChangeNotifier {
   void selectVehicleType(String? type) {
     if (_selectedVehicleType == type) return;
     _selectedVehicleType = type;
+    // The preview was for the other vehicle's fare.
+    PromoSelection.instance.clear();
     notifyListeners();
   }
 
@@ -564,6 +671,9 @@ class MapProvider extends ChangeNotifier {
     final km = kmMatch != null ? double.parse(kmMatch.group(1)!) : 0.0;
     final mins = minMatch != null ? int.parse(minMatch.group(1)!) : 0;
     final effectivePickup = _precisePickupLocation ?? _pickupLocation!.latLng;
+    // Read before the line below is cleared: this is the fare on the ticket.
+    final quoteId = selectedQuoteId;
+    _quoteLock.clear();
 
     container
         ?.read(rideNotifierProvider.notifier)
@@ -591,30 +701,97 @@ class MapProvider extends ChangeNotifier {
           destinationLng: _dropLocation!.longitude,
           distanceKm: km,
           durationMin: mins,
-          pickupAddress: _pickupLocation!.name,
+          pickupAddress: _precisePickupAddress ?? _pickupLocation!.name,
           destinationAddress: _dropLocation!.name,
           vehicleType: _selectedVehicleType!,
           paymentMethod: selectedPaymentMethod,
+          promoCode: PromoSelection.instance.code,
+          quoteId: quoteId,
         );
   }
 
-  Future<void> cancelRideRequest() async {
+  /// True when the last cancellation did not reach the server.
+  ///
+  /// The local state is cleared either way, so the rider is never stranded
+  /// in a ride they cannot leave -- but if the server did not accept the
+  /// cancellation the trip is still live and a driver may still arrive, so
+  /// that is not something to swallow. Surfacing this in the UI is the
+  /// remaining piece; the flag and the error log exist now.
+  bool cancelMayNotHaveReachedServer = false;
+
+  /// Tear down local ride state WITHOUT asking the server to cancel.
+  ///
+  /// For a ride that is over on the server's terms -- completed and paid --
+  /// where the app just needs to stop showing it.
+  ///
+  /// This existed only as a side effect of `cancelRideRequest`, and the
+  /// payment-success path called that to get it. Once cancellation became
+  /// server-confirmed, that call started trying to CANCEL a trip that had
+  /// just been paid for: the server would refuse it, the rider would be told
+  /// "we could not cancel your ride", and the completed ride would stay on
+  /// screen. Two different intents were sharing one method; now they do not.
+  Future<void> clearRideStateLocally() async {
+    await container?.read(rideNotifierProvider.notifier).clearState();
+    container?.read(webSocketServiceProvider).disconnectAll();
+    notifyListeners();
+  }
+
+  /// Cancel the booked ride. Returns true only when the SERVER confirmed it.
+  ///
+  /// SERVER CONFIRMATION COMES FIRST, AND THAT IS THE POINT
+  /// ------------------------------------------------------
+  /// This used to clear local state unconditionally. Combined with the
+  /// missing `reason` -- which made the server refuse every cancellation --
+  /// the rider was shown "cancelled" for a trip that was still live, with a
+  /// driver still being dispatched to them. Clearing first turns a failed
+  /// cancellation into a silent one.
+  ///
+  /// So nothing local is torn down until the server says the trip is
+  /// cancelled. When it refuses, or the request times out, the trip state is
+  /// LEFT INTACT: the ride really is still live, the driver really may still
+  /// arrive, and the rider needs to keep seeing it so they can retry. A
+  /// rider looking at a ride they tried to cancel is uncomfortable; a rider
+  /// looking at an empty screen while a driver drives to them is worse.
+  ///
+  /// There is one exception. With no `tripId` there is nothing booked
+  /// server-side -- the rider is cancelling a local search -- so there is
+  /// nothing to confirm and the local teardown is the whole operation.
+  Future<bool> cancelRideRequest() async {
     final currentTripId = tripId;
+    cancelMayNotHaveReachedServer = false;
+
     if (currentTripId != null) {
+      var accepted = false;
       try {
-        final prefs = await SharedPreferences.getInstance();
-        final token = prefs.getString('access_token') ?? '';
+        final token = await TokenStore.readAccessToken() ?? '';
         if (token.isNotEmpty) {
-          await _rideService.cancelTrip(token, currentTripId);
+          accepted = await _rideService.cancelTrip(token, currentTripId);
         }
       } catch (e) {
         debugPrint('Error cancelling trip on backend: $e');
       }
+
+      if (!accepted) {
+        // Recoverable state preserved deliberately: the trip pointer, the
+        // socket and the ride state all stay as they are.
+        cancelMayNotHaveReachedServer = true;
+        debugPrint(
+          'Cancellation was NOT confirmed for trip $currentTripId; the trip '
+          'is still live and the local state is kept so the rider can see '
+          'it and retry.',
+        );
+        notifyListeners();
+        return false;
+      }
     }
 
-    container?.read(rideNotifierProvider.notifier).clearState();
+    // Confirmed by the server, or there was nothing booked to confirm.
+    // Awaited: the persisted active-trip pointer must be gone before the UI
+    // reports the ride over.
+    await container?.read(rideNotifierProvider.notifier).clearState();
     container?.read(webSocketServiceProvider).disconnectAll();
     notifyListeners();
+    return true;
   }
 
   Future<void> updateRidingPolyline() async {

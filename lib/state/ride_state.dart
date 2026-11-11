@@ -31,6 +31,12 @@ class RideState {
   final bool isSyncing;
   final bool showCancelledOverlay;
 
+  /// Why the driver search ended without a driver, in the sentence the rider
+  /// sees. Set only while [status] is still [RideStatus.searchingDriver], so
+  /// the search screen stays up with "Try again" instead of the app jumping
+  /// home with nothing said. Null while a search is running normally.
+  final String? searchFailure;
+
   const RideState({
     this.status = RideStatus.none,
     this.tripId,
@@ -46,6 +52,7 @@ class RideState {
     this.rawResponse,
     this.isSyncing = false,
     this.showCancelledOverlay = false,
+    this.searchFailure,
   });
 
   RideState copyWith({
@@ -63,10 +70,13 @@ class RideState {
     Map<String, dynamic>? rawResponse,
     bool? isSyncing,
     bool? showCancelledOverlay,
+    String? searchFailure,
+    bool clearSearchFailure = false,
+    bool clearTripId = false,
   }) {
     return RideState(
       status: status ?? this.status,
-      tripId: tripId ?? this.tripId,
+      tripId: clearTripId ? null : (tripId ?? this.tripId),
       driverLocation: driverLocation ?? this.driverLocation,
       pickupLocation: pickupLocation ?? this.pickupLocation,
       dropLocation: dropLocation ?? this.dropLocation,
@@ -79,6 +89,9 @@ class RideState {
       rawResponse: rawResponse ?? this.rawResponse,
       isSyncing: isSyncing ?? this.isSyncing,
       showCancelledOverlay: showCancelledOverlay ?? this.showCancelledOverlay,
+      searchFailure: clearSearchFailure
+          ? null
+          : (searchFailure ?? this.searchFailure),
     );
   }
 
@@ -179,4 +192,53 @@ class RideState {
         return RideStatus.none;
     }
   }
+
+  /// Value equality.
+  ///
+  /// The class was marked @immutable but never defined `==`, so it fell back to
+  /// identity. NotifierProvider compares old and new state with `==` to decide
+  /// whether to notify, which meant every copyWith rebuilt every listener even
+  /// when nothing changed -- on the active-ride screen, once per driver-location
+  /// tick for the whole ride. It also made whole-state assertions in tests pass
+  /// only by `const` canonicalisation, which is how a self-contradictory
+  /// expectation survived in the recovery suite.
+  ///
+  /// The maps are compared with mapEquals; nothing mutates them in place, so a
+  /// shallow deep-compare is honest here.
+  @override
+  bool operator ==(Object other) {
+    if (identical(this, other)) return true;
+    return other is RideState &&
+        other.status == status &&
+        other.tripId == tripId &&
+        other.driverLocation == driverLocation &&
+        other.pickupLocation == pickupLocation &&
+        other.dropLocation == dropLocation &&
+        other.pickupAddress == pickupAddress &&
+        other.destinationAddress == destinationAddress &&
+        other.vehicleType == vehicleType &&
+        other.distance == distance &&
+        other.duration == duration &&
+        mapEquals(other.fareEstimates, fareEstimates) &&
+        mapEquals(other.rawResponse, rawResponse) &&
+        other.isSyncing == isSyncing &&
+        other.showCancelledOverlay == showCancelledOverlay;
+  }
+
+  @override
+  int get hashCode => Object.hash(
+        status,
+        tripId,
+        driverLocation,
+        pickupLocation,
+        dropLocation,
+        pickupAddress,
+        destinationAddress,
+        vehicleType,
+        distance,
+        duration,
+        isSyncing,
+        showCancelledOverlay,
+      );
+
 }

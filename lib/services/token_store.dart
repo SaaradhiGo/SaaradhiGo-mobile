@@ -23,6 +23,22 @@ class TokenStore {
   static const _kAccess = 'access_token';
   static const _kRefresh = 'refresh_token';
 
+  /// Set when a session has been ended but the secure store could not be
+  /// proven empty. Never holds a credential -- only the fact that one is void.
+  ///
+  /// WHY THIS IS NEEDED EVEN THOUGH clear() IS GUARDED
+  /// -------------------------------------------------
+  /// `clear()` catches a throw from `_secure.delete` so that the prefs copies
+  /// are still removed. That closed the half of the hole where prefs survived
+  /// a logout. The other half stayed open: the SECURE copy survives, `_read`
+  /// consults secure storage FIRST, and the next launch read a token the user
+  /// had already logged out of. Blocking the read is what actually closes it,
+  /// and it closes both halves at once.
+  static const _kRevoked = 'auth_session_revoked';
+
+  /// Authoritative for this process. Null until first consulted.
+  static bool? _revoked;
+
   // Platform options. EncryptedSharedPreferences on Android is the modern
   // default; on iOS the keychain is the default and survives reinstall
   // unless we mark `first_unlock_this_device_only`.
@@ -50,25 +66,116 @@ class TokenStore {
     required String accessToken,
     required String refreshToken,
   }) async {
-    await _secure.write(key: _kAccess, value: accessToken);
-    await _secure.write(key: _kRefresh, value: refreshToken);
+    // Guarded for the same reason the read is: secure storage can be
+    // unavailable (MissingPluginException in a test binding, and reported
+    // keystore failures on some Android builds). Unguarded, the throw
+    // happened BEFORE the SharedPreferences dual-write, so a secure-storage
+    // fault did not degrade to the fallback -- it failed the whole login and
+    // the user saw "invalid OTP".
+    //
+    // The prefs write always happens, so a session still survives.
+    try {
+      await _secure.write(key: _kAccess, value: accessToken);
+      await _secure.write(key: _kRefresh, value: refreshToken);
+    } catch (_) {
+      // Best effort. The prefs copy below is what keeps the user signed in.
+    }
 
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString(_kAccess, accessToken);
     await prefs.setString(_kRefresh, refreshToken);
+
+    // A fresh login lifts any tombstone, or a driver whose store failed once
+    // would be locked out of their own app for good.
+    await _setRevoked(false);
   }
 
   /// Wipe both stores. Called on logout / 401-after-refresh-fails.
   static Future<void> clear() async {
-    await _secure.delete(key: _kAccess);
-    await _secure.delete(key: _kRefresh);
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.remove(_kAccess);
-    await prefs.remove(_kRefresh);
+    // Tombstone FIRST. Everything after this point may fail; from here on the
+    // session is void regardless of what either store does.
+    await _setRevoked(true);
+
+    // Each delete is attempted independently: one throw must not shield the
+    // key after it.
+    var allDeleted = true;
+    for (final key in const [_kAccess, _kRefresh]) {
+      try {
+        await _secure.delete(key: key);
+      } catch (_) {
+        allDeleted = false;
+      }
+    }
+    if (!allDeleted) {
+      // deleteAll can succeed where a per-key delete fails on a corrupt entry.
+      try {
+        await _secure.deleteAll();
+        allDeleted = true;
+      } catch (_) {
+        // The tombstone stands.
+      }
+    }
+
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.remove(_kAccess);
+      await prefs.remove(_kRefresh);
+    } catch (_) {
+      allDeleted = false;
+    }
+
+    if (allDeleted) {
+      // Nothing left to protect, so leave no trace behind.
+      await _setRevoked(false);
+    }
   }
 
+  static Future<bool> _isRevoked() async {
+    final cached = _revoked;
+    if (cached != null) return cached;
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      return _revoked = prefs.getBool(_kRevoked) ?? false;
+    } catch (_) {
+      // An unreadable tombstone is exactly the case it exists for: do not
+      // assume a live session.
+      return _revoked = true;
+    }
+  }
+
+  static Future<void> _setRevoked(bool value) async {
+    _revoked = value;
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      if (value) {
+        await prefs.setBool(_kRevoked, true);
+      } else {
+        await prefs.remove(_kRevoked);
+      }
+    } catch (_) {
+      // In-memory state still holds for the rest of this process.
+    }
+  }
+
+  /// Resets the in-memory tombstone so each test starts clean.
+  static void resetSessionRevocationCacheForTests() => _revoked = null;
+
   static Future<String?> _read(String key) async {
-    final secure = await _secure.read(key: key);
+    // A session that has been ended cannot come back, whatever the stores do.
+    if (await _isRevoked()) return null;
+
+    // Guarded for the same reason the write below is: secure storage can be
+    // unavailable. `flutter_secure_storage` throws MissingPluginException in a
+    // test binding and has been reported to throw on some Android keystore
+    // states — and an exception here read as "signed out", which is the exact
+    // outcome the fallback exists to prevent. The write was already guarded;
+    // the read was not.
+    String? secure;
+    try {
+      secure = await _secure.read(key: key);
+    } catch (_) {
+      secure = null;
+    }
     if (secure != null && secure.isNotEmpty) {
       return secure;
     }

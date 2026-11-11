@@ -2,14 +2,51 @@ import 'package:cached_network_image_ce/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
+
 import 'dart:io';
+
 import 'package:flutter/foundation.dart' show kIsWeb;
-import 'package:google_fonts/google_fonts.dart';
+import 'package:geolocator/geolocator.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:latlong2/latlong.dart';
+
+import '../../core/market/market_config.dart';
+import '../../core/market/market_config_store.dart';
 import '../../providers/auth_provider.dart';
+import '../../services/referral_service.dart';
+import '../../services/token_store.dart';
+
+import '../../ui/sg_tokens.dart';
+import '../../ui/sg_text.dart';
+
+/// The profile update body: only what the rider filled in.
+///
+/// Every field used to be sent, blanks as "". The server reads `dob: ""` as
+/// an invalid date and refuses the whole update, so a returning rider with no
+/// date of birth on file could not get past this screen to book a ride (seen
+/// on the QA emulator, product phase 1). Every field is optional server-side.
+@visibleForTesting
+Map<String, dynamic> profileUpdatePayload(Map<String, dynamic> fields) => {
+  for (final e in fields.entries)
+    if (e.value != null && !(e.value is String && (e.value as String).isEmpty))
+      e.key: e.value,
+};
 
 class ProfileSetupScreen extends StatefulWidget {
-  const ProfileSetupScreen({super.key});
+  const ProfileSetupScreen({
+    super.key,
+    this.referralService,
+    this.marketStore,
+    this.locate,
+  });
+
+  /// Injected by tests; the app uses the real service.
+  final ReferralService? referralService;
+  final MarketConfigStore? marketStore;
+
+  /// Where the rider is, if the app can tell without asking. Injected by
+  /// tests; the app uses [_lastKnownLocation].
+  final Future<LatLng?> Function()? locate;
 
   @override
   State<ProfileSetupScreen> createState() => _ProfileSetupScreenState();
@@ -26,6 +63,18 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen> {
   final TextEditingController _streetNameController = TextEditingController();
   final TextEditingController _cityController = TextEditingController();
   final TextEditingController _zipCodeController = TextEditingController();
+  final TextEditingController _referralController = TextEditingController();
+  MarketConfigStore get _market =>
+      widget.marketStore ?? MarketConfigStore.instance;
+
+  /// The live city the rider chose (app-config `cities[].code`, which is the
+  /// backend's GeoNode code, e.g. IN-TG-HYD). Null: nothing chosen.
+  String? _homeCityCode;
+
+  /// The picker is shown only when the server named live cities. The built-in
+  /// fallback city is not a server code, so it never becomes a picker.
+  List<CityConfig> get _pickerCities =>
+      _market.current.isBuiltIn ? const [] : _market.current.cities;
 
   XFile? _selectedImage;
   final ImagePicker _picker = ImagePicker();
@@ -38,12 +87,14 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen> {
       if (auth.fullName != null) _nameController.text = auth.fullName!;
       if (auth.email != null) _emailController.text = auth.email!;
       if (auth.dob != null) _dobController.text = auth.dob!;
-      if (auth.emergencyContact != null)
+      if (auth.emergencyContact != null) {
         _emergencyContactController.text = auth.emergencyContact!;
+      }
       if (auth.houseNo != null) _houseNoController.text = auth.houseNo!;
       if (auth.street != null) _streetNameController.text = auth.street!;
       if (auth.city != null) _cityController.text = auth.city!;
       if (auth.zipCode != null) _zipCodeController.text = auth.zipCode!;
+      _preselectCity();
       if (auth.gender != null) {
         final g = auth.gender!.toLowerCase();
         if (g == 'male' || g == 'female' || g == 'other') {
@@ -71,6 +122,44 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen> {
     });
   }
 
+  /// Pre-selects the city the rider already gave, else the live city they are
+  /// in right now. Nothing is guessed beyond that.
+  Future<void> _preselectCity() async {
+    final cities = _pickerCities;
+    if (cities.isEmpty) return;
+    final saved = _cityController.text.trim().toLowerCase();
+    CityConfig? pick;
+    if (saved.isNotEmpty) {
+      for (final c in cities) {
+        if (c.name.toLowerCase() == saved) pick = c;
+      }
+    } else {
+      try {
+        final here = await (widget.locate ?? _lastKnownLocation)();
+        pick = _market.cityAt(here);
+      } catch (_) {}
+    }
+    if (pick != null && mounted && _homeCityCode == null) {
+      setState(() {
+        _homeCityCode = pick!.code;
+        _cityController.text = pick.name;
+      });
+    }
+  }
+
+  /// The device's last known position, only if location permission is already
+  /// granted: this screen never raises a permission prompt.
+  static Future<LatLng?> _lastKnownLocation() async {
+    if (kIsWeb) return null;
+    final permission = await Geolocator.checkPermission();
+    if (permission == LocationPermission.denied ||
+        permission == LocationPermission.deniedForever) {
+      return null;
+    }
+    final p = await Geolocator.getLastKnownPosition();
+    return p == null ? null : LatLng(p.latitude, p.longitude);
+  }
+
   Future<void> _selectDate(BuildContext context) async {
     final DateTime? picked = await showDatePicker(
       context: context,
@@ -80,11 +169,9 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen> {
       builder: (context, child) {
         return Theme(
           data: Theme.of(context).copyWith(
-            colorScheme: ColorScheme.dark(
-              primary: Theme.of(context).colorScheme.primary,
-              onPrimary: Colors.black,
-              surface: const Color(0xFF1E1C18),
-              onSurface: Colors.white,
+            colorScheme: Theme.of(context).colorScheme.copyWith(
+              surface: SgColors.bg200,
+              onSurface: SgColors.ink,
             ),
           ),
           child: child!,
@@ -102,7 +189,7 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen> {
   Future<void> _showImageSourceActionSheet(BuildContext context) async {
     showModalBottomSheet(
       context: context,
-      backgroundColor: const Color(0xFF1E1C18),
+      backgroundColor: SgColors.bg200,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
@@ -115,31 +202,27 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen> {
               width: 40,
               height: 4,
               decoration: BoxDecoration(
-                color: Colors.white24,
+                color: SgColors.bg300,
                 borderRadius: BorderRadius.circular(2),
               ),
             ),
             const SizedBox(height: 16),
             Text(
               'CHOOSE IMAGE FROM',
-              style: GoogleFonts.inter(
-                color: Colors.white54,
-                fontSize: 11,
-                fontWeight: FontWeight.bold,
-                letterSpacing: 1.2,
+              style: TextStyle(
+                color: SgColors.inkMuted,
+                fontSize: SgText.sizeSmall,
+                fontWeight: FontWeight.w600,
               ),
             ),
             const SizedBox(height: 16),
             ListTile(
-              leading: const Icon(
-                Icons.camera_alt_rounded,
-                color: Color(0xFFEEBD2B),
-              ),
+              leading: Icon(Icons.camera_alt_rounded, color: SgColors.goldText),
               title: Text(
                 'Camera',
-                style: GoogleFonts.inter(
-                  color: Colors.white,
-                  fontWeight: FontWeight.w500,
+                style: TextStyle(
+                  color: SgColors.ink,
+                  fontWeight: FontWeight.w600,
                 ),
               ),
               onTap: () {
@@ -148,15 +231,15 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen> {
               },
             ),
             ListTile(
-              leading: const Icon(
+              leading: Icon(
                 Icons.photo_library_rounded,
-                color: Color(0xFFEEBD2B),
+                color: SgColors.goldText,
               ),
               title: Text(
                 'Gallery',
-                style: GoogleFonts.inter(
-                  color: Colors.white,
-                  fontWeight: FontWeight.w500,
+                style: TextStyle(
+                  color: SgColors.ink,
+                  fontWeight: FontWeight.w600,
                 ),
               ),
               onTap: () {
@@ -199,7 +282,7 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen> {
   }
 
   void _saveAndContinue() async {
-    final Map<String, dynamic> profileData = {
+    final Map<String, dynamic> profileData = profileUpdatePayload({
       'full_name': _nameController.text.trim(),
       'email': _emailController.text.trim(),
       'gender': _selectedGender.toLowerCase(),
@@ -209,25 +292,54 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen> {
       'street': _streetNameController.text.trim(),
       'city': _cityController.text.trim(),
       'zip_code': _zipCodeController.text.trim(),
-    };
+      if (_homeCityCode != null) 'home_city': _homeCityCode,
+    });
 
     final authProvider = Provider.of<AuthProvider>(context, listen: false);
     final success = await authProvider.updateProfile(profileData);
 
     if (success) {
-      if (mounted) context.go('/home');
+      // The referral code is optional and never blocks sign-up: whatever
+      // happens to it, the rider still goes on to the app.
+      final referralNote = await _attachReferral();
+      if (mounted) {
+        if (referralNote != null) {
+          ScaffoldMessenger.of(
+            context,
+          ).showSnackBar(SnackBar(content: Text(referralNote)));
+        }
+        context.go('/home');
+      }
     } else {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(
               authProvider.error ?? 'Failed to update profile',
-              style: const TextStyle(color: Colors.white),
+              style: TextStyle(color: SgColors.onDanger),
             ),
-            backgroundColor: Colors.red,
+            backgroundColor: SgColors.danger,
           ),
         );
       }
+    }
+  }
+
+  /// Tries to use the typed referral code. Returns a message to show when it
+  /// could not be used, null when there was nothing to do or it worked.
+  Future<String?> _attachReferral() async {
+    final code = _referralController.text.trim();
+    if (code.isEmpty) return null;
+    try {
+      final token = await TokenStore.readAccessToken();
+      if (token == null || token.isEmpty) return null;
+      final result = await (widget.referralService ?? ReferralService()).attach(
+        token,
+        code,
+      );
+      return result.ok ? 'Referral code added' : result.message;
+    } catch (_) {
+      return null;
     }
   }
 
@@ -249,8 +361,8 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen> {
         Text(
           label,
           style: TextStyle(
-            fontSize: 14,
-            fontWeight: FontWeight.w500,
+            fontSize: SgText.sizeSmall,
+            fontWeight: FontWeight.w600,
             color: colorScheme.onSurface.withValues(alpha: 0.7),
           ),
         ),
@@ -269,7 +381,10 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen> {
             keyboardType: keyboardType,
             readOnly: readOnly,
             onTap: onTap,
-            style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w500),
+            style: TextStyle(
+              fontSize: SgText.sizeBody,
+              fontWeight: FontWeight.w600,
+            ),
             decoration: InputDecoration(
               hintText: placeholder,
               border: InputBorder.none,
@@ -287,8 +402,66 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen> {
                   : null,
               hintStyle: TextStyle(
                 color: colorScheme.onSurface.withValues(alpha: 0.4),
-                fontWeight: FontWeight.normal,
+                fontWeight: FontWeight.w400,
               ),
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildCityPicker() {
+    final colorScheme = Theme.of(context).colorScheme;
+    final cities = _pickerCities;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          'City',
+          style: TextStyle(
+            fontSize: SgText.sizeSmall,
+            fontWeight: FontWeight.w600,
+            color: colorScheme.onSurface.withValues(alpha: 0.7),
+          ),
+        ),
+        const SizedBox(height: 6),
+        Container(
+          height: 56,
+          padding: const EdgeInsets.symmetric(horizontal: 12),
+          decoration: BoxDecoration(
+            color: colorScheme.surfaceContainerHighest.withValues(alpha: 0.3),
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(
+              color: colorScheme.outline.withValues(alpha: 0.2),
+            ),
+          ),
+          child: DropdownButtonHideUnderline(
+            child: DropdownButton<String>(
+              key: const Key('city_picker'),
+              isExpanded: true,
+              value: cities.any((c) => c.code == _homeCityCode)
+                  ? _homeCityCode
+                  : null,
+              hint: Text(
+                'Select your city',
+                style: TextStyle(
+                  color: colorScheme.onSurface.withValues(alpha: 0.4),
+                ),
+              ),
+              items: [
+                for (final c in cities)
+                  DropdownMenuItem(value: c.code, child: Text(c.name)),
+              ],
+              onChanged: (code) {
+                if (code == null) return;
+                setState(() {
+                  _homeCityCode = code;
+                  _cityController.text = cities
+                      .firstWhere((c) => c.code == code)
+                      .name;
+                });
+              },
             ),
           ),
         ),
@@ -302,9 +475,12 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen> {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text(
+        title: Text(
           'Complete Profile',
-          style: TextStyle(fontWeight: FontWeight.bold, fontSize: 20),
+          style: TextStyle(
+            fontWeight: FontWeight.w600,
+            fontSize: SgText.sizeTitle,
+          ),
         ),
         centerTitle: true,
         backgroundColor: colorScheme.surface,
@@ -424,8 +600,8 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen> {
                 Text(
                   'Gender',
                   style: TextStyle(
-                    fontSize: 14,
-                    fontWeight: FontWeight.w500,
+                    fontSize: SgText.sizeSmall,
+                    fontWeight: FontWeight.w600,
                     color: colorScheme.onSurface.withValues(alpha: 0.7),
                   ),
                 ),
@@ -463,7 +639,7 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen> {
                             child: Text(
                               gender,
                               style: TextStyle(
-                                fontWeight: FontWeight.bold,
+                                fontWeight: FontWeight.w600,
                                 color: isSelected
                                     ? colorScheme.onPrimary
                                     : colorScheme.onSurface.withValues(
@@ -488,6 +664,24 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen> {
                   suffixIcon: Icons.calendar_today,
                 ),
 
+                // Hidden unless a referral offer is live for riders here.
+                ListenableBuilder(
+                  listenable: _market,
+                  builder: (context, _) => _market.current.referralsAvailable
+                      ? Padding(
+                          padding: const EdgeInsets.only(top: 16),
+                          child: KeyedSubtree(
+                            key: const Key('referral_field'),
+                            child: _buildTextField(
+                              'Referral code (optional)',
+                              "Enter a friend's code",
+                              controller: _referralController,
+                            ),
+                          ),
+                        )
+                      : const SizedBox.shrink(),
+                ),
+
                 const SizedBox(height: 32),
                 Row(
                   children: [
@@ -496,8 +690,8 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen> {
                     Text(
                       'Safety First',
                       style: TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.bold,
+                        fontSize: SgText.sizeTitle,
+                        fontWeight: FontWeight.w600,
                         color: colorScheme.primary,
                       ),
                     ),
@@ -506,7 +700,7 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen> {
                 const SizedBox(height: 16),
                 _buildTextField(
                   'Emergency Contact',
-                  '(555) 019-2834',
+                  _market.current.phoneHint ?? 'Phone number',
                   leadingIcon: Icons.call,
                   keyboardType: TextInputType.phone,
                   controller: _emergencyContactController,
@@ -514,7 +708,7 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen> {
                 Text(
                   'Used only in case of emergencies during your ride.',
                   style: TextStyle(
-                    fontSize: 12,
+                    fontSize: SgText.sizeSmall,
                     color: colorScheme.onSurface.withValues(alpha: 0.5),
                   ),
                 ),
@@ -527,11 +721,11 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen> {
                       color: colorScheme.onSurface.withValues(alpha: 0.4),
                     ),
                     const SizedBox(width: 8),
-                    const Text(
+                    Text(
                       'Residential Address',
                       style: TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.bold,
+                        fontSize: SgText.sizeTitle,
+                        fontWeight: FontWeight.w600,
                       ),
                     ),
                   ],
@@ -563,7 +757,7 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen> {
                             flex: 2,
                             child: _buildTextField(
                               'Street Name',
-                              'Park Avenue',
+                              _market.current.streetAddressHint,
                               controller: _streetNameController,
                             ),
                           ),
@@ -574,18 +768,20 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen> {
                         children: [
                           Expanded(
                             flex: 2,
-                            child: _buildTextField(
-                              'City',
-                              'New York',
-                              controller: _cityController,
-                            ),
+                            child: _pickerCities.isEmpty
+                                ? _buildTextField(
+                                    'City',
+                                    'New York',
+                                    controller: _cityController,
+                                  )
+                                : _buildCityPicker(),
                           ),
                           const SizedBox(width: 16),
                           Expanded(
                             flex: 1,
                             child: _buildTextField(
-                              'Zip Code',
-                              '10001',
+                              _market.current.postalCodeLabel,
+                              _market.current.postalCodeHint,
                               controller: _zipCodeController,
                             ),
                           ),
@@ -627,15 +823,15 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen> {
                         ),
                       ),
                       child: auth.isLoading
-                          ? const CircularProgressIndicator(color: Colors.white)
+                          ? CircularProgressIndicator(color: SgColors.onGold)
                           : Row(
                               mainAxisAlignment: MainAxisAlignment.center,
                               children: [
-                                const Text(
+                                Text(
                                   'Save & Continue',
                                   style: TextStyle(
-                                    fontSize: 18,
-                                    fontWeight: FontWeight.bold,
+                                    fontSize: SgText.sizeTitle,
+                                    fontWeight: FontWeight.w600,
                                   ),
                                 ),
                                 const SizedBox(width: 8),

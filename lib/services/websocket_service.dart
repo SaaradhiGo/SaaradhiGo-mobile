@@ -3,7 +3,9 @@ import 'dart:convert';
 import 'package:flutter/foundation.dart';
 import 'package:web_socket_channel/web_socket_channel.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:uuid/uuid.dart';
 import '../core/app_config.dart';
+import 'api_service.dart';
 
 final webSocketServiceProvider = Provider<WebSocketService>((ref) {
   return WebSocketService();
@@ -12,6 +14,7 @@ final webSocketServiceProvider = Provider<WebSocketService>((ref) {
 class WebSocketService {
   WebSocketChannel? _rideChannel;
   WebSocketChannel? _tripChannel;
+  StreamSubscription? _rideSubscription;
   StreamSubscription? _tripSubscription;
 
   final _rideEventController =
@@ -27,10 +30,59 @@ class WebSocketService {
 
   // Connection tracking
   String? _activeTripWsUrl;
-  String? _activeRideWsUrl;
   bool _isConnectingTrip = false;
-  bool _isConnectingRide = false;
   int _tripReconnectAttempts = 0;
+
+  /// True while the trip socket is open (ready, or a frame arrived).
+  bool _tripOpen = false;
+
+  /// The ride-request frame the booking socket sends. `promo_code` is present
+  /// only when the rider applied a code, so a booking without one is the frame
+  /// the app has always sent.
+  @visibleForTesting
+  static Map<String, dynamic> buildRideRequestPayload({
+    required double pickupLat,
+    required double pickupLng,
+    required double destinationLat,
+    required double destinationLng,
+    required double distanceKm,
+    required int durationMin,
+    required String vehicleType,
+    required String pickupAddress,
+    required String destinationAddress,
+    required String paymentMethod,
+    String? promoCode,
+    String? clientRequestId,
+    String? quoteId,
+  }) => {
+    'action': 'request',
+    'type': 'ride_request',
+    'pickup_lat': pickupLat,
+    'pickup_lng': pickupLng,
+    'destination_lat': destinationLat,
+    'destination_lng': destinationLng,
+    'pickup_address': pickupAddress,
+    'destination_address': destinationAddress,
+    'distance_km': distanceKm,
+    'duration_min': durationMin,
+    'vehicle_type': vehicleType,
+    'payment_method': paymentMethod,
+    if (promoCode != null && promoCode.isNotEmpty) 'promo_code': promoCode,
+    if (clientRequestId != null) 'client_request_id': clientRequestId,
+    // The quote shown on the ticket: the server books at exactly its fare,
+    // or refuses with QUOTE_EXPIRED and a fresh one (quote_lock.dart).
+    if (quoteId != null && quoteId.isNotEmpty) 'quote_id': quoteId,
+  };
+
+  /// Frames after which the booking must not be sent again on a reconnect:
+  /// the server has answered it. Resending a request the server already
+  /// cancelled (nobody accepted) would book a ride the rider gave up on.
+  static const _answeredTypes = {
+    'trip_created',
+    'error',
+    'dispatch_failed',
+    'current_trip',
+  };
 
   void requestRide({
     required String token,
@@ -44,41 +96,37 @@ class WebSocketService {
     required String pickupAddress,
     required String destinationAddress,
     required String paymentMethod,
+    String? promoCode,
+    String? quoteId,
   }) {
     debugPrint("WebSocketService: requestRide invoked.");
     _isIntentionalDisconnect = false;
+    _tripActive = false;
     final wsUrl = '${AppConfig.rideRequestWs}?token=$token';
 
-    // Prevent redundant connection attempts to the SAME URL
-    // Also check if we are ALREADY scheduled to reconnect to this URL
-    if (_activeRideWsUrl == wsUrl) {
-      if (_rideChannel != null || _isConnectingRide) {
-        debugPrint(
-          "WebSocketService: Already connected or connecting to ride request WS. Skipping duplicate request.",
-        );
-        return;
-      }
-    }
-
-    _lastRideRequestPayload = {
-      'action': 'request',
-      'type': 'ride_request',
-      'pickup_lat': pickupLat,
-      'pickup_lng': pickupLng,
-      'destination_lat': destinationLat,
-      'destination_lng': destinationLng,
-      'pickup_address': pickupAddress,
-      'destination_address': destinationAddress,
-      'distance_km': distanceKm,
-      'duration_min': durationMin,
-      'vehicle_type': vehicleType,
-      'payment_method': paymentMethod,
-    };
-
-    debugPrint(
-      "WebSocketService: Payload prepared. Connecting to WS URL: $wsUrl",
+    // Every booking attempt is a new request with its own idempotency key.
+    // This used to skip the request when a channel from an earlier booking
+    // was still open, so a second "Request ride" (after a cancel or a failed
+    // search) silently sent nothing and the rider watched "Finding your
+    // ride" forever (PRODUCT_AUDIT §2). The key makes a reconnect resend of
+    // THIS request safe: the server answers it with the trip it already made.
+    _lastRideRequestPayload = buildRideRequestPayload(
+      pickupLat: pickupLat,
+      pickupLng: pickupLng,
+      destinationLat: destinationLat,
+      destinationLng: destinationLng,
+      distanceKm: distanceKm,
+      durationMin: durationMin,
+      vehicleType: vehicleType,
+      pickupAddress: pickupAddress,
+      destinationAddress: destinationAddress,
+      paymentMethod: paymentMethod,
+      promoCode: promoCode,
+      clientRequestId: const Uuid().v4(),
+      quoteId: quoteId,
     );
-    _activeRideWsUrl = wsUrl;
+
+    debugPrint("WebSocketService: Payload prepared. Connecting to ride WS.");
     _connectRideChannel(wsUrl);
   }
 
@@ -105,34 +153,40 @@ class WebSocketService {
     }
 
     debugPrint(
-      "WebSocketService: connectToTrip invoked for trip: $tripId. URL: $wsUrl",
+      "WebSocketService: connectToTrip invoked for trip: $tripId. URL: ${redactWsToken(wsUrl)}",
     );
 
     // Close the ride request channel since we have a trip now
     _rideReconnectTimer?.cancel();
     _tripReconnectTimer?.cancel(); // Cancel any pending trip logic/reconnects
+    _rideSubscription?.cancel();
+    _rideSubscription = null;
     _rideChannel?.sink.close();
     _rideChannel = null;
     _lastRideRequestPayload = null;
-    _activeRideWsUrl = null;
-    _isConnectingRide = false;
 
     _connectTripChannel(wsUrl);
   }
 
   void _connectRideChannel(String wsUrl) {
     debugPrint("WebSocketService: _connectRideChannel executing...");
-    _isConnectingRide = true;
     try {
+      // Drop the old channel's listener first, so its onDone cannot schedule
+      // a reconnect that races this one.
+      _rideReconnectTimer?.cancel();
+      _rideSubscription?.cancel();
+      _rideSubscription = null;
       _rideChannel?.sink.close();
       _rideChannel = WebSocketChannel.connect(Uri.parse(wsUrl));
       debugPrint("WebSocketService: WebSocketChannel initialized.");
-      _isConnectingRide = false;
 
-      _rideChannel!.stream.listen(
+      _rideSubscription = _rideChannel!.stream.listen(
         (data) {
           try {
             final Map<String, dynamic> decoded = jsonDecode(data);
+            if (_answeredTypes.contains(decoded['type'])) {
+              _lastRideRequestPayload = null;
+            }
             _rideEventController.add(decoded);
           } catch (e) {
             debugPrint("Error parsing ride WS data: $e");
@@ -157,26 +211,62 @@ class WebSocketService {
           })
           .catchError((error) {
             debugPrint("Ride WS failed to be ready: $error");
+            // A refused upgrade is almost always an expired access token.
+            _rideHandshakeFailed = true;
           });
     } catch (e) {
       debugPrint("Ride request WS connect error: $e");
-      _isConnectingRide = false;
       _scheduleRideReconnect(wsUrl);
+    }
+  }
+
+  /// Stops a booking that has not been answered: the rider gave up waiting
+  /// for the server to acknowledge it. Nothing is resent after this.
+  void abandonRideRequest() {
+    _lastRideRequestPayload = null;
+    _rideReconnectTimer?.cancel();
+    _rideSubscription?.cancel();
+    _rideSubscription = null;
+    _rideChannel?.sink.close();
+    _rideChannel = null;
+  }
+
+  bool _rideHandshakeFailed = false;
+  bool _tripHandshakeFailed = false;
+
+  /// [url] with a freshly refreshed access token, or unchanged when the
+  /// refresh fails. The sockets read the stored token, which may have expired.
+  Future<String> _withRefreshedToken(String url) async {
+    try {
+      final fresh = await ApiService().refreshAccessToken();
+      if (fresh == null || fresh.isEmpty) return url;
+      return replaceWsToken(url, fresh);
+    } catch (_) {
+      return url;
     }
   }
 
   void _scheduleRideReconnect(String wsUrl) {
     if (_isIntentionalDisconnect || _tripActive) return;
     _rideReconnectTimer?.cancel();
-    _rideReconnectTimer = Timer(const Duration(seconds: 5), () {
+    _rideReconnectTimer = Timer(const Duration(seconds: 5), () async {
       debugPrint("Reconnecting Ride request WS...");
-      _connectRideChannel(wsUrl);
+      var url = wsUrl;
+      if (_rideHandshakeFailed) {
+        _rideHandshakeFailed = false;
+        url = await _withRefreshedToken(url);
+      }
+      if (_isIntentionalDisconnect || _tripActive) return;
+      _connectRideChannel(url);
     });
   }
 
   void _connectTripChannel(String wsUrl) {
-    debugPrint("WebSocketService: _connectTripChannel starting for $wsUrl");
+    debugPrint(
+      "WebSocketService: _connectTripChannel starting for ${redactWsToken(wsUrl)}",
+    );
     _isConnectingTrip = true;
+    _tripOpen = false;
     _activeTripWsUrl = wsUrl;
 
     try {
@@ -190,6 +280,7 @@ class WebSocketService {
         (data) {
           // On first successful message, we consider it "connected"
           _isConnectingTrip = false;
+          _tripOpen = true;
           _tripReconnectAttempts = 0; // Reset backoff on success
 
           try {
@@ -201,9 +292,10 @@ class WebSocketService {
         },
         onDone: () {
           debugPrint(
-            "Trip WS closed. URL: $wsUrl, Code: ${_tripChannel?.closeCode}, Reason: ${_tripChannel?.closeReason}",
+            "Trip WS closed. URL: ${redactWsToken(wsUrl)}, Code: ${_tripChannel?.closeCode}, Reason: ${_tripChannel?.closeReason}",
           );
           _isConnectingTrip = false;
+          _tripOpen = false;
           // Note: we KEEP _activeTripWsUrl to track what we are reconnecting to
           _scheduleTripReconnect(wsUrl);
         },
@@ -212,18 +304,21 @@ class WebSocketService {
             "Trip WS error: $err, Code: ${_tripChannel?.closeCode}, Reason: ${_tripChannel?.closeReason}",
           );
           _isConnectingTrip = false;
+          _tripOpen = false;
           _scheduleTripReconnect(wsUrl);
         },
       );
 
       _tripChannel!.ready
           .then((_) {
-            debugPrint("Trip WS Ready for $wsUrl");
+            debugPrint("Trip WS Ready for ${redactWsToken(wsUrl)}");
             _isConnectingTrip = false;
+            _tripOpen = true;
             _tripReconnectAttempts = 0;
           })
           .catchError((error) {
             debugPrint("Trip WS failed to be ready: $error");
+            _tripHandshakeFailed = true;
             // onDone/onError will handle reconnection
           });
     } catch (e) {
@@ -246,10 +341,29 @@ class WebSocketService {
       "Scheduling Trip WS reconnect in ${delaySeconds}s (Attempt: $_tripReconnectAttempts)",
     );
 
-    _tripReconnectTimer = Timer(Duration(seconds: delaySeconds), () {
+    _tripReconnectTimer = Timer(Duration(seconds: delaySeconds), () async {
       debugPrint("Reconnecting Trip WS...");
-      _connectTripChannel(wsUrl);
+      var url = wsUrl;
+      if (_tripHandshakeFailed) {
+        _tripHandshakeFailed = false;
+        url = await _withRefreshedToken(url);
+      }
+      if (_isIntentionalDisconnect) return;
+      _connectTripChannel(url);
     });
+  }
+
+  /// Called when the app comes forward. Android drops sockets in the
+  /// background and the reconnect backs off up to 30 s; a cancel sent in that
+  /// gap is only learned from the greeting of the next connect, so make that
+  /// connect now rather than after the backoff.
+  void reconnectTripIfDown() {
+    final url = _activeTripWsUrl;
+    if (url == null || _isIntentionalDisconnect) return;
+    if (_tripOpen || _isConnectingTrip) return;
+    _tripReconnectTimer?.cancel();
+    _tripReconnectAttempts = 0;
+    _connectTripChannel(url);
   }
 
   void disconnectAll() {
@@ -260,15 +374,29 @@ class WebSocketService {
     _tripReconnectTimer?.cancel();
     _tripSubscription?.cancel();
     _tripSubscription = null;
+    _rideSubscription?.cancel();
+    _rideSubscription = null;
     _rideChannel?.sink.close();
     _tripChannel?.sink.close();
     _rideChannel = null;
     _tripChannel = null;
     _lastRideRequestPayload = null;
     _activeTripWsUrl = null;
-    _activeRideWsUrl = null;
     _isConnectingTrip = false;
-    _isConnectingRide = false;
+    _tripOpen = false;
     _tripReconnectAttempts = 0;
   }
 }
+
+/// [url] with its `token` query value replaced by [token].
+@visibleForTesting
+String replaceWsToken(String url, String token) {
+  final uri = Uri.parse(url);
+  return uri
+      .replace(queryParameters: {...uri.queryParameters, 'token': token})
+      .toString();
+}
+
+/// [url] with the token value hidden, for logs.
+String redactWsToken(String url) =>
+    url.replaceAll(RegExp(r'token=[^&]*'), 'token=***');

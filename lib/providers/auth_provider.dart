@@ -1,16 +1,29 @@
+import 'dart:async';
 import 'package:cached_network_image_ce/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../services/api_service.dart';
+import '../ui/sg_appearance.dart';
+import '../core/market/market_config_store.dart';
 
 class AuthProvider extends ChangeNotifier {
   AuthProvider({
     AuthApiClient? apiService,
     Future<SharedPreferences> Function()? prefsFactory,
+    /// When given, the market config is refreshed after every sign-in (for the
+    /// signed-in user's country). Null in tests: no network.
+    MarketConfigStore? market,
   }) : _apiService = apiService ?? ApiService(),
+       _market = market,
        _prefsFactory = prefsFactory ?? SharedPreferences.getInstance {
     _initializationFuture = _hydrateProfileFromPrefs();
   }
+
+  final MarketConfigStore? _market;
+
+  /// The dialling code to assume when the user has none yet: the market's own
+  /// (built-in is +91, so unchanged for India).
+  String get _fallbackDial => MarketConfigStore.instance.current.dialPrefix;
 
   static const String _fullNameKey = 'profile_full_name';
   static const String _avatarUrlKey = 'profile_avatar_url';
@@ -424,6 +437,16 @@ class AuthProvider extends ChangeNotifier {
         _pickFirstString(userPayload, ['full_name', 'fullName', 'name']) ??
         _fullName;
 
+    // Night 2: the account's language, used only when this device has none.
+    final serverLanguage = userPayload['preferred_language'];
+    if (serverLanguage is String) {
+      unawaited(SgAppearance.instance.adoptServerLanguage(serverLanguage));
+    }
+    // The account's theme, likewise only when this device has none.
+    unawaited(
+      SgAppearance.instance.adoptServerTheme(userPayload['preferred_theme']),
+    );
+
     _avatarUrl =
         _pickFirstString(userPayload, [
           'avatar_url',
@@ -465,7 +488,7 @@ class AuthProvider extends ChangeNotifier {
       _capturePhoneFromRawValue(
         payloadPhone,
         explicitCountryCode: payloadCountryCode,
-        fallbackCountryCode: _countryCode ?? '+91',
+        fallbackCountryCode: _countryCode ?? _fallbackDial,
       );
     }
 
@@ -507,7 +530,7 @@ class AuthProvider extends ChangeNotifier {
 
     if (previousAvatarUrl != null && previousAvatarUrl != _avatarUrl) {
       Future.microtask(
-        () => CachedNetworkImageProvider(previousAvatarUrl!).evict(),
+        () => CachedNetworkImageProvider(previousAvatarUrl).evict(),
       );
     }
 
@@ -651,7 +674,7 @@ class AuthProvider extends ChangeNotifier {
     return _capturePhoneFromRawValue(
       profileData['phone_number']?.toString(),
       explicitCountryCode: profileData['country_code']?.toString(),
-      fallbackCountryCode: _countryCode ?? '+91',
+      fallbackCountryCode: _countryCode ?? _fallbackDial,
     );
   }
 
@@ -686,9 +709,73 @@ class AuthProvider extends ChangeNotifier {
     );
     final phoneUpdated = _capturePhoneFromRawValue(
       phone,
-      fallbackCountryCode: '+91',
+      fallbackCountryCode: _fallbackDial,
     );
     await _persistIfNeeded([profileUpdated, phoneUpdated]);
+    _market?.refreshForPhone(phone);
+  }
+
+  /// Sign in with email + password.
+  ///
+  /// Returns null on success, or an error CODE for the caller to render:
+  ///   AUTH_MFA_REQUIRED  an operator must add a second factor
+  ///   AUTH_MFA_INVALID   the code was wrong
+  ///   anything else      one generic credential message
+  Future<String?> loginWithEmail({
+    required String email,
+    required String password,
+    String? mfaCode,
+  }) async {
+    _setLoading(true);
+    _setError(null);
+
+    final response = await _apiService.emailLogin(
+      email: email.trim(),
+      password: password,
+      mfaCode: mfaCode,
+    );
+
+    if (response == null) {
+      _setError('Could not reach SaaradhiGo. Check your connection.');
+      _setLoading(false);
+      return 'NETWORK';
+    }
+
+    final error = response['_error'];
+    if (error is Map) {
+      final code = (error['code'] ?? 'AUTH_FAILED').toString();
+      _setError(
+        code == 'AUTH_MFA_REQUIRED' || code == 'AUTH_MFA_INVALID'
+            ? (error['message'] ?? 'That code was not accepted.').toString()
+            : 'Invalid email or password.',
+      );
+      _setLoading(false);
+      return code;
+    }
+
+    // Same session handling as the OTP path, minus the phone capture: an
+    // email login does not tell us a phone number, and inventing one would
+    // overwrite whatever the profile already holds.
+    final profileUpdated = _applyProfileFromUserPayload(
+      _extractUserPayload(response),
+    );
+    await _persistIfNeeded([profileUpdated]);
+    _market?.refresh();
+
+    _setLoading(false);
+    return null;
+  }
+
+  /// Ask for a reset link. Always reports success -- see the API comment.
+  Future<bool> requestPasswordReset(String email) async {
+    _setLoading(true);
+    _setError(null);
+    final ok = await _apiService.requestPasswordReset(email.trim());
+    if (!ok) {
+      _setError('Could not reach SaaradhiGo. Check your connection.');
+    }
+    _setLoading(false);
+    return ok;
   }
 
   Future<Map<String, dynamic>?> requestOtp(String phone) async {
@@ -702,7 +789,7 @@ class AuthProvider extends ChangeNotifier {
     return response;
   }
 
-  Future<bool> verifyOtp(String phone, String otp, String deviceToken) async {
+  Future<bool> verifyOtp(String phone, String otp, String? deviceToken) async {
     _setLoading(true);
     _setError(null);
     final response = await _apiService.verifyOtpAndLogin(
@@ -737,6 +824,7 @@ class AuthProvider extends ChangeNotifier {
       street: profileData['street'] ?? '',
       city: profileData['city'] ?? '',
       zipCode: profileData['zip_code'] ?? '',
+      homeCity: profileData['home_city'] as String?,
     );
 
     if (response == null) {

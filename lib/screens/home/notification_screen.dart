@@ -1,9 +1,12 @@
+import '../../ui/appearance_settings.dart' show sgStrings;
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
 import '../../providers/notification_provider.dart';
 import '../../services/models/notification_model.dart';
+
+import '../../ui/sg_tokens.dart';
+import '../../ui/sg_text.dart';
 
 class NotificationScreen extends StatefulWidget {
   const NotificationScreen({super.key});
@@ -44,19 +47,16 @@ class _NotificationScreenState extends State<NotificationScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFF12110E),
+      backgroundColor: SgColors.bg000,
       appBar: AppBar(
         backgroundColor: Colors.transparent,
         elevation: 0,
         title: Text(
           'Notifications',
-          style: GoogleFonts.inter(
-            color: Colors.white,
-            fontWeight: FontWeight.bold,
-          ),
+          style: TextStyle(color: SgColors.ink, fontWeight: FontWeight.w600),
         ),
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: Colors.white),
+          icon: Icon(Icons.arrow_back, color: SgColors.ink),
           onPressed: () => Navigator.pop(context),
         ),
         actions: [
@@ -64,9 +64,9 @@ class _NotificationScreenState extends State<NotificationScreen> {
             onPressed: () {
               context.read<NotificationProvider>().markAllAsRead();
             },
-            child: const Text(
+            child: Text(
               'Mark all as read',
-              style: TextStyle(color: Color(0xFFEEBD2B)),
+              style: TextStyle(color: SgColors.goldText),
             ),
           ),
         ],
@@ -74,9 +74,17 @@ class _NotificationScreenState extends State<NotificationScreen> {
       body: Consumer<NotificationProvider>(
         builder: (context, provider, child) {
           if (provider.isLoading && provider.notifications.isEmpty) {
-            return const Center(
-              child: CircularProgressIndicator(color: Color(0xFFEEBD2B)),
+            return Center(
+              child: CircularProgressIndicator(color: SgColors.gold500),
             );
+          }
+
+          // A failure and an empty inbox are different things, and used to
+          // look identical: the provider returned an empty list for an
+          // expired token, a network error or a parse problem, and this
+          // screen said "No notifications yet".
+          if (provider.error != null && provider.notifications.isEmpty) {
+            return _buildErrorState(provider);
           }
 
           if (provider.notifications.isEmpty) {
@@ -85,7 +93,7 @@ class _NotificationScreenState extends State<NotificationScreen> {
 
           return RefreshIndicator(
             onRefresh: provider.fetchNotifications,
-            color: const Color(0xFFEEBD2B),
+            color: SgColors.gold500,
             child: ListView.builder(
               controller: _scrollController,
               padding: const EdgeInsets.all(16),
@@ -94,11 +102,11 @@ class _NotificationScreenState extends State<NotificationScreen> {
                   (provider.hasNextPage ? 1 : 0),
               itemBuilder: (context, index) {
                 if (index == provider.notifications.length) {
-                  return const Padding(
+                  return Padding(
                     padding: EdgeInsets.symmetric(vertical: 16),
                     child: Center(
                       child: CircularProgressIndicator(
-                        color: Color(0xFFEEBD2B),
+                        color: SgColors.gold500,
                         strokeWidth: 2,
                       ),
                     ),
@@ -122,20 +130,59 @@ class _NotificationScreenState extends State<NotificationScreen> {
     );
   }
 
+  Widget _buildErrorState(NotificationProvider provider) {
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(24),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(Icons.cloud_off, size: 56, color: SgColors.inkSubtle),
+            const SizedBox(height: 16),
+            Text(
+              'Could not load notifications',
+              style: TextStyle(
+                color: SgColors.ink,
+                fontSize: SgText.sizeTitle,
+                fontWeight: FontWeight.w600,
+              ),
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: 8),
+            Text(
+              provider.error!,
+              style: TextStyle(color: SgColors.inkMuted),
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: 20),
+            ElevatedButton.icon(
+              onPressed: () => provider.fetchNotifications(),
+              icon: const Icon(Icons.refresh),
+              label: Text(sgStrings(context).tryAgain),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: SgColors.gold500,
+                foregroundColor: SgColors.onGold,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   Widget _buildEmptyState() {
     return Center(
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Icon(
-            Icons.notifications_none,
-            size: 80,
-            color: Colors.white.withValues(alpha: 0.1),
-          ),
+          Icon(Icons.notifications_none, size: 80, color: SgColors.inkSubtle),
           const SizedBox(height: 16),
           Text(
             'No notifications yet',
-            style: GoogleFonts.inter(color: Colors.white54, fontSize: 16),
+            style: TextStyle(
+              color: SgColors.inkMuted,
+              fontSize: SgText.sizeBody,
+            ),
           ),
         ],
       ),
@@ -154,14 +201,12 @@ class _NotificationTile extends StatelessWidget {
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
       decoration: BoxDecoration(
-        color: notification.isRead
-            ? Colors.white.withValues(alpha: 0.05)
-            : Colors.white.withValues(alpha: 0.08),
+        color: notification.isRead ? SgColors.bg200 : SgColors.bg200,
         borderRadius: BorderRadius.circular(16),
         border: Border.all(
           color: notification.isRead
               ? Colors.transparent
-              : const Color(0xFFEEBD2B).withValues(alpha: 0.3),
+              : SgColors.goldText.withValues(alpha: 0.3),
           width: 1,
         ),
       ),
@@ -177,8 +222,8 @@ class _NotificationTile extends StatelessWidget {
                 padding: const EdgeInsets.all(10),
                 decoration: BoxDecoration(
                   color: notification.isRead
-                      ? Colors.white.withValues(alpha: 0.05)
-                      : const Color(0xFFEEBD2B).withValues(alpha: 0.1),
+                      ? SgColors.bg200
+                      : SgColors.gold500.withValues(alpha: 0.1),
                   shape: BoxShape.circle,
                 ),
                 child: Icon(
@@ -186,8 +231,8 @@ class _NotificationTile extends StatelessWidget {
                       ? Icons.notifications_none
                       : Icons.notifications_active,
                   color: notification.isRead
-                      ? Colors.white38
-                      : const Color(0xFFEEBD2B),
+                      ? SgColors.inkSubtle
+                      : SgColors.goldText,
                   size: 20,
                 ),
               ),
@@ -202,20 +247,20 @@ class _NotificationTile extends StatelessWidget {
                         Expanded(
                           child: Text(
                             notification.title,
-                            style: GoogleFonts.inter(
-                              color: Colors.white,
+                            style: TextStyle(
+                              color: SgColors.ink,
                               fontWeight: notification.isRead
-                                  ? FontWeight.w500
-                                  : FontWeight.bold,
-                              fontSize: 15,
+                                  ? FontWeight.w400
+                                  : FontWeight.w600,
+                              fontSize: SgText.sizeBody,
                             ),
                           ),
                         ),
                         Text(
                           DateFormat('hh:mm a').format(notification.createdAt),
-                          style: GoogleFonts.inter(
-                            color: Colors.white38,
-                            fontSize: 12,
+                          style: TextStyle(
+                            color: SgColors.inkSubtle,
+                            fontSize: SgText.sizeSmall,
                           ),
                         ),
                       ],
@@ -223,20 +268,20 @@ class _NotificationTile extends StatelessWidget {
                     const SizedBox(height: 4),
                     Text(
                       notification.message,
-                      style: GoogleFonts.inter(
+                      style: TextStyle(
                         color: notification.isRead
-                            ? Colors.white38
-                            : Colors.white70,
-                        fontSize: 14,
+                            ? SgColors.inkSubtle
+                            : SgColors.inkMuted,
+                        fontSize: SgText.sizeSmall,
                         height: 1.4,
                       ),
                     ),
                     const SizedBox(height: 8),
                     Text(
                       DateFormat('MMM dd, yyyy').format(notification.createdAt),
-                      style: GoogleFonts.inter(
-                        color: Colors.white24,
-                        fontSize: 11,
+                      style: TextStyle(
+                        color: SgColors.inkSubtle,
+                        fontSize: SgText.sizeSmall,
                       ),
                     ),
                   ],

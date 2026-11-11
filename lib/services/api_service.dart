@@ -3,15 +3,42 @@ import 'package:http/http.dart' as http;
 import 'package:flutter/foundation.dart';
 import '../core/app_config.dart';
 import 'package:image_picker/image_picker.dart';
+import 'push_notification_service.dart';
+import 'session_events.dart';
 import 'token_store.dart';
 
 abstract class AuthApiClient {
   Future<Map<String, dynamic>?> requestOtp(String phoneNumber, String role);
+
+  /// Email + password sign-in. See the implementation for the contract.
+  Future<Map<String, dynamic>?> emailLogin({
+    required String email,
+    required String password,
+    String? mfaCode,
+  });
+
+  /// Ask for a password-reset link. True means the request was accepted; it
+  /// never reveals whether an account exists.
+  Future<bool> requestPasswordReset(String email);
+
+  /// [deviceToken] is the FCM token, or null when this device has none.
+  ///
+  /// Null must be passed through as an ABSENT key, not a placeholder. The
+  /// login view only writes `fcm_token` when the key is present, so omitting
+  /// it preserves whatever good token the server already had -- while a
+  /// placeholder overwrites it with something that can never receive
+  /// anything, and dispatch then counts this rider as push-capable.
   Future<Map<String, dynamic>?> verifyOtpAndLogin(
     String phoneNumber,
     String otp,
-    String deviceToken,
+    String? deviceToken,
   );
+
+  /// Register a push token obtained outside a login -- after FCM rotates it.
+  ///
+  /// `fcm_token` is write-only on the profile serializer, so PATCH
+  /// /auth/update/ is the supported way to set it.
+  Future<bool> registerPushToken(String token);
   Future<Map<String, dynamic>?> updateProfile({
     String? profilePicPath,
     required String fullName,
@@ -23,6 +50,7 @@ abstract class AuthApiClient {
     required String street,
     required String city,
     required String zipCode,
+    String? homeCity,
   });
   Future<Map<String, dynamic>?> getProfile();
   Future<void> clearSession();
@@ -31,10 +59,26 @@ abstract class AuthApiClient {
 class ApiService implements AuthApiClient {
   static String baseUrl = AppConfig.baseUrl;
 
-  // Singleton pattern
+  // Singleton pattern.
+  //
+  // `client` exists so a test can replay a REAL captured server response
+  // through this class's own parsing — see
+  // test/auth_contract_conformance_test.dart. Without an injectable client
+  // the only way to test the parsing is to re-implement it in the test,
+  // which is precisely the mistake that let the driver app ship a login that
+  // could never work: its fixtures used the same wrong key names its code
+  // used, so tests and code agreed and both disagreed with the server.
+  //
+  // Passing nothing returns the singleton and behaves exactly as before.
   static final ApiService _instance = ApiService._internal();
-  factory ApiService() => _instance;
-  ApiService._internal();
+
+  factory ApiService({http.Client? client}) =>
+      client == null ? _instance : ApiService._internal(client: client);
+
+  ApiService._internal({http.Client? client})
+    : _client = client ?? http.Client();
+
+  final http.Client _client;
 
   String? _accessToken;
   Future<String>? _inflightRefresh;
@@ -64,15 +108,23 @@ class ApiService implements AuthApiClient {
     final future = () async {
       final refresh = await TokenStore.readRefreshToken();
       if (refresh == null || refresh.isEmpty) {
-        throw Exception('no refresh token');
+        throw const _SessionGone('no refresh token');
       }
-      final response = await http.post(
-        Uri.parse('$baseUrl${AppConfig.authRefresh}'),
-        headers: {'Content-Type': 'application/json'},
-        body: jsonEncode({'refresh_token': refresh}),
-      );
-      if (response.statusCode != 200) {
-        throw Exception('refresh failed (${response.statusCode})');
+      final response = await _client
+          .post(
+            Uri.parse('$baseUrl${AppConfig.authRefresh}'),
+            headers: {'Content-Type': 'application/json'},
+            body: jsonEncode({'refresh_token': refresh}),
+          )
+          .timeout(kLoadTimeout);
+      final code = response.statusCode;
+      // A used or rotated refresh token comes back 400: any 4xx but a
+      // timeout or rate limit means the session is over.
+      if (code >= 400 && code < 500 && code != 408 && code != 429) {
+        throw _SessionGone('refresh refused ($code)');
+      }
+      if (code != 200) {
+        throw Exception('refresh failed ($code)');
       }
       final decoded = jsonDecode(response.body);
       final data = decoded is Map<String, dynamic> ? decoded['data'] : null;
@@ -96,11 +148,14 @@ class ApiService implements AuthApiClient {
     _inflightRefresh = future;
     try {
       return await future;
+    } on _SessionGone catch (e) {
+      debugPrint('Token refresh refused: ${e.reason}');
+      await _endSession();
+      return null;
     } catch (e) {
+      // A network fault or 5xx: keep the session, the view shows its error
+      // and Try again can still succeed.
       debugPrint('Token refresh failed: $e');
-      // Refresh failed — wipe so the next call goes to login.
-      await TokenStore.clear();
-      _accessToken = null;
       return null;
     } finally {
       _inflightRefresh = null;
@@ -142,8 +197,19 @@ class ApiService implements AuthApiClient {
         debugPrint('authedRequest retry network error: $e');
         return null;
       }
+      if (response.statusCode == 401) {
+        // Refused even with a fresh token: one refresh is all we try.
+        await _endSession();
+      }
     }
     return response;
+  }
+
+  /// Clears the tokens and tells the app to go to Log in.
+  Future<void> _endSession() async {
+    await TokenStore.clear();
+    _accessToken = null;
+    SessionEvents.emitExpired();
   }
 
   // Request OTP
@@ -153,7 +219,7 @@ class ApiService implements AuthApiClient {
     String role,
   ) async {
     try {
-      final response = await http.post(
+      final response = await _client.post(
         Uri.parse('$baseUrl${AppConfig.authOtp}'),
         headers: {'Content-Type': 'application/json'},
         body: jsonEncode({'phone_number': phoneNumber, 'role': role}),
@@ -183,17 +249,21 @@ class ApiService implements AuthApiClient {
   Future<Map<String, dynamic>?> verifyOtpAndLogin(
     String phoneNumber,
     String otp,
-    String deviceToken,
+    String? deviceToken,
   ) async {
     try {
-      final response = await http.post(
+      // The key is omitted, never sent as a placeholder. The caller used to
+      // default it to the literal 'dummy_token' whenever FCM was
+      // unavailable, which the backend stored verbatim.
+      final body = <String, dynamic>{'phone_number': phoneNumber, 'otp': otp};
+      if (deviceToken != null && deviceToken.isNotEmpty) {
+        body['device_token'] = deviceToken;
+      }
+
+      final response = await _client.post(
         Uri.parse('$baseUrl${AppConfig.authLogin}'),
         headers: {'Content-Type': 'application/json'},
-        body: jsonEncode({
-          'phone_number': phoneNumber,
-          'otp': otp,
-          'device_token': deviceToken,
-        }),
+        body: jsonEncode(body),
       );
 
       if (response.statusCode != 200) {
@@ -221,6 +291,79 @@ class ApiService implements AuthApiClient {
     }
   }
 
+  @override
+  /// Email + password sign-in.
+  ///
+  /// Returns the decoded envelope on success and null on any failure. The
+  /// server answers every credential failure with one message by design, so
+  /// there is nothing to distinguish here either -- the caller shows a single
+  /// "check your email and password" line.
+  ///
+  /// `mfaCode` is only ever needed by an operator account. A rider or driver
+  /// leaves it null and never sees the field.
+  Future<Map<String, dynamic>?> emailLogin({
+    required String email,
+    required String password,
+    String? mfaCode,
+  }) async {
+    try {
+      final response = await _client.post(
+        Uri.parse('$baseUrl${AppConfig.authEmailLogin}'),
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode({
+          'email': email,
+          'password': password,
+          if (mfaCode != null && mfaCode.isNotEmpty) 'mfa_code': mfaCode,
+        }),
+      );
+
+      final decoded = jsonDecode(response.body);
+      if (decoded is! Map<String, dynamic>) return null;
+
+      if (response.statusCode != 200 || decoded['status'] != 'success') {
+        // Surface the error code so the UI can tell "needs a second factor"
+        // apart from "wrong password" -- the only distinction the server
+        // makes, and only after a correct password.
+        return {
+          '_error': decoded['error'] ?? {'code': 'AUTH_FAILED'},
+        };
+      }
+
+      final sessionData = decoded['data'];
+      if (sessionData is Map<String, dynamic>) {
+        final accessToken = sessionData['token'];
+        final refreshToken = sessionData['refresh_token'];
+        if (accessToken is String && refreshToken is String) {
+          await _saveTokens(accessToken, refreshToken);
+        }
+      }
+      return decoded;
+    } catch (e) {
+      debugPrint('Email login error: $e');
+      return null;
+    }
+  }
+
+  @override
+  /// Ask for a password-reset link.
+  ///
+  /// The server answers 200 with the same message whatever the address is, so
+  /// this returns true for "the request was accepted" and never reveals
+  /// whether an account exists.
+  Future<bool> requestPasswordReset(String email) async {
+    try {
+      final response = await _client.post(
+        Uri.parse('$baseUrl${AppConfig.authPasswordForgot}'),
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode({'email': email}),
+      );
+      return response.statusCode == 200;
+    } catch (e) {
+      debugPrint('Password reset request error: $e');
+      return false;
+    }
+  }
+
   // Update Profile
   @override
   Future<Map<String, dynamic>?> updateProfile({
@@ -234,6 +377,7 @@ class ApiService implements AuthApiClient {
     required String street,
     required String city,
     required String zipCode,
+    String? homeCity,
   }) async {
     if (_accessToken == null) await _loadTokens();
 
@@ -256,6 +400,9 @@ class ApiService implements AuthApiClient {
         request.fields['street'] = street;
         request.fields['city'] = city;
         request.fields['zip_code'] = zipCode;
+        if (homeCity != null && homeCity.isNotEmpty) {
+          request.fields['home_city'] = homeCity;
+        }
 
         final xFile = XFile(profilePicPath);
         final bytes = await xFile.readAsBytes();
@@ -270,7 +417,7 @@ class ApiService implements AuthApiClient {
         final streamedResponse = await request.send();
         response = await http.Response.fromStream(streamedResponse);
       } else {
-        response = await http.patch(
+        response = await _client.patch(
           uri,
           headers: {
             'Content-Type': 'application/json',
@@ -287,6 +434,7 @@ class ApiService implements AuthApiClient {
             'street': street,
             'city': city,
             'zip_code': zipCode,
+            if (homeCity != null && homeCity.isNotEmpty) 'home_city': homeCity,
           }),
         );
       }
@@ -306,10 +454,71 @@ class ApiService implements AuthApiClient {
   // Get Profile — wrapped via authedRequest so an expired access token
   // is silently refreshed instead of producing a black-hole null return
   // that the UI used to interpret as "logged out".
+  /// Tell the server about a rotated FCM token.
+  ///
+  /// FCM replaces a token on reinstall, on device restore and after a long
+  /// idle period. `PushNotificationService` used to listen to
+  /// `onTokenRefresh` and only `debugPrint` the new value, so a rotated
+  /// rider token was never registered -- the server kept a dead one until
+  /// the next login, and every push to this rider silently went nowhere.
+  ///
+  /// Best effort: a failure costs push until the next login, and must never
+  /// surface to a rider who did not ask for anything.
+  @override
+  Future<bool> registerPushToken(String token) async {
+    if (token.isEmpty) return false;
+    final response = await authedRequest(
+      (headers) => _client.patch(
+        Uri.parse('$baseUrl${AppConfig.authUpdate}'),
+        headers: headers,
+        body: jsonEncode({'fcm_token': token}),
+      ),
+    );
+    if (response == null) return false;
+    // The token itself is never logged: anyone holding one can push to that
+    // device.
+    final ok = response.statusCode >= 200 && response.statusCode < 300;
+    debugPrint(
+      ok
+          ? 'Push token registered with the server'
+          : 'Push token registration failed (${response.statusCode})',
+    );
+    return ok;
+  }
+
+  /// Keep the rider's chosen language on the account (Night 2 field
+  /// `preferred_language`), via PATCH /auth/update/. Fire and forget.
+  /// Keep the rider's chosen theme on the account (`preferred_theme`:
+  /// light | dark | auto), the same way as the language. An error (a server
+  /// that does not know the field yet) is ignored.
+  Future<void> patchPreferredTheme(String wire) async {
+    try {
+      await authedRequest(
+        (headers) => _client.patch(
+          Uri.parse('$baseUrl${AppConfig.authUpdate}'),
+          headers: headers,
+          body: jsonEncode({'preferred_theme': wire}),
+        ),
+      );
+    } catch (_) {}
+  }
+
+  Future<void> patchPreferredLanguage(String code) async {
+    try {
+      await authedRequest(
+        (headers) => _client.patch(
+          Uri.parse('$baseUrl${AppConfig.authUpdate}'),
+          headers: headers,
+          body: jsonEncode({'preferred_language': code}),
+        ),
+      );
+    } catch (_) {}
+  }
+
   @override
   Future<Map<String, dynamic>?> getProfile() async {
     final response = await authedRequest(
-      (headers) => http.get(
+      (headers) => _client.get(
         Uri.parse('$baseUrl${AppConfig.authProfile}'),
         headers: headers,
       ),
@@ -326,9 +535,69 @@ class ApiService implements AuthApiClient {
     }
   }
 
+  /// POST /auth/me/delete/ with the literal confirm the server requires.
+  /// True only on a 2xx; the caller then ends the session locally.
+  Future<bool> deleteMyAccount() async {
+    final response = await authedRequest(
+      (headers) => _client.post(
+        Uri.parse('$baseUrl/auth/me/delete/'),
+        headers: headers,
+        body: jsonEncode({'confirm': 'DELETE'}),
+      ),
+    );
+    return response != null &&
+        response.statusCode >= 200 &&
+        response.statusCode < 300;
+  }
+
+  /// End the session on the server, then locally.
+  ///
+  /// This used to be `TokenStore.clear()` alone, so a rider's logout was
+  /// local only. Two consequences, both real:
+  ///
+  ///   * the refresh token stayed valid for its full 14-day life, so a copy
+  ///     taken off a lost or sold phone kept minting access tokens long
+  ///     after the rider pressed Log out;
+  ///   * `POST /auth/logout/` is what clears `fcm_token` server-side, so
+  ///     dispatch kept addressing push notifications to that handset -- and
+  ///     to whoever held it next.
+  ///
+  /// The server call is best-effort and deliberately first, while the access
+  /// token is still valid. A rider with no signal must still be able to log
+  /// out, so a failure here is logged and ignored; the local clear is what
+  /// the UI depends on and it cannot throw.
   @override
   Future<void> clearSession() async {
+    try {
+      final refresh = await TokenStore.readRefreshToken();
+      if (refresh != null && refresh.isNotEmpty) {
+        await authedRequest(
+          (headers) => _client.post(
+            Uri.parse('$baseUrl${AppConfig.authLogout}'),
+            headers: headers,
+            body: jsonEncode({'refresh_token': refresh}),
+          ),
+        );
+      }
+    } catch (e) {
+      debugPrint('Server-side logout did not complete; clearing locally: $e');
+    }
+
+    // Drop this install's push token too, so the device stops holding a
+    // credential for a session that has ended. Independent of the call
+    // above on purpose.
+    try {
+      await PushNotificationService.deleteToken();
+    } catch (e) {
+      debugPrint('Could not delete the local push token: $e');
+    }
+
     await TokenStore.clear();
     _accessToken = null;
   }
+}
+
+class _SessionGone implements Exception {
+  const _SessionGone(this.reason);
+  final String reason;
 }

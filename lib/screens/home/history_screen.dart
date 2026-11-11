@@ -1,5 +1,11 @@
+import '../../ui/appearance_settings.dart' show sgStrings;
+import '../../core/vehicle_classes.dart';
+import '../components/market_overlays.dart';
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
+import '../../ui/account_widgets.dart';
+import '../../ui/sg_text.dart';
+import '../../ui/sg_tokens.dart';
+import '../../providers/map_provider.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 import 'package:shimmer/shimmer.dart';
@@ -50,35 +56,21 @@ class _HistoryScreenState extends State<HistoryScreen> {
 
           return RefreshIndicator(
             edgeOffset: 20,
-            color: const Color(0xFFEEBD2B),
-            backgroundColor: const Color(0xFF24211C),
+            color: SgColors.gold500,
+            backgroundColor: SgColors.bg200,
             onRefresh: provider.fetchHistory,
             child: CustomScrollView(
               physics: const AlwaysScrollableScrollPhysics(),
               slivers: [
-                SliverToBoxAdapter(child: const _HistoryHeader()),
-                SliverToBoxAdapter(child: const SizedBox(height: 24)),
                 SliverToBoxAdapter(
-                  child: Padding(
-                    padding: EdgeInsets.zero,
-                    child: const Text(
-                      'Ride History',
-                      style: TextStyle(
-                        color: Colors.white,
-                        fontSize: 42,
-                        fontWeight: FontWeight.w600,
-                        height: 1.05,
-                      ),
-                    ),
-                  ),
+                  child: SgPageTitle(sgStrings(context).yourRides),
                 ),
-                const SliverToBoxAdapter(child: SizedBox(height: 24)),
                 if (provider.isLoading && provider.trips.isEmpty)
                   _buildSkeletonSliver()
                 else if (provider.errorMessage != null &&
                     provider.trips.isEmpty)
                   SliverFillRemaining(
-                    child: _buildErrorState(provider.errorMessage!),
+                    child: _buildErrorState(sgStrings(context).loadErrTrips),
                   )
                 else if (provider.trips.isEmpty)
                   SliverFillRemaining(child: _buildEmptyState())
@@ -98,12 +90,7 @@ class _HistoryScreenState extends State<HistoryScreen> {
                               ),
                               child: Text(
                                 month.toUpperCase(),
-                                style: GoogleFonts.inter(
-                                  color: const Color(0xFF94A3B8),
-                                  fontSize: 12,
-                                  fontWeight: FontWeight.w500,
-                                  letterSpacing: 1.5,
-                                ),
+                                style: SgText.eyebrow,
                               ),
                             ),
                           ),
@@ -139,12 +126,12 @@ class _HistoryScreenState extends State<HistoryScreen> {
           (context, index) => Padding(
             padding: const EdgeInsets.only(bottom: 16),
             child: Shimmer.fromColors(
-              baseColor: const Color(0xFF24211C),
-              highlightColor: const Color(0xFF2D2A24),
+              baseColor: SgColors.bg100,
+              highlightColor: SgColors.bg200,
               child: Container(
                 height: 180,
                 decoration: BoxDecoration(
-                  color: Colors.white,
+                  color: SgColors.bg300,
                   borderRadius: BorderRadius.circular(24),
                 ),
               ),
@@ -161,28 +148,11 @@ class _HistoryScreenState extends State<HistoryScreen> {
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Icon(
-            Icons.history,
-            size: 64,
-            color: Colors.white.withValues(alpha: 0.05),
-          ),
+          Icon(Icons.history, size: 64, color: SgColors.inkSubtle),
           const SizedBox(height: 16),
-          Text(
-            'No rides found',
-            style: GoogleFonts.inter(
-              color: const Color(0xFF94A3B8),
-              fontSize: 18,
-              fontWeight: FontWeight.w600,
-            ),
-          ),
+          Text(sgStrings(context).noRidesYet, style: SgText.title),
           const SizedBox(height: 8),
-          Text(
-            'Your ride history will appear here',
-            style: GoogleFonts.inter(
-              color: const Color(0xFF64748B),
-              fontSize: 14,
-            ),
-          ),
+          Text(sgStrings(context).ridesShowHere, style: SgText.caption),
         ],
       ),
     );
@@ -195,22 +165,20 @@ class _HistoryScreenState extends State<HistoryScreen> {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            const Icon(Icons.error_outline, size: 48, color: Color(0xFFF87171)),
+            Icon(Icons.error_outline, size: 48, color: SgColors.danger),
             const SizedBox(height: 16),
             Text(
               message,
               textAlign: TextAlign.center,
-              style: GoogleFonts.inter(
-                color: const Color(0xFFE2E8F0),
-                fontSize: 16,
-              ),
+              style: TextStyle(color: SgColors.ink, fontSize: SgText.sizeBody),
             ),
             const SizedBox(height: 24),
             ElevatedButton(
+              key: const Key('history_retry'),
               onPressed: () => context.read<HistoryProvider>().fetchHistory(),
               style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFFEEBD2B),
-                foregroundColor: Colors.black,
+                backgroundColor: SgColors.gold500,
+                foregroundColor: SgColors.onGold,
                 elevation: 0,
                 padding: const EdgeInsets.symmetric(
                   horizontal: 32,
@@ -220,9 +188,9 @@ class _HistoryScreenState extends State<HistoryScreen> {
                   borderRadius: BorderRadius.circular(16),
                 ),
               ),
-              child: const Text(
-                'Try Again',
-                style: TextStyle(fontWeight: FontWeight.bold),
+              child: Text(
+                sgStrings(context).tryAgain,
+                style: const TextStyle(fontWeight: FontWeight.w600),
               ),
             ),
           ],
@@ -232,212 +200,95 @@ class _HistoryScreenState extends State<HistoryScreen> {
   }
 }
 
-class _HistoryHeader extends StatelessWidget {
-  const _HistoryHeader();
-
-  @override
-  Widget build(BuildContext context) {
-    return Row(
-      children: [
-        const Expanded(
-          child: Text(
-            'SaaradhiGo',
-            style: TextStyle(
-              color: Color(0xFFEEBD2B),
-              fontSize: 23,
-              fontWeight: FontWeight.w700,
-              letterSpacing: 2.6,
-            ),
-          ),
-        ),
-        Consumer<NotificationProvider>(
-          builder: (context, provider, child) => GestureDetector(
-            onTap: () => context.push('/notifications'),
-            child: Stack(
-              clipBehavior: Clip.none,
-              children: [
-                Padding(
-                  padding: const EdgeInsets.only(top: 3, right: 3),
-                  child: Container(
-                    width: 40,
-                    height: 40,
-                    decoration: const BoxDecoration(
-                      color: Color(0x14FFFFFF),
-                      shape: BoxShape.circle,
-                    ),
-                    child: const Icon(
-                      Icons.notifications,
-                      color: Color(0xFFE2E8F0),
-                      size: 21,
-                    ),
-                  ),
-                ),
-                if (provider.unreadCount > 0)
-                  Positioned(
-                    top: 0,
-                    right: 0,
-                    child: Container(
-                      padding: const EdgeInsets.all(4),
-                      decoration: const BoxDecoration(
-                        color: Color(0xFFEF4444),
-                        shape: BoxShape.circle,
-                      ),
-                      constraints: const BoxConstraints(
-                        minWidth: 16,
-                        minHeight: 16,
-                      ),
-                      child: Text(
-                        '${provider.unreadCount}',
-                        style: const TextStyle(
-                          color: Colors.white,
-                          fontSize: 8,
-                          fontWeight: FontWeight.bold,
-                        ),
-                        textAlign: TextAlign.center,
-                      ),
-                    ),
-                  ),
-              ],
-            ),
-          ),
-        ),
-      ],
-    );
-  }
-}
-
 class _HistoryRideCard extends StatelessWidget {
   final Trip trip;
 
   const _HistoryRideCard({required this.trip});
 
-  String _getVehicleDisplayName(String? type) {
-    switch (type) {
-      case 'bike':
-        return 'Bike';
-      case 'auto':
-        return 'Auto';
-      case 'car':
-        return 'Car';
-      case 'car_xl':
-        return 'Car XL';
-      case 'car_premium':
-        return 'Premium';
-      default:
-        return 'Car';
+  /// The same destination from where the rider is now, by the route the
+  /// home screen uses for a saved place.
+  Future<void> _rebook(BuildContext context) async {
+    final provider = context.read<MapProvider>();
+    if (provider.pickupLocation == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(sgStrings(context).setPickupFirst)),
+      );
+      return;
     }
+    context.push('/route-map');
+    await provider.prepareAndCalculateRoute(
+      pickupName: provider.pickupLocation!.name,
+      dropPlaceId: '${trip.destinationLat},${trip.destinationLng}',
+      dropName: trip.destinationAddress,
+    );
   }
 
   @override
   Widget build(BuildContext context) {
     final dateStr = trip.createdAt != null
-        ? DateFormat('MMM dd, yyyy \u2022 hh:mm a').format(trip.createdAt!)
+        ? DateFormat('d MMM, h:mm a').format(trip.createdAt!)
         : 'Recently';
-
-    final fare = trip.finalFare ?? trip.estimatedFare ?? '0.00';
+    final fare = trip.finalFare ?? trip.estimatedFare ?? '0';
+    final canRebook =
+        trip.destinationLat != null && trip.destinationLng != null;
 
     return Container(
-      padding: const EdgeInsets.all(20),
+      padding: const EdgeInsets.all(SgSpace.s4),
       decoration: BoxDecoration(
-        color: const Color(0xFF24211C),
-        borderRadius: BorderRadius.circular(24),
-        border: Border.all(color: Colors.white.withValues(alpha: 0.05)),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.1),
-            blurRadius: 20,
-            offset: const Offset(0, 10),
-          ),
-        ],
+        color: SgColors.bg100,
+        borderRadius: BorderRadius.circular(SgRadius.lg),
+        border: Border.all(color: SgColors.line),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    _getVehicleDisplayName(trip.vehicleType),
-                    style: GoogleFonts.inter(
-                      color: const Color(0xFFEEBD2B),
-                      fontSize: 16,
-                      fontWeight: FontWeight.w700,
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      vehicleClassName(trip.vehicleType),
+                      style: SgText.title,
                     ),
-                  ),
-                  const SizedBox(height: 4),
-                  Text(
-                    dateStr,
-                    style: GoogleFonts.inter(
-                      color: const Color(0xFF64748B),
-                      fontSize: 11,
-                      fontWeight: FontWeight.w500,
-                    ),
-                  ),
-                ],
-              ),
-              Text(
-                '₹$fare',
-                style: GoogleFonts.inter(
-                  color: const Color(0xFFEEBD2B),
-                  fontSize: 18,
-                  fontWeight: FontWeight.w700,
+                    const SizedBox(height: 2),
+                    Text(dateStr, style: SgText.caption),
+                  ],
                 ),
+              ),
+              // What was charged, exactly as the receipt says.
+              Text(
+                '${marketOf(context).currencySymbol}$fare',
+                style: SgText.fare,
               ),
             ],
           ),
-          const SizedBox(height: 20),
+          const SizedBox(height: SgSpace.s4),
           _TimelineRoute(
             pickup: trip.pickupAddress,
             destination: trip.destinationAddress,
           ),
-          const SizedBox(height: 20),
-          Row(
-            children: [
-              Expanded(
-                child: OutlinedButton(
-                  onPressed: () {},
-                  style: OutlinedButton.styleFrom(
-                    foregroundColor: const Color(0xFFF8D468),
-                    side: BorderSide(
-                      color: const Color(0xFF8B6508).withValues(alpha: 0.4),
-                    ),
-                    padding: const EdgeInsets.symmetric(vertical: 12),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                  ),
-                  child: const Text(
-                    'Rate',
-                    style: TextStyle(fontWeight: FontWeight.w600),
-                  ),
+          if (canRebook) ...[
+            const SizedBox(height: SgSpace.s4),
+            OutlinedButton(
+              key: Key('rebook_${trip.id}'),
+              onPressed: () => _rebook(context),
+              style: OutlinedButton.styleFrom(
+                foregroundColor: SgColors.ink,
+                side: BorderSide(color: SgColors.lineStrong),
+                minimumSize: const Size.fromHeight(kSgTouch),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(SgRadius.md),
                 ),
               ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: ElevatedButton(
-                  onPressed: () {},
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(
-                      0xFF8B6508,
-                    ).withValues(alpha: 0.4),
-                    foregroundColor: const Color(0xFFF8D468),
-                    elevation: 0,
-                    padding: const EdgeInsets.symmetric(vertical: 12),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                  ),
-                  child: const Text(
-                    'Rebook',
-                    style: TextStyle(fontWeight: FontWeight.w600),
-                  ),
-                ),
+              child: Text(
+                sgStrings(context).rideHereAgain,
+                style: SgText.body.copyWith(fontWeight: FontWeight.w600),
               ),
-            ],
-          ),
+            ),
+          ],
         ],
       ),
     );
@@ -464,8 +315,8 @@ class _TimelineRoute extends StatelessWidget {
                 child: Container(
                   width: 8,
                   height: 8,
-                  decoration: const BoxDecoration(
-                    color: Color(0xFFEEBD2B),
+                  decoration: BoxDecoration(
+                    color: SgColors.pickup,
                     shape: BoxShape.circle,
                   ),
                 ),
@@ -477,11 +328,7 @@ class _TimelineRoute extends StatelessWidget {
                 pickup,
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
-                style: GoogleFonts.inter(
-                  color: Colors.white70,
-                  fontSize: 14,
-                  fontWeight: FontWeight.w500,
-                ),
+                style: SgText.body,
               ),
             ),
           ],
@@ -497,7 +344,7 @@ class _TimelineRoute extends StatelessWidget {
                     margin: const EdgeInsets.symmetric(vertical: 2),
                     width: 2,
                     height: 4,
-                    color: Colors.white.withValues(alpha: 0.1),
+                    color: SgColors.bg200,
                   ),
                 ),
               ),
@@ -507,13 +354,20 @@ class _TimelineRoute extends StatelessWidget {
         ),
         Row(
           children: [
-            const SizedBox(
+            SizedBox(
               width: 24,
               height: 24,
-              child: Icon(
-                Icons.location_on,
-                color: Color(0xFFEEBD2B),
-                size: 20,
+              child: Center(
+                child: SizedBox(
+                  width: 9,
+                  height: 9,
+                  child: DecoratedBox(
+                    decoration: BoxDecoration(
+                      color: SgColors.gold500,
+                      borderRadius: BorderRadius.all(Radius.circular(2)),
+                    ),
+                  ),
+                ),
               ),
             ),
             const SizedBox(width: 12),
@@ -522,11 +376,7 @@ class _TimelineRoute extends StatelessWidget {
                 destination,
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
-                style: GoogleFonts.inter(
-                  color: Colors.white70,
-                  fontSize: 14,
-                  fontWeight: FontWeight.w500,
-                ),
+                style: SgText.body,
               ),
             ),
           ],

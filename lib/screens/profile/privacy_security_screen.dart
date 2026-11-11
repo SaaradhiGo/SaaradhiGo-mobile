@@ -1,11 +1,13 @@
+import '../../ui/appearance_settings.dart' show sgStrings;
 import 'package:flutter/material.dart';
 
-import 'dart:async';
 import 'dart:ui';
 import 'package:go_router/go_router.dart';
-import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
 import '../../providers/auth_provider.dart';
+
+import '../../ui/sg_tokens.dart';
+import '../../ui/sg_text.dart';
 
 class PrivacySecurityScreen extends StatefulWidget {
   const PrivacySecurityScreen({super.key});
@@ -36,7 +38,7 @@ class _PrivacySecurityScreenState extends State<PrivacySecurityScreen> {
       ..showSnackBar(
         SnackBar(
           content: Text('$label will be available soon.'),
-          backgroundColor: const Color(0xFF2B2722),
+          backgroundColor: SgColors.bg300,
         ),
       );
   }
@@ -46,46 +48,47 @@ class _PrivacySecurityScreenState extends State<PrivacySecurityScreen> {
     final auth = context.watch<AuthProvider>();
 
     return Scaffold(
-      backgroundColor: const Color(0xFF1A1814),
+      backgroundColor: SgColors.bg200,
       bottomNavigationBar: SafeArea(
         top: false,
         child: ClipRect(
           child: BackdropFilter(
             filter: ImageFilter.blur(sigmaX: 12, sigmaY: 12),
             child: Container(
-              height: 84,
-              padding: const EdgeInsets.fromLTRB(24, 12, 24, 24),
-              decoration: const BoxDecoration(
-                color: Color(0xE61A1814),
-                border: Border(top: BorderSide(color: Color(0x0DFFFFFF))),
+              // Grows with the text size rather than clip the labels.
+              constraints: const BoxConstraints(minHeight: 84),
+              padding: const EdgeInsets.fromLTRB(24, 12, 24, 12),
+              decoration: BoxDecoration(
+                color: SgColors.bg100.withValues(alpha: 0.90),
+                border: Border(top: BorderSide(color: SgColors.line)),
               ),
               child: Row(
                 children: [
                   _PrivacyNavItem(
                     key: const Key('privacy-nav-home'),
                     icon: Icons.home,
-                    label: 'Home',
+                    label: sgStrings(context).navHome,
                     selected: false,
                     onTap: () => _openHomeTab(0),
                   ),
                   _PrivacyNavItem(
                     key: const Key('privacy-nav-history'),
                     icon: Icons.history,
-                    label: 'History',
+                    label: sgStrings(context).navHistory,
                     selected: false,
                     onTap: () => _openHomeTab(1),
                   ),
                   _PrivacyNavItem(
                     key: const Key('privacy-nav-wallet'),
                     icon: Icons.account_balance_wallet,
-                    label: 'Wallet',
+                    label: sgStrings(context).wallet,
                     selected: false,
                     onTap: () => _openHomeTab(2),
                   ),
                   _PrivacyNavItem(
                     key: const Key('privacy-nav-profile'),
                     icon: Icons.person,
-                    label: 'Profile',
+                    label: sgStrings(context).profile,
                     selected: true,
                     onTap: () => _openHomeTab(3),
                   ),
@@ -110,13 +113,13 @@ class _PrivacySecurityScreenState extends State<PrivacySecurityScreen> {
                     child: Container(
                       width: 40,
                       height: 40,
-                      decoration: const BoxDecoration(
-                        color: Color(0x1AFFFFFF),
+                      decoration: BoxDecoration(
+                        color: SgColors.bg300,
                         shape: BoxShape.circle,
                       ),
-                      child: const Icon(
+                      child: Icon(
                         Icons.arrow_back,
-                        color: Color(0xFFE2E8F0),
+                        color: SgColors.ink,
                         size: 20,
                       ),
                     ),
@@ -125,11 +128,10 @@ class _PrivacySecurityScreenState extends State<PrivacySecurityScreen> {
                     child: Text(
                       'Privacy & Security',
                       textAlign: TextAlign.center,
-                      style: GoogleFonts.inter(
-                        color: const Color(0xFFF8FAFC),
-                        fontSize: 26,
-                        fontWeight: FontWeight.w700,
-                        letterSpacing: -0.4,
+                      style: TextStyle(
+                        color: SgColors.ink,
+                        fontSize: SgText.sizeHeading,
+                        fontWeight: FontWeight.w600,
                       ),
                     ),
                   ),
@@ -148,25 +150,31 @@ class _PrivacySecurityScreenState extends State<PrivacySecurityScreen> {
                       children: [
                         _PrivacyToggleRow(
                           key: const Key('privacy-toggle-two-factor'),
-                          title: 'Two-Factor Authentication',
+                          title: sgStrings(context).twoFactor,
                           subtitle:
                               'Add an extra layer of security to your account.',
                           value: auth.twoFactorEnabled,
-                          onChanged: (value) {
-                            unawaited(
-                              context.read<AuthProvider>().setTwoFactorEnabled(
-                                value,
-                              ),
-                            );
+                          // Awaited, not unawaited. The provider sets its
+                          // in-memory field synchronously and then persists to
+                          // SharedPreferences; firing that off unawaited meant a
+                          // rider could change their two-factor authentication
+                          // and kill the app before the write landed, leaving the
+                          // switch showing one thing and storage holding another.
+                          onChanged: (value) async {
+                            await context
+                                .read<AuthProvider>()
+                                .setTwoFactorEnabled(value);
                           },
                         ),
                         const _PrivacyDivider(),
                         _PrivacyActionRow(
                           key: const Key('privacy-row-change-password'),
-                          title: 'Change Password',
+                          title: sgStrings(context).changePassword,
                           subtitle:
                               'Update your password regularly to keep your account safe.',
-                          onTap: () => _showComingSoon('Change Password'),
+                          onTap: () => _showComingSoon(
+                            sgStrings(context).changePassword,
+                          ),
                         ),
                       ],
                     ),
@@ -179,33 +187,32 @@ class _PrivacySecurityScreenState extends State<PrivacySecurityScreen> {
                       children: [
                         _PrivacyActionRow(
                           key: const Key('privacy-row-location-permissions'),
-                          title: 'Location Permissions',
+                          title: sgStrings(context).locationPermissions,
                           subtitle:
                               'Control when SaaradhiGo can access your location.',
-                          onTap: () => _showComingSoon('Location Permissions'),
+                          onTap: () => _showComingSoon(
+                            sgStrings(context).locationPermissions,
+                          ),
                         ),
                         const _PrivacyDivider(),
-                        _PrivacyToggleRow(
-                          key: const Key('privacy-toggle-marketing'),
-                          title: 'Marketing Preferences',
+                        _PrivacyActionRow(
+                          key: const Key(
+                            'privacy-row-notification-preferences',
+                          ),
+                          title: sgStrings(context).notificationPreferences,
                           subtitle:
                               'Choose how you want to receive offers and updates.',
-                          value: auth.marketingOptIn,
-                          onChanged: (value) {
-                            unawaited(
-                              context.read<AuthProvider>().setMarketingOptIn(
-                                value,
-                              ),
-                            );
-                          },
+                          onTap: () =>
+                              context.push('/notification-preferences'),
                         ),
                         const _PrivacyDivider(),
                         _PrivacyActionRow(
                           key: const Key('privacy-row-manage-data'),
-                          title: 'Manage My Data',
+                          title: sgStrings(context).manageMyData,
                           subtitle:
                               'Download or delete your account data securely.',
-                          onTap: () => _showComingSoon('Manage My Data'),
+                          onTap: () =>
+                              _showComingSoon(sgStrings(context).manageMyData),
                         ),
                       ],
                     ),
@@ -231,12 +238,7 @@ class _PrivacySectionLabel extends StatelessWidget {
       padding: const EdgeInsets.only(left: 2),
       child: Text(
         text.toUpperCase(),
-        style: GoogleFonts.inter(
-          color: const Color(0xFF94A3B8),
-          fontSize: 14,
-          fontWeight: FontWeight.w600,
-          letterSpacing: 1.4,
-        ),
+        style: SgText.eyebrow.copyWith(color: SgColors.inkMuted),
       ),
     );
   }
@@ -251,9 +253,9 @@ class _PrivacyCard extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       decoration: BoxDecoration(
-        color: const Color(0xFF24211C),
+        color: SgColors.bg300,
         borderRadius: BorderRadius.circular(18),
-        border: Border.all(color: const Color(0x0DFFFFFF)),
+        border: Border.all(color: SgColors.line),
       ),
       child: child,
     );
@@ -268,7 +270,7 @@ class _PrivacyDivider extends StatelessWidget {
     return Container(
       margin: const EdgeInsets.only(left: 16),
       height: 1,
-      color: const Color(0x0DFFFFFF),
+      color: SgColors.bg200,
     );
   }
 }
@@ -290,7 +292,9 @@ class _PrivacyActionRow extends StatelessWidget {
     return Material(
       color: Colors.transparent,
       child: InkWell(
-        key: key,
+        // Not `key: key`: that put this widget's own key on a descendant too, so
+        // the same key appeared twice in the tree and every find.byKey() on it was
+        // ambiguous -- unusable for tests, integration drivers and a11y tooling.
         onTap: onTap,
         borderRadius: BorderRadius.circular(16),
         child: Padding(
@@ -303,20 +307,19 @@ class _PrivacyActionRow extends StatelessWidget {
                   children: [
                     Text(
                       title,
-                      style: GoogleFonts.inter(
-                        color: const Color(0xFFF8FAFC),
-                        fontSize: 16,
+                      style: TextStyle(
+                        color: SgColors.ink,
+                        fontSize: SgText.sizeBody,
                         fontWeight: FontWeight.w600,
-                        letterSpacing: -0.2,
                       ),
                     ),
                     const SizedBox(height: 4),
                     Text(
                       subtitle,
-                      style: GoogleFonts.inter(
-                        color: const Color(0xFF94A3B8),
-                        fontSize: 12,
-                        fontWeight: FontWeight.w500,
+                      style: TextStyle(
+                        color: SgColors.inkMuted,
+                        fontSize: SgText.sizeSmall,
+                        fontWeight: FontWeight.w600,
                         height: 1.25,
                       ),
                     ),
@@ -324,11 +327,7 @@ class _PrivacyActionRow extends StatelessWidget {
                 ),
               ),
               const SizedBox(width: 10),
-              const Icon(
-                Icons.chevron_right,
-                color: Color(0xFF64748B),
-                size: 24,
-              ),
+              Icon(Icons.chevron_right, color: SgColors.inkSubtle, size: 24),
             ],
           ),
         ),
@@ -363,20 +362,19 @@ class _PrivacyToggleRow extends StatelessWidget {
               children: [
                 Text(
                   title,
-                  style: GoogleFonts.inter(
-                    color: const Color(0xFFF8FAFC),
-                    fontSize: 16,
+                  style: TextStyle(
+                    color: SgColors.ink,
+                    fontSize: SgText.sizeBody,
                     fontWeight: FontWeight.w600,
-                    letterSpacing: -0.2,
                   ),
                 ),
                 const SizedBox(height: 4),
                 Text(
                   subtitle,
-                  style: GoogleFonts.inter(
-                    color: const Color(0xFF94A3B8),
-                    fontSize: 12,
-                    fontWeight: FontWeight.w500,
+                  style: TextStyle(
+                    color: SgColors.inkMuted,
+                    fontSize: SgText.sizeSmall,
+                    fontWeight: FontWeight.w600,
                     height: 1.25,
                   ),
                 ),
@@ -384,13 +382,15 @@ class _PrivacyToggleRow extends StatelessWidget {
             ),
           ),
           Switch(
-            key: key,
+            // Not `key: key`: that put this widget's own key on a descendant too, so
+            // the same key appeared twice in the tree and every find.byKey() on it was
+            // ambiguous -- unusable for tests, integration drivers and a11y tooling.
             value: value,
             onChanged: onChanged,
-            activeThumbColor: Colors.white,
-            activeTrackColor: const Color(0xFFEEBD2B),
-            inactiveThumbColor: Colors.white,
-            inactiveTrackColor: const Color(0xFF475569),
+            activeThumbColor: SgColors.bg100,
+            activeTrackColor: SgColors.gold500,
+            inactiveThumbColor: SgColors.bg100,
+            inactiveTrackColor: SgColors.lineStrong,
             materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
           ),
         ],
@@ -415,17 +415,18 @@ class _PrivacyNavItem extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final color = selected ? const Color(0xFFEEBD2B) : const Color(0xFF94A3B8);
-    final shadows = selected
-        ? const [Shadow(color: Color(0x80EEBD2B), blurRadius: 8)]
-        : null;
+    final color = selected ? SgColors.goldText : SgColors.inkMuted;
+    final shadows = selected ? const <Shadow>[] : null;
 
     return Expanded(
       child: InkWell(
-        key: key,
+        // Not `key: key`: that put this widget's own key on a descendant too, so
+        // the same key appeared twice in the tree and every find.byKey() on it was
+        // ambiguous -- unusable for tests, integration drivers and a11y tooling.
         onTap: onTap,
         borderRadius: BorderRadius.circular(10),
         child: Column(
+          mainAxisSize: MainAxisSize.min,
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             Icon(icon, color: color, size: 24, shadows: shadows),
@@ -434,9 +435,8 @@ class _PrivacyNavItem extends StatelessWidget {
               label,
               style: TextStyle(
                 color: color,
-                fontSize: 10,
-                fontWeight: FontWeight.w500,
-                letterSpacing: 0.2,
+                fontSize: SgText.sizeSmall,
+                fontWeight: FontWeight.w600,
                 shadows: shadows,
               ),
             ),

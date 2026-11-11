@@ -49,3 +49,5 @@ app.*.map.json
 assets/.env
 
 API_Documentation_V2.md
+# Local tool state (Dart/Flutter telemetry)
+/.tmp/

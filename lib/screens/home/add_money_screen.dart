@@ -1,9 +1,12 @@
+import '../components/market_overlays.dart';
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 import '../../providers/wallet_provider.dart';
+
+import '../../ui/sg_tokens.dart';
+import '../../ui/sg_text.dart';
 
 class AddMoneyScreen extends StatefulWidget {
   const AddMoneyScreen({super.key});
@@ -37,15 +40,23 @@ class _AddMoneyScreenState extends State<AddMoneyScreen> {
     if (amount == null) return;
 
     if (amount < 100) {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(const SnackBar(content: Text('Minimum amount is ₹100')));
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            'Minimum amount is ${marketOf(context, listen: false).currencySymbol}100',
+          ),
+        ),
+      );
       return;
     }
     if (amount > 2000) {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(const SnackBar(content: Text('Maximum amount is ₹2000')));
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            'Maximum amount is ${marketOf(context, listen: false).currencySymbol}2000',
+          ),
+        ),
+      );
       return;
     }
 
@@ -63,9 +74,10 @@ class _AddMoneyScreenState extends State<AddMoneyScreen> {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(
+              style: TextStyle(color: SgColors.onDanger),
               provider.errorMessage ?? 'Payment failed. Please try again.',
             ),
-            backgroundColor: Colors.redAccent,
+            backgroundColor: SgColors.danger,
           ),
         );
       }
@@ -78,26 +90,25 @@ class _AddMoneyScreenState extends State<AddMoneyScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final formatter = NumberFormat.currency(symbol: '₹', decimalDigits: 2);
+    final formatter = NumberFormat.currency(
+      symbol: marketOf(context).currencySymbol,
+      decimalDigits: 2,
+    );
 
     return Scaffold(
-      backgroundColor: const Color(0xFF12110E),
+      backgroundColor: SgColors.bg000,
       appBar: AppBar(
         backgroundColor: Colors.transparent,
         elevation: 0,
         leading: IconButton(
-          icon: const Icon(
-            Icons.arrow_back_ios_new,
-            color: Colors.white,
-            size: 20,
-          ),
+          icon: Icon(Icons.arrow_back_ios_new, color: SgColors.ink, size: 20),
           onPressed: () => context.pop(),
         ),
         title: Text(
           'Add Money',
-          style: GoogleFonts.inter(
-            color: Colors.white,
-            fontSize: 18,
+          style: TextStyle(
+            color: SgColors.ink,
+            fontSize: SgText.sizeTitle,
             fontWeight: FontWeight.w600,
           ),
         ),
@@ -115,19 +126,19 @@ class _AddMoneyScreenState extends State<AddMoneyScreen> {
                   // Current Balance Header
                   Text(
                     'Current Balance',
-                    style: GoogleFonts.inter(
-                      color: const Color(0xFF94A3B8),
-                      fontSize: 14,
-                      fontWeight: FontWeight.w500,
+                    style: TextStyle(
+                      color: SgColors.inkMuted,
+                      fontSize: SgText.sizeSmall,
+                      fontWeight: FontWeight.w600,
                     ),
                   ),
                   const SizedBox(height: 8),
                   Text(
                     formatter.format(provider.balance),
-                    style: GoogleFonts.inter(
-                      color: Colors.white,
-                      fontSize: 32,
-                      fontWeight: FontWeight.w700,
+                    style: TextStyle(
+                      color: SgColors.ink,
+                      fontSize: SgText.sizeDisplay,
+                      fontWeight: FontWeight.w600,
                     ),
                   ),
                   const SizedBox(height: 48),
@@ -135,39 +146,39 @@ class _AddMoneyScreenState extends State<AddMoneyScreen> {
                   // Amount Input
                   Text(
                     'Top up amount',
-                    style: GoogleFonts.inter(
-                      color: const Color(0xFF94A3B8),
-                      fontSize: 14,
-                      fontWeight: FontWeight.w500,
+                    style: TextStyle(
+                      color: SgColors.inkMuted,
+                      fontSize: SgText.sizeSmall,
+                      fontWeight: FontWeight.w600,
                     ),
                   ),
                   const SizedBox(height: 16),
                   TextField(
                     controller: _amountController,
                     keyboardType: TextInputType.number,
-                    style: GoogleFonts.inter(
-                      color: const Color(0xFFEEBD2B),
-                      fontSize: 40,
-                      fontWeight: FontWeight.w700,
+                    style: TextStyle(
+                      color: SgColors.goldText,
+                      fontSize: SgText.sizeDisplay,
+                      fontWeight: FontWeight.w600,
                     ),
                     decoration: InputDecoration(
-                      prefixText: '₹ ',
-                      prefixStyle: GoogleFonts.inter(
-                        color: const Color(0xFFEEBD2B),
-                        fontSize: 40,
-                        fontWeight: FontWeight.w700,
+                      prefixText: '${marketOf(context).currencySymbol} ',
+                      prefixStyle: TextStyle(
+                        color: SgColors.goldText,
+                        fontSize: SgText.sizeDisplay,
+                        fontWeight: FontWeight.w600,
                       ),
-                      enabledBorder: const UnderlineInputBorder(
-                        borderSide: BorderSide(color: Color(0x33EEBD2B)),
+                      enabledBorder: UnderlineInputBorder(
+                        borderSide: BorderSide(color: SgColors.goldLine),
                       ),
-                      focusedBorder: const UnderlineInputBorder(
-                        borderSide: BorderSide(color: Color(0xFFEEBD2B)),
+                      focusedBorder: UnderlineInputBorder(
+                        borderSide: BorderSide(color: SgColors.goldText),
                       ),
                       hintText: '0',
-                      hintStyle: GoogleFonts.inter(
-                        color: const Color(0x33EEBD2B),
-                        fontSize: 40,
-                        fontWeight: FontWeight.w700,
+                      hintStyle: TextStyle(
+                        color: SgColors.goldText,
+                        fontSize: SgText.sizeDisplay,
+                        fontWeight: FontWeight.w600,
                       ),
                     ),
                   ),
@@ -198,10 +209,10 @@ class _AddMoneyScreenState extends State<AddMoneyScreen> {
                             ),
                           ),
                           child: Text(
-                            '+ ₹$amount',
-                            style: GoogleFonts.inter(
-                              color: const Color(0xFFEEBD2B),
-                              fontSize: 14,
+                            '+ ${marketOf(context).currencySymbol}$amount',
+                            style: TextStyle(
+                              color: SgColors.goldText,
+                              fontSize: SgText.sizeSmall,
                               fontWeight: FontWeight.w600,
                             ),
                           ),
@@ -219,8 +230,8 @@ class _AddMoneyScreenState extends State<AddMoneyScreen> {
                     child: ElevatedButton(
                       onPressed: _isLoading ? null : _proceedToPay,
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: const Color(0xFFEEBD2B),
-                        foregroundColor: Colors.black,
+                        backgroundColor: SgColors.gold500,
+                        foregroundColor: SgColors.onGold,
                         disabledBackgroundColor: const Color(
                           0xFFEEBD2B,
                         ).withValues(alpha: 0.5),
@@ -230,19 +241,19 @@ class _AddMoneyScreenState extends State<AddMoneyScreen> {
                         elevation: 0,
                       ),
                       child: _isLoading
-                          ? const SizedBox(
+                          ? SizedBox(
                               width: 24,
                               height: 24,
                               child: CircularProgressIndicator(
-                                color: Colors.black,
+                                color: SgColors.bg000,
                                 strokeWidth: 2,
                               ),
                             )
                           : Text(
                               'Proceed to Pay',
-                              style: GoogleFonts.inter(
-                                fontSize: 16,
-                                fontWeight: FontWeight.w700,
+                              style: TextStyle(
+                                fontSize: SgText.sizeBody,
+                                fontWeight: FontWeight.w600,
                               ),
                             ),
                     ),
