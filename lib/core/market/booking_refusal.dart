@@ -48,9 +48,15 @@ String bookingRefusalMessage(String code, {String? city}) {
 
 @immutable
 class BookingRefusal {
-  const BookingRefusal(this.code, this.message);
+  const BookingRefusal(this.code, this.message, {this.pickup});
   final String code;
   final String message;
+
+  /// Where the rider wanted to be picked up: what "Tell me when we launch"
+  /// registers. Null for refusals that offer no such button.
+  final LatLng? pickup;
+
+  bool get canAskToBeTold => code == kCityNotLive && pickup != null;
 }
 
 class BookingRefusalState extends ChangeNotifier {
@@ -64,7 +70,18 @@ class BookingRefusalState extends ChangeNotifier {
   void report(String code, {LatLng? pickup, MarketConfigStore? store}) {
     if (!isBookingRefusalCode(code)) return;
     final city = (store ?? MarketConfigStore.instance).cityAt(pickup)?.name;
-    _latest = BookingRefusal(code, bookingRefusalMessage(code, city: city));
+    _latest = BookingRefusal(
+      code,
+      bookingRefusalMessage(code, city: city),
+      pickup: pickup,
+    );
+    notifyListeners();
+  }
+
+  /// The fare estimate said the city has not launched (`launching`): booking
+  /// shows the server's own sentence and the "Tell me when we launch" button.
+  void reportLaunching(String message, {LatLng? pickup}) {
+    _latest = BookingRefusal(kCityNotLive, message, pickup: pickup);
     notifyListeners();
   }
 

@@ -1,7 +1,9 @@
 import '../../ui/appearance_settings.dart' show sgStrings;
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:latlong2/latlong.dart';
 import 'package:url_launcher/url_launcher.dart';
+import '../../services/launch_interest_service.dart';
 
 import '../../core/market/app_http_client.dart';
 import '../../core/market/booking_refusal.dart';
@@ -174,10 +176,19 @@ class _NoticeBannerState extends State<NoticeBanner> {
 
 /// The card shown when a booking is refused with CITY_PAUSED / CITY_NOT_LIVE.
 class BookingRefusalCard extends StatelessWidget {
-  const BookingRefusalCard({super.key, required this.refusal, this.onDismiss});
+  const BookingRefusalCard({
+    super.key,
+    required this.refusal,
+    this.onDismiss,
+    this.onNotifyMe,
+  });
 
   final BookingRefusal refusal;
   final VoidCallback? onDismiss;
+
+  /// "Tell me when we launch": registers the pickup with the server and says
+  /// whether it was taken. Defaults to [LaunchInterestService].
+  final Future<bool> Function(LatLng pickup)? onNotifyMe;
 
   @override
   Widget build(BuildContext context) {
@@ -197,13 +208,24 @@ class BookingRefusalCard extends StatelessWidget {
             Icon(Icons.info_outline, color: _gold),
             const SizedBox(width: 12),
             Expanded(
-              child: Text(
-                refusal.message,
-                key: const Key('booking_refusal_message'),
-                style: TextStyle(
-                  color: SgColors.ink,
-                  fontSize: SgText.sizeSmall,
-                ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    refusal.message,
+                    key: const Key('booking_refusal_message'),
+                    style: TextStyle(
+                      color: SgColors.ink,
+                      fontSize: SgText.sizeSmall,
+                    ),
+                  ),
+                  if (refusal.canAskToBeTold)
+                    _NotifyMeButton(
+                      pickup: refusal.pickup!,
+                      onNotifyMe:
+                          onNotifyMe ?? LaunchInterestService().register,
+                    ),
+                ],
               ),
             ),
             TextButton(
@@ -212,6 +234,60 @@ class BookingRefusalCard extends StatelessWidget {
               child: Text('OK', style: TextStyle(color: _gold)),
             ),
           ],
+        ),
+      ),
+    );
+  }
+}
+
+class _NotifyMeButton extends StatefulWidget {
+  const _NotifyMeButton({required this.pickup, required this.onNotifyMe});
+
+  final LatLng pickup;
+  final Future<bool> Function(LatLng pickup) onNotifyMe;
+
+  @override
+  State<_NotifyMeButton> createState() => _NotifyMeButtonState();
+}
+
+class _NotifyMeButtonState extends State<_NotifyMeButton> {
+  bool _busy = false;
+  bool? _done;
+
+  Future<void> _tap() async {
+    setState(() => _busy = true);
+    final ok = await widget.onNotifyMe(widget.pickup);
+    if (mounted) {
+      setState(() {
+        _busy = false;
+        _done = ok;
+      });
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    if (_done == true) {
+      return Padding(
+        padding: const EdgeInsets.only(top: 8),
+        child: Text(
+          "Thanks. We'll tell you when we launch.",
+          key: const Key('launch_interest_done'),
+          style: TextStyle(color: SgColors.success, fontSize: SgText.sizeSmall),
+        ),
+      );
+    }
+    return Align(
+      alignment: Alignment.centerLeft,
+      child: TextButton(
+        key: const Key('launch_interest_button'),
+        style: TextButton.styleFrom(padding: EdgeInsets.zero),
+        onPressed: _busy ? null : _tap,
+        child: Text(
+          _done == false
+              ? "Couldn't save that. Try again"
+              : 'Tell me when we launch',
+          style: TextStyle(color: _gold, fontWeight: FontWeight.w600),
         ),
       ),
     );

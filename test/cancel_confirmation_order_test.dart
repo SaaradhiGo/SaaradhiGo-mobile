@@ -179,13 +179,16 @@ void main() {
   });
 
   group('the rider cancel vocabulary stays the server own', () {
-    test('it is exactly the five the rider endpoint accepts', () {
+    test('it is exactly the seven the rider endpoint accepts', () {
       expect(RideService.riderCancelReasons, {
         'no_show',
         'wrong_location',
         'too_long',
         'safety',
         'other',
+        // Added 11 Nov with the trip-state reasons (before a driver is assigned).
+        'changed_plans',
+        'booked_by_mistake',
       });
     });
 

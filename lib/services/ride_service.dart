@@ -389,6 +389,8 @@ class RideService {
     'too_long',
     'safety',
     'other',
+    'changed_plans',
+    'booked_by_mistake',
   };
 
   static String _validCancelReason(String? reason) {
