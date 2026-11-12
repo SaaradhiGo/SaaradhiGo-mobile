@@ -123,12 +123,14 @@ class _DriverView {
               .trim();
   }
 
+  /// "White Maruti Suzuki Dzire" (11 Nov, as on the web and the invoice): colour, make, model.
+  /// The plate is shown on its own beside it.
   String? get vehicleLine {
     final color = (vehicle['color'] ?? '').toString().trim();
     final line = [
-      if (_model.isNotEmpty) _model,
       if (color.isNotEmpty) color,
-    ].join(' \u00B7 ');
+      if (_model.isNotEmpty) _model,
+    ].join(' ');
     return line.isEmpty ? null : line;
   }
 
