@@ -1,0 +1,9 @@
+# gitleaks configuration for the CI secret scan (same approach as the backend repo).
+#
+# The scan runs over the commits a push or pull request INTRODUCES, not the whole
+# history. No path is allowlisted: a key in any new commit fails the check.
+
+title = "SaaradhiGo rider"
+
+[extend]
+useDefault = true
