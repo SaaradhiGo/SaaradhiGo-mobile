@@ -107,6 +107,9 @@ void main() {
         'too_long',
         'safety',
         'other',
+        // Added 11 Nov with the trip-state reasons (before a driver is assigned).
+        'changed_plans',
+        'booked_by_mistake',
       });
     });
 

@@ -38,6 +38,7 @@ import 'services/api_service.dart';
 import 'navigation/session_end.dart';
 import 'screens/auth/login_screen.dart';
 import 'screens/auth/otp_verification_screen.dart';
+import 'screens/profile/about_screen.dart';
 import 'screens/profile/profile_setup_screen.dart';
 import 'screens/profile/referral_screen.dart';
 import 'screens/profile/notification_preferences_screen.dart';
@@ -289,6 +290,11 @@ class _SaaradhiGoAppState extends State<SaaradhiGoApp> {
           path: '/refer',
           builder: (BuildContext context, GoRouterState state) =>
               const ReferralScreen(),
+        ),
+        GoRoute(
+          path: '/about',
+          builder: (BuildContext context, GoRouterState state) =>
+              const AboutScreen(),
         ),
         GoRoute(
           path: '/help-support',

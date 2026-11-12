@@ -8,7 +8,9 @@ import '../../providers/map_provider.dart';
 import '../components/coming_soon_overlay.dart';
 import '../components/market_overlays.dart';
 import '../../widgets/promo_entry_section.dart';
-import '../../ui/appearance_settings.dart' show paymentMethodLabel, sgStrings;
+import '../../ui/appearance_settings.dart' show sgStrings;
+import '../../core/market/booking_refusal.dart';
+import '../../ui/payment_picker.dart';
 import '../../ui/choose_ride_sheet.dart';
 import '../../ui/trip_widgets.dart' show routeLine;
 import '../../ui/sg_text.dart';
@@ -92,6 +94,8 @@ class _RouteMapScreenState extends State<RouteMapScreen> {
 
       if (_mapProvider?.pickupLocation != null) {
         _mapProvider?.fetchNearbyDrivers(_mapProvider!.pickupLocation!.latLng);
+        // How the rider can pay here, before they choose a ride.
+        _mapProvider?.loadPaymentOptions(_mapProvider!.pickupLocation!.latLng);
       }
 
       _handleStateChange(); // Initial check
@@ -545,9 +549,23 @@ class _RouteMapScreenState extends State<RouteMapScreen> {
         provider.pickupAddress ?? provider.pickupLocation?.name,
         provider.destinationAddress,
       ),
-      paymentLabel: paymentMethodLabel(sgStrings(context), payment),
-      onChangePayment: () => context.push('/payment-methods'),
-      onConfirm: () => context.push('/precise-pickup'),
+      paymentLabel: bookingPaymentLabel(sgStrings(context), payment),
+      onChangePayment: () => showPaymentPicker(context, provider),
+      onConfirm: () {
+        // The city has not launched: fares stay on screen, booking says so
+        // and offers to tell the rider when we do.
+        final launching = provider.launchingMessage;
+        if (launching != null) {
+          BookingRefusalState.instance.reportLaunching(
+            launching,
+            pickup:
+                provider.precisePickupLocation ??
+                provider.pickupLocation?.latLng,
+          );
+          return;
+        }
+        context.push('/precise-pickup');
+      },
       footer: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [

@@ -969,6 +969,12 @@ class _ProfileTab extends StatelessWidget {
           label: l.accountHelp,
           onTap: () => context.push('/help-support'),
         ),
+        AccountRowData(
+          key: const Key('account_about'),
+          icon: SgIcons.help,
+          label: 'About',
+          onTap: () => context.push('/about'),
+        ),
       ],
       signOutLabel: l.accountSignOut,
       onSignOut: () async {

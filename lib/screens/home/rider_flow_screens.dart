@@ -57,6 +57,9 @@ import '../../ui/appearance_settings.dart' show paymentMethodLabel, sgStrings;
 import '../../ui/booking_widgets.dart';
 import '../../ui/trip_t2_widgets.dart';
 import '../../ui/choose_ride_sheet.dart';
+import '../../ui/cancel_reasons.dart';
+import '../../services/models/trip_invoice.dart';
+import '../../widgets/invoice_card.dart';
 import '../../ui/ride_rating_panel.dart';
 import '../../ui/sg_text.dart';
 import '../../ui/sg_tokens.dart';
@@ -72,7 +75,18 @@ import '../../ui/trip_widgets.dart';
 /// silent one.
 Future<bool> _cancelRideAndReport(BuildContext context) async {
   final provider = context.read<MapProvider>();
-  final confirmed = await provider.cancelRideRequest();
+  // Why, by trip state. Nothing booked yet (a local search) needs no reason.
+  String? reason;
+  if (provider.tripId != null) {
+    reason = await showCancelReasonSheet(
+      context,
+      driverAssigned: !provider.isRequestingRide,
+    );
+    // Backed out: keep the ride, say nothing.
+    if (reason == null) return false;
+    if (!context.mounted) return false;
+  }
+  final confirmed = await provider.cancelRideRequest(reason: reason);
   if (!confirmed && context.mounted) {
     ScaffoldMessenger.maybeOf(context)?.showSnackBar(
       SnackBar(
@@ -87,6 +101,17 @@ Future<bool> _cancelRideAndReport(BuildContext context) async {
     );
   }
   return confirmed;
+}
+
+/// Leaves a ride screen once the cancel is confirmed. A ride started from the
+/// booking flow replaces the stack (`go`), so there may be nothing to pop: popping
+/// the last page left a black screen (found on the QA phone, 12 Nov).
+void _leaveAfterCancel(BuildContext context) {
+  if (Navigator.of(context).canPop()) {
+    Navigator.of(context).pop();
+  } else {
+    context.go('/home');
+  }
 }
 
 /// Who the rider is riding with, read from the ride payload the screens render.
@@ -417,7 +442,7 @@ class _SearchingDriverScreenState extends State<SearchingDriverScreen> {
               final confirmed = await _cancelRideAndReport(context);
               if (!confirmed || !mounted) return;
               setState(() => _canPop = true);
-              if (context.mounted) Navigator.of(context).pop();
+              if (context.mounted) _leaveAfterCancel(context);
             }
           },
           child: _DarkMapScaffold(
@@ -743,7 +768,7 @@ class _DriverFoundScreenState extends State<DriverFoundScreen> {
               final confirmed = await _cancelRideAndReport(context);
               if (!confirmed || !mounted || !context.mounted) return;
               setState(() => _canPop = true);
-              Navigator.of(context).pop();
+              _leaveAfterCancel(context);
             }
           },
           child: _DarkMapScaffold(
@@ -863,7 +888,7 @@ class _DriverFoundScreenState extends State<DriverFoundScreen> {
     _showCancelConfirmation(context).then((shouldCancel) async {
       if (shouldCancel && context.mounted) {
         final confirmed = await _cancelRideAndReport(context);
-        if (confirmed && context.mounted) context.pop();
+        if (confirmed && context.mounted) _leaveAfterCancel(context);
       }
     });
   }
@@ -1079,7 +1104,7 @@ class _FullMapTrackingScreenState extends State<FullMapTrackingScreen> {
               final confirmed = await _cancelRideAndReport(context);
               if (!confirmed || !mounted || !context.mounted) return;
               setState(() => _canPop = true);
-              Navigator.of(context).pop();
+              _leaveAfterCancel(context);
             }
           },
           child: _DarkMapScaffold(
@@ -1238,6 +1263,7 @@ class _RidePaymentSummaryScreenState extends State<RidePaymentSummaryScreen> {
   /// The trip detail, loaded for a trip support ended (distance driven, the
   /// fare for it, whether anything was charged).
   Map<String, dynamic>? _receipt;
+  TripInvoice? _invoice;
 
   /// The trip to rate, captured on open: every payment path clears the local
   /// ride state before the rating screen, which then had nothing to rate.
@@ -1304,7 +1330,25 @@ class _RidePaymentSummaryScreenState extends State<RidePaymentSummaryScreen> {
       );
       context.read<WalletProvider>().refreshWallet();
       _loadReceiptIfEndedBySupport();
+      _loadInvoice();
     });
+  }
+
+  // The receipt or tax invoice, issued by the market's entity. Absent until
+  // the server has one (and on servers that predate it): nothing shows then.
+  Future<void> _loadInvoice() async {
+    final id = context.read<MapProvider>().tripId ?? _rateTripId;
+    if (id == null) return;
+    final token = (await SharedPreferences.getInstance()).getString(
+      'access_token',
+    );
+    if (token == null) return;
+    final body = await _rideService.getTripStatus(token, id);
+    final data = body?['data'];
+    final invoice = TripInvoice.fromTrip(data is Map ? data : body);
+    if (mounted && invoice != null && invoice.companyName.isNotEmpty) {
+      setState(() => _invoice = invoice);
+    }
   }
 
   Timer? _settledPoll;
@@ -1830,6 +1874,10 @@ class _RidePaymentSummaryScreenState extends State<RidePaymentSummaryScreen> {
                       ),
                       plain: charge.notCharged || endedBySupport,
                     ),
+                  if (_invoice != null) ...[
+                    const SizedBox(height: SgSpace.s3),
+                    InvoiceCard(invoice: _invoice!),
+                  ],
                   if (_confirming != null) ...[
                     const SizedBox(height: SgSpace.s3),
                     Text(
