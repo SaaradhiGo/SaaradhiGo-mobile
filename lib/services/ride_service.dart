@@ -313,6 +313,29 @@ class RideService {
     }
   }
 
+  /// The receipt PDF's address, the same receipt the web opens:
+  /// GET .../ride/trip/ID/receipt/pdf/ returns the pdf_url. Null when the
+  /// server has none (or cannot be reached).
+  Future<String?> getReceiptPdfUrl(String token, String tripId) async {
+    try {
+      final response = await _client.get(
+        Uri.parse('${AppConfig.baseUrl}/ride/trip/$tripId/receipt/pdf/'),
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer $token',
+        },
+      );
+      if (response.statusCode != 200) return null;
+      final body = jsonDecode(response.body);
+      final d = body is Map && body['data'] is Map ? body['data'] : body;
+      final url = d is Map ? d['pdf_url']?.toString() : null;
+      return url == null || url.isEmpty ? null : url;
+    } catch (e) {
+      debugPrint('Get receipt pdf error: $e');
+      return null;
+    }
+  }
+
   Future<Map<String, dynamic>?> getTripDetails(
     String token,
     String tripId,

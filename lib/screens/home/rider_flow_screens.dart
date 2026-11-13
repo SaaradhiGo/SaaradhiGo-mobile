@@ -46,6 +46,7 @@ import '../../services/trip_charge.dart';
 import '../../widgets/trip_charge_card.dart';
 
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:url_launcher/url_launcher.dart';
 import 'package:provider/provider.dart' as p;
 
 import '../../utils/money.dart';
@@ -1269,6 +1270,7 @@ class _RidePaymentSummaryScreenState extends State<RidePaymentSummaryScreen> {
   /// ride state before the rating screen, which then had nothing to rate.
   String? _rateTripId;
   String? _rateDriverName;
+  String? _vehicleLine;
 
   /// Kept for the rating screen, for the same reason: the ride state is gone.
   String? _dropName;
@@ -1283,6 +1285,7 @@ class _RidePaymentSummaryScreenState extends State<RidePaymentSummaryScreen> {
       extra: {
         'trip_id': _rateTripId,
         'driver_name': _rateDriverName,
+        'vehicle_line': _vehicleLine,
         'fare_text': _fareText,
         'method': method ?? _payMethod,
         'paid': paid,
@@ -1309,7 +1312,12 @@ class _RidePaymentSummaryScreenState extends State<RidePaymentSummaryScreen> {
       _rateTripId =
           mp.tripId ??
           (raw is Map ? (raw['trip_id'] ?? raw['id'])?.toString() : null);
-      _rateDriverName = raw is Map ? raw['driver_name']?.toString() : null;
+      final who = _DriverView(raw);
+      _rateDriverName = who.name.isEmpty ? null : who.name;
+      _vehicleLine = [
+        if (who.vehicleLine != null) who.vehicleLine!,
+        if (who.plate.isNotEmpty) who.plate,
+      ].join(' · ');
       _dropName = mp.destinationAddress;
       _durationText = mp.duration;
       _payMethod =
@@ -2166,10 +2174,22 @@ class RateReviewDriverScreen extends StatelessWidget {
     this.method,
     this.paid = true,
     this.detail = '',
+    this.vehicleLine,
+    this.rideService,
+    this.openUrl,
+    this.accessToken,
   });
 
   final String? tripId;
   final String? driverName;
+
+  /// "White Maruti Suzuki Dzire · TS09AB1234", when the app knows the car.
+  final String? vehicleLine;
+
+  /// Test seams: the HTTP service, the URL opener and the sign-in token.
+  final RideService? rideService;
+  final Future<bool> Function(Uri url)? openUrl;
+  final Future<String?> Function()? accessToken;
 
   /// What the summary knew, so this screen can show what was paid.
   final String? fareText;
@@ -2203,24 +2223,146 @@ class RateReviewDriverScreen extends StatelessWidget {
               paidLabel: paidLabelFor(method, paid: paid),
               fareText: fareText,
               paid: paid,
-              below: RideRatingPanel(
+              below: _TripSummaryBelow(
                 tripId: id,
                 driverName: driverName,
-                onDone: (rated) {
-                  if (rated) {
-                    ScaffoldMessenger.maybeOf(context)?.showSnackBar(
-                      SnackBar(
-                        content: Text(sgStrings(context).thanksForRating),
-                      ),
-                    );
-                  }
-                  context.go('/home');
-                },
+                vehicleLine: vehicleLine,
+                rideService: rideService,
+                openUrl: openUrl,
+                accessToken: accessToken,
+                child: RideRatingPanel(
+                  tripId: id,
+                  driverName: driverName,
+                  onDone: (rated) {
+                    if (rated) {
+                      ScaffoldMessenger.maybeOf(context)?.showSnackBar(
+                        SnackBar(
+                          content: Text(sgStrings(context).thanksForRating),
+                        ),
+                      );
+                    }
+                    context.go('/home');
+                  },
+                ),
               ),
             ),
           ],
         ),
       ),
+    );
+  }
+}
+
+/// Who drove, a "View receipt" link, then the rating and Done.
+class _TripSummaryBelow extends StatefulWidget {
+  const _TripSummaryBelow({
+    required this.tripId,
+    required this.child,
+    this.driverName,
+    this.vehicleLine,
+    this.rideService,
+    this.openUrl,
+    this.accessToken,
+  });
+
+  final String tripId;
+  final String? driverName, vehicleLine;
+  final RideService? rideService;
+  final Future<bool> Function(Uri url)? openUrl;
+  final Future<String?> Function()? accessToken;
+  final Widget child;
+
+  @override
+  State<_TripSummaryBelow> createState() => _TripSummaryBelowState();
+}
+
+class _TripSummaryBelowState extends State<_TripSummaryBelow> {
+  bool _busy = false;
+
+  Future<void> _viewReceipt() async {
+    if (_busy) return;
+    setState(() => _busy = true);
+    final messenger = ScaffoldMessenger.maybeOf(context);
+    var opened = false;
+    try {
+      final token = widget.accessToken != null
+          ? await widget.accessToken!()
+          : (await SharedPreferences.getInstance()).getString('access_token');
+      final url = token == null
+          ? null
+          : await (widget.rideService ?? RideService()).getReceiptPdfUrl(
+              token,
+              widget.tripId,
+            );
+      if (url != null) {
+        final uri = Uri.parse(url);
+        opened = widget.openUrl != null
+            ? await widget.openUrl!(uri)
+            : await launchUrl(uri, mode: LaunchMode.externalApplication);
+      }
+    } catch (_) {
+      opened = false;
+    }
+    if (!opened) {
+      messenger?.showSnackBar(
+        const SnackBar(content: Text('The receipt is not ready yet.')),
+      );
+    }
+    if (mounted) setState(() => _busy = false);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final name = (widget.driverName ?? '').trim();
+    final car = (widget.vehicleLine ?? '').trim();
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        if (name.isNotEmpty || car.isNotEmpty)
+          Container(
+            key: const Key('summary_driver'),
+            padding: const EdgeInsets.all(SgSpace.s4),
+            margin: const EdgeInsets.only(bottom: SgSpace.s3),
+            decoration: BoxDecoration(
+              color: SgColors.bg100,
+              borderRadius: BorderRadius.circular(SgRadius.lg),
+              border: Border.all(color: SgColors.goldLine),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text('YOUR DRIVER', style: SgText.label),
+                if (name.isNotEmpty)
+                  Text(
+                    name,
+                    key: const Key('summary_driver_name'),
+                    style: SgText.title,
+                  ),
+                if (car.isNotEmpty)
+                  Text(
+                    car,
+                    key: const Key('summary_vehicle'),
+                    style: SgText.body.copyWith(color: SgColors.inkMuted),
+                  ),
+              ],
+            ),
+          ),
+        Center(
+          child: TextButton(
+            key: const Key('view_receipt'),
+            onPressed: _busy ? null : _viewReceipt,
+            child: Text(
+              'View receipt',
+              style: SgText.body.copyWith(
+                color: SgColors.goldText,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ),
+        ),
+        const SizedBox(height: SgSpace.s3),
+        widget.child,
+      ],
     );
   }
 }
