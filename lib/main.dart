@@ -364,6 +364,7 @@ class _SaaradhiGoAppState extends State<SaaradhiGoApp> {
             return RateReviewDriverScreen(
               tripId: extra['trip_id']?.toString(),
               driverName: extra['driver_name']?.toString(),
+              vehicleLine: extra['vehicle_line']?.toString(),
               fareText: extra['fare_text']?.toString(),
               method: extra['method']?.toString(),
               paid: extra['paid'] != false,
