@@ -14,6 +14,7 @@ import 'package:saaradhigo_rider/screens/components/market_overlays.dart';
 import 'package:saaradhigo_rider/screens/profile/about_screen.dart';
 import 'package:saaradhigo_rider/services/models/trip_invoice.dart';
 import 'package:saaradhigo_rider/ui/cancel_reasons.dart';
+import 'package:saaradhigo_rider/ui/trip_widgets.dart';
 import 'package:saaradhigo_rider/widgets/invoice_card.dart';
 
 class _Config extends RemoteConfigProvider {
@@ -127,6 +128,53 @@ void main() {
       expect(find.text('CIN U1'), findsOneWidget);
       expect(find.text('+91 40 0000 0000'), findsOneWidget);
       expect(find.text('help@example.test'), findsOneWidget);
+    });
+  });
+
+  group('US total charged', () {
+    final us = {
+      'invoice': {
+        'currency': 'USD',
+        'company': {'name': 'DeepTrics Inc'},
+        'breakdown': {
+          'lines': [
+            {'label': 'Fare', 'amount': '28.08'},
+            {'label': 'Booking fee', 'amount': '1.50'},
+          ],
+          'total': '29.58',
+        },
+        'tip': '5.32',
+        'total_charged': '34.90',
+      },
+    };
+
+    testWidgets('receipt: Ride total, Tip, Total charged', (t) async {
+      final inv = TripInvoice.fromTrip(us)!;
+      expect(inv.totalCharged, '34.90');
+      await t.pumpWidget(_host(Scaffold(body: InvoiceCard(invoice: inv))));
+      expect(find.text('Ride total'), findsOneWidget);
+      expect(find.text('\$29.58'), findsOneWidget);
+      expect(find.text('Tip'), findsOneWidget);
+      expect(find.text('Total charged'), findsOneWidget);
+      expect(find.text('\$34.90'), findsOneWidget);
+    });
+
+    testWidgets('paid card headline is the total charged', (t) async {
+      final inv = TripInvoice.fromTrip(us)!;
+      await t.pumpWidget(
+        _host(
+          Scaffold(
+            body: TripCompleteView(
+              detailLine: 'x',
+              paidLabel: paidLabelFor('card'),
+              fareText: exactMoney(double.parse(inv.totalCharged!), 'USD'),
+              paid: true,
+              below: const SizedBox(),
+            ),
+          ),
+        ),
+      );
+      expect(find.text('\$34.90'), findsOneWidget);
     });
   });
 
