@@ -1,9 +1,12 @@
 import '../../ui/appearance_settings.dart' show sgStrings;
+
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:latlong2/latlong.dart';
 import 'package:url_launcher/url_launcher.dart';
+
 import '../../services/launch_interest_service.dart';
+import '../../services/unpaid_trip_service.dart';
 
 import '../../core/market/app_http_client.dart';
 import '../../core/market/booking_refusal.dart';
@@ -181,9 +184,13 @@ class BookingRefusalCard extends StatelessWidget {
     required this.refusal,
     this.onDismiss,
     this.onNotifyMe,
+    this.onPay,
   });
 
   final BookingRefusal refusal;
+
+  /// "Pay now": defaults to [UnpaidTripService.pay].
+  final Future<UnpaidPayResult> Function()? onPay;
   final VoidCallback? onDismiss;
 
   /// "Tell me when we launch": registers the pickup with the server and says
@@ -219,6 +226,11 @@ class BookingRefusalCard extends StatelessWidget {
                       fontSize: SgText.sizeSmall,
                     ),
                   ),
+                  if (refusal.canPay)
+                    _PayNowButton(
+                      onPay: onPay ?? UnpaidTripService().pay,
+                      onPaid: onDismiss,
+                    ),
                   if (refusal.canAskToBeTold)
                     _NotifyMeButton(
                       pickup: refusal.pickup!,
@@ -362,5 +374,75 @@ MarketConfig marketOf(BuildContext context, {bool listen = true}) {
     return Provider.of<MarketConfigStore>(context, listen: listen).current;
   } on ProviderNotFoundException {
     return MarketConfigStore.instance.current;
+  }
+}
+
+class _PayNowButton extends StatefulWidget {
+  const _PayNowButton({required this.onPay, this.onPaid});
+
+  final Future<UnpaidPayResult> Function() onPay;
+  final VoidCallback? onPaid;
+
+  @override
+  State<_PayNowButton> createState() => _PayNowButtonState();
+}
+
+class _PayNowButtonState extends State<_PayNowButton> {
+  bool _busy = false;
+  UnpaidPayResult? _result;
+
+  Future<void> _tap() async {
+    setState(() => _busy = true);
+    final r = await widget.onPay();
+    if (mounted) {
+      setState(() {
+        _busy = false;
+        _result = r;
+      });
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final r = _result;
+    if (r != null && r.paid) {
+      return Padding(
+        padding: const EdgeInsets.only(top: 8),
+        child: Text(
+          r.message,
+          key: const Key('unpaid_pay_done'),
+          style: TextStyle(color: SgColors.success, fontSize: SgText.sizeSmall),
+        ),
+      );
+    }
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        if (r != null)
+          Padding(
+            padding: const EdgeInsets.only(top: 8),
+            child: Text(
+              r.message,
+              key: const Key('unpaid_pay_error'),
+              style: TextStyle(
+                color: SgColors.danger,
+                fontSize: SgText.sizeSmall,
+              ),
+            ),
+          ),
+        Align(
+          alignment: Alignment.centerLeft,
+          child: TextButton(
+            key: const Key('unpaid_pay_button'),
+            style: TextButton.styleFrom(padding: EdgeInsets.zero),
+            onPressed: _busy ? null : _tap,
+            child: Text(
+              'Pay now',
+              style: TextStyle(color: _gold, fontWeight: FontWeight.w600),
+            ),
+          ),
+        ),
+      ],
+    );
   }
 }

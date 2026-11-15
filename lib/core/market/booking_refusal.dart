@@ -35,6 +35,23 @@ const String kCashNotAvailableAtBookingMessage =
     "Cash isn't available for this ride right now. Please contact support if "
     'you need help.';
 
+/// The rider's last trip is unpaid (`UNPAID_LAST_TRIP`, booking socket error
+/// frame). The server's own message is shown; with `can_retry_card` the card
+/// also offers "Pay now" (`POST /payments/unpaid/pay/`).
+const String kUnpaidLastTrip = 'UNPAID_LAST_TRIP';
+
+const String kUnpaidFallbackMessage = 'Pay for your last trip to book again.';
+
+/// The sentence for an UNPAID_LAST_TRIP [frame]: the server's message, or a
+/// plain fallback when it sent none.
+String unpaidLastTripMessage(Map<String, dynamic> frame) {
+  final m = frame['message']?.toString().trim();
+  return (m == null || m.isEmpty) ? kUnpaidFallbackMessage : m;
+}
+
+bool isUnpaidLastTripFrame(Map<String, dynamic> frame) =>
+    frame['type'] == 'error' && frame['code']?.toString() == kUnpaidLastTrip;
+
 /// "Rides are paused in Hyderabad right now" / "We're not in your area yet".
 String bookingRefusalMessage(String code, {String? city}) {
   final hasCity = city != null && city.trim().isNotEmpty;
@@ -48,13 +65,21 @@ String bookingRefusalMessage(String code, {String? city}) {
 
 @immutable
 class BookingRefusal {
-  const BookingRefusal(this.code, this.message, {this.pickup});
+  const BookingRefusal(
+    this.code,
+    this.message, {
+    this.pickup,
+    this.canPay = false,
+  });
   final String code;
   final String message;
 
   /// Where the rider wanted to be picked up: what "Tell me when we launch"
   /// registers. Null for refusals that offer no such button.
   final LatLng? pickup;
+
+  /// Offer "Pay now" (unpaid last trip, card retry possible).
+  final bool canPay;
 
   bool get canAskToBeTold => code == kCityNotLive && pickup != null;
 }
@@ -87,8 +112,8 @@ class BookingRefusalState extends ChangeNotifier {
 
   /// Records a refusal whose sentence the caller already worded (a promo code
   /// the booking could no longer apply).
-  void reportMessage(String code, String message) {
-    _latest = BookingRefusal(code, message);
+  void reportMessage(String code, String message, {bool canPay = false}) {
+    _latest = BookingRefusal(code, message, canPay: canPay);
     notifyListeners();
   }
 
