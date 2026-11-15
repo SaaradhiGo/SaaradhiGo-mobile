@@ -1,3 +1,5 @@
+import '../../core/market/market_dates.dart';
+
 class Trip {
   final int id;
   final String pickupAddress;
@@ -5,6 +7,11 @@ class Trip {
   final String status;
   final String? estimatedFare;
   final String? finalFare;
+
+  /// Trip total plus any tip; null unless completed (older servers: absent).
+  final String? totalCharged;
+  final String? currency;
+  final String? timezone;
   final DateTime? createdAt;
   final String? vehicleType;
   final String? driverName;
@@ -22,6 +29,9 @@ class Trip {
     required this.status,
     this.estimatedFare,
     this.finalFare,
+    this.totalCharged,
+    this.currency,
+    this.timezone,
     this.createdAt,
     this.vehicleType,
     this.driverName,
@@ -44,6 +54,9 @@ class Trip {
       status: json['status'] as String? ?? 'unknown',
       estimatedFare: json['estimated_fare']?.toString(),
       finalFare: json['final_fare']?.toString(),
+      totalCharged: json['total_charged']?.toString(),
+      currency: json['currency']?.toString(),
+      timezone: json['timezone']?.toString(),
       createdAt: dateStr != null ? DateTime.tryParse(dateStr) : null,
       vehicleType:
           json['vehicle_type'] as String? ??
@@ -69,10 +82,24 @@ class Trip {
       'status': status,
       'estimated_fare': estimatedFare,
       'final_fare': finalFare,
+      'total_charged': totalCharged,
+      'currency': currency,
+      'timezone': timezone,
       'created_at': createdAt?.toIso8601String(),
       'vehicle_type': vehicleType,
       'driver_name': driverName,
       'driver': driver,
     };
   }
+
+  /// The history row's amount: the total charged (fare plus tip) for a
+  /// completed trip, else the final fare, else the estimate.
+  String get displayAmount =>
+      (status == 'completed' ? totalCharged : null) ??
+      finalFare ??
+      estimatedFare ??
+      '0';
+
+  MarketDates get dates =>
+      MarketDates.forTrip(currency: currency, timezone: timezone);
 }

@@ -12,7 +12,6 @@ import 'package:shimmer/shimmer.dart';
 import '../../providers/history_provider.dart';
 import '../../providers/notification_provider.dart';
 import '../../services/models/trip_model.dart';
-import 'package:intl/intl.dart';
 
 class HistoryScreen extends StatefulWidget {
   const HistoryScreen({super.key});
@@ -35,7 +34,7 @@ class _HistoryScreenState extends State<HistoryScreen> {
     final Map<String, List<Trip>> grouped = {};
     for (final trip in trips) {
       final monthYear = trip.createdAt != null
-          ? DateFormat('MMMM yyyy').format(trip.createdAt!)
+          ? trip.dates.monthYear(trip.createdAt!)
           : 'RECENTLY';
       if (!grouped.containsKey(monthYear)) {
         grouped[monthYear] = [];
@@ -226,9 +225,9 @@ class _HistoryRideCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final dateStr = trip.createdAt != null
-        ? DateFormat('d MMM, h:mm a').format(trip.createdAt!)
+        ? trip.dates.shortDateTime(trip.createdAt!)
         : 'Recently';
-    final fare = trip.finalFare ?? trip.estimatedFare ?? '0';
+    final fare = trip.displayAmount;
     final canRebook =
         trip.destinationLat != null && trip.destinationLng != null;
 
