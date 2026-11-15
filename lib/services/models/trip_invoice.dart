@@ -27,6 +27,8 @@ class TripInvoice {
     this.taxIncluded = true,
     this.extras = const [],
     this.total,
+    this.tip,
+    this.totalCharged,
     this.currency,
   });
 
@@ -48,7 +50,13 @@ class TripInvoice {
   final String? taxAmount;
   final bool taxIncluded;
   final List<InvoiceLine> extras;
+  /// The ride total: fare plus booking fee, without tip.
   final String? total;
+
+  /// US trips only: the tip, and what the card was charged in all (ride total
+  /// plus tip). Absent on India trips, where total charged is the total.
+  final String? tip;
+  final String? totalCharged;
   final String? currency;
 
   /// Null when the trip has no usable invoice.
@@ -92,6 +100,8 @@ class TripInvoice {
       total:
           (breakdown is Map ? breakdown['total'] : null)?.toString() ??
           inv['total']?.toString(),
+      tip: inv['tip']?.toString(),
+      totalCharged: inv['total_charged']?.toString(),
       currency: inv['currency']?.toString(),
     );
   }

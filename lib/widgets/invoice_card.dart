@@ -80,7 +80,10 @@ class InvoiceCard extends StatelessWidget {
               ),
           ],
           for (final l in i.extras) row(l.label, l.amount),
-          if (i.total != null) row('Total', i.total, bold: true),
+          if (i.total != null) row('Ride total', i.total, bold: true),
+          if ((double.tryParse(i.tip ?? '') ?? 0) > 0) row('Tip', i.tip),
+          if (i.totalCharged != null && i.totalCharged != i.total)
+            row('Total charged', i.totalCharged, bold: true),
         ],
       ),
     );

@@ -1276,6 +1276,10 @@ class _RidePaymentSummaryScreenState extends State<RidePaymentSummaryScreen> {
   String? _dropName;
   String? _durationText;
   String? _fareText;
+
+  /// The invoice's total charged (ride total plus any tip), when the server
+  /// sends one: the headline amount once the trip is paid.
+  String? _chargedText;
   String? _payMethod;
   final DateTime _openedAt = DateTime.now();
 
@@ -1286,7 +1290,7 @@ class _RidePaymentSummaryScreenState extends State<RidePaymentSummaryScreen> {
         'trip_id': _rateTripId,
         'driver_name': _rateDriverName,
         'vehicle_line': _vehicleLine,
-        'fare_text': _fareText,
+        'fare_text': _chargedText ?? _fareText,
         'method': method ?? _payMethod,
         'paid': paid,
         'detail': tripDetailLine(_dropName, _openedAt, _durationText),
@@ -1355,7 +1359,13 @@ class _RidePaymentSummaryScreenState extends State<RidePaymentSummaryScreen> {
     final data = body?['data'];
     final invoice = TripInvoice.fromTrip(data is Map ? data : body);
     if (mounted && invoice != null && invoice.companyName.isNotEmpty) {
-      setState(() => _invoice = invoice);
+      final charged = double.tryParse(invoice.totalCharged ?? '');
+      setState(() {
+        _invoice = invoice;
+        if (charged != null) {
+          _chargedText = exactMoney(charged, invoice.currency);
+        }
+      });
     }
   }
 
