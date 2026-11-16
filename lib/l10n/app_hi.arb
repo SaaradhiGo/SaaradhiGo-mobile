@@ -182,6 +182,8 @@
   "@noClassFree": {"description": "needs native review"},
   "notCharged": "आपसे कोई पैसा नहीं लिया गया",
   "@notCharged": {"description": "needs native review"},
+  "noDriversNearbyNow": "अभी पास में कोई ड्राइवर नहीं है",
+  "@noDriversNearbyNow": {"description": "needs native review"},
   "keepLooking": "ढूँढते रहें",
   "@keepLooking": {"description": "needs native review"},
   "tryAnotherRide": "या कोई और राइड आज़माएँ",

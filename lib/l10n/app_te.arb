@@ -182,6 +182,8 @@
   "@noClassFree": {"description": "needs native review"},
   "notCharged": "మీకు ఎలాంటి ఛార్జీ పడలేదు",
   "@notCharged": {"description": "needs native review"},
+  "noDriversNearbyNow": "ఇప్పుడు దగ్గరలో డ్రైవర్లు లేరు",
+  "@noDriversNearbyNow": {"description": "needs native review"},
   "keepLooking": "వెతుకుతూనే ఉండండి",
   "@keepLooking": {"description": "needs native review"},
   "tryAnotherRide": "లేదా మరో రైడ్ ప్రయత్నించండి",

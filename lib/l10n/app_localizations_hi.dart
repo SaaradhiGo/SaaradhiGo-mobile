@@ -1,6 +1,5 @@
 // ignore: unused_import
 import 'package:intl/intl.dart' as intl;
-
 import 'app_localizations.dart';
 
 // ignore_for_file: type=lint
@@ -329,6 +328,9 @@ class AppLocalizationsHi extends AppLocalizations {
 
   @override
   String get notCharged => 'आपसे कोई पैसा नहीं लिया गया';
+
+  @override
+  String get noDriversNearbyNow => 'अभी पास में कोई ड्राइवर नहीं है';
 
   @override
   String get keepLooking => 'ढूँढते रहें';

@@ -182,6 +182,7 @@
   "@noClassFree": {"description": "No driver found: heading.", "placeholders": {"name": {"type": "String"}}},
   "notCharged": "You have not been charged",
   "@notCharged": {"description": "No driver found: reassurance."},
+  "noDriversNearbyNow": "No drivers nearby right now",
   "keepLooking": "Keep looking",
   "@keepLooking": {"description": "No driver found: retry the search."},
   "tryAnotherRide": "Or try another ride",

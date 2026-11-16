@@ -646,6 +646,12 @@ abstract class AppLocalizations {
   /// **'You have not been charged'**
   String get notCharged;
 
+  /// No description provided for @noDriversNearbyNow.
+  ///
+  /// In en, this message translates to:
+  /// **'No drivers nearby right now'**
+  String get noDriversNearbyNow;
+
   /// No driver found: retry the search.
   ///
   /// In en, this message translates to:

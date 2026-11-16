@@ -102,9 +102,16 @@ class RideOption {
     return null;
   }
 
+  /// The exact amount the card is held for (16 Nov ruling): "$28.20", never
+  /// rounded. Rupees stay whole ("₹196"), as India's fares are shown today.
   static String _money(double v, String symbol) {
-    final f = NumberFormat.decimalPattern(symbol == '₹' ? 'en_IN' : 'en_US');
-    return '$symbol${f.format(v.round())}';
+    final inr = symbol == '₹';
+    final cents = !inr;
+    final f = NumberFormat.decimalPatternDigits(
+      locale: inr ? 'en_IN' : 'en_US',
+      decimalDigits: cents ? 2 : 0,
+    );
+    return '$symbol${f.format(v)}';
   }
 
   /// A server reason, with the word "surge" never reaching the rider.
