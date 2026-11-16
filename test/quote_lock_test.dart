@@ -7,6 +7,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:go_router/go_router.dart';
 import 'package:latlong2/latlong.dart';
 import 'package:provider/provider.dart';
+import 'package:saaradhigo_rider/services/card_hold_service.dart';
 import 'package:saaradhigo_rider/core/pricing/quote_lock.dart';
 import 'package:saaradhigo_rider/providers/map_provider.dart';
 import 'package:saaradhigo_rider/screens/home/precise_pickup_screen.dart';
@@ -45,6 +46,9 @@ class _Location extends Fake implements LocationService {
 }
 
 class _Fares extends Fake implements FareService {
+  _Fares([this.currency = 'INR']);
+  final String currency;
+
   @override
   Future<List<String>?> vehicleTypesAt(double lat, double lng) async => [
     'sedan',
@@ -61,7 +65,7 @@ class _Fares extends Fake implements FareService {
     required String vehicleType,
   }) async => {
     'estimated_fare': '248.00',
-    'currency': 'INR',
+    'currency': currency,
     'quote_id': 'q-$vehicleType-1',
     'quote_expires_at': '2026-11-06T12:00:00Z',
   };
@@ -72,6 +76,7 @@ class _Rides extends Fake implements RideService {}
 /// Records every booking frame instead of opening a socket.
 class _Socket extends WebSocketService {
   final List<String?> quoteIds = [];
+  final List<int?> cardHoldIds = [];
 
   @override
   void requestRide({
@@ -89,7 +94,17 @@ class _Socket extends WebSocketService {
     String? promoCode,
     String? quoteId,
     int? cardHoldId,
-  }) => quoteIds.add(quoteId);
+  }) {
+    quoteIds.add(quoteId);
+    cardHoldIds.add(cardHoldId);
+  }
+}
+
+/// Stripe's sheet confirmed: hold 42.
+class _Held extends CardHoldService {
+  @override
+  Future<CardHoldOutcome> hold(String quoteId) async =>
+      const CardHoldOutcome.held(42);
 }
 
 Map<String, dynamic> _expired({String reason = 'expired'}) => {
@@ -133,6 +148,44 @@ class _TicketMap extends MapProvider {
 
 void main() {
   tearDown(QuoteLockState.instance.clear);
+
+  // 16 Nov, emulator: trip 226 (US, card) was booked with no hold linked, so it
+  // ended "waiting for payment". The search started twice and the second call
+  // read the hold id after the first had cleared it.
+  test(
+    'a card hold reaches every booking frame, even if search starts twice',
+    () async {
+      SharedPreferences.setMockInitialValues({'access_token': 'test-token'});
+      final socket = _Socket();
+      final container = ProviderContainer(
+        overrides: [
+          rideServiceProvider.overrideWithValue(_Rides()),
+          webSocketServiceProvider.overrideWithValue(socket),
+        ],
+      );
+      container.read(rideNotifierProvider);
+      final map = MapProvider(
+        container: container,
+        locationService: _Location(),
+        fareService: _Fares('USD'),
+        rideService: _Rides(),
+      );
+      await map.prepareAndCalculateRoute(
+        presetPickup: const LatLng(17.4435, 78.3772),
+        pickupName: 'Boise State',
+        dropPlaceId: 'drop',
+      );
+      map.selectVehicleType('sedan');
+      map.selectPaymentMethod('card');
+      expect(map.needsCardHold, isTrue);
+      expect(await map.holdCardIfNeeded(service: _Held()), isNull);
+      await Future.wait([map.requestRide(), map.requestRide()]);
+      expect(socket.cardHoldIds, [42, 42]);
+      await Future<void>.delayed(const Duration(milliseconds: 50));
+      map.dispose();
+      container.dispose();
+    },
+  );
 
   test('the booking frame carries the quote_id', () {
     final frame = WebSocketService.buildRideRequestPayload(

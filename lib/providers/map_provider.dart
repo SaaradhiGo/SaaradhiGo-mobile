@@ -749,6 +749,11 @@ class MapProvider extends ChangeNotifier {
     final effectivePickup = _precisePickupLocation ?? _pickupLocation!.latLng;
     // Read before the line below is cleared: this is the fare on the ticket.
     final quoteId = selectedQuoteId;
+    // 16 Nov: read with the quote, before any await. The search screen can
+    // start twice; the second call used to read null after the first cleared
+    // it, its frame (no hold) was the one sent, and a US card trip was booked
+    // with nothing to capture ("waiting for payment").
+    final cardHoldId = _cardHoldId;
     _quoteLock.clear();
 
     container
@@ -783,9 +788,8 @@ class MapProvider extends ChangeNotifier {
           paymentMethod: selectedPaymentMethod,
           promoCode: PromoSelection.instance.code,
           quoteId: quoteId,
-          cardHoldId: _cardHoldId,
+          cardHoldId: cardHoldId,
         );
-    _cardHoldId = null;
   }
 
   /// True when the last cancellation did not reach the server.
