@@ -813,6 +813,10 @@ class MapProvider extends ChangeNotifier {
   /// "we could not cancel your ride", and the completed ride would stay on
   /// screen. Two different intents were sharing one method; now they do not.
   Future<void> clearRideStateLocally() async {
+    // Called once the rider is done with the receipt: it never reopens.
+    await ClosedReceipts.add(
+      container?.read(rideNotifierProvider).tripId ?? tripId,
+    );
     await container?.read(rideNotifierProvider.notifier).clearState();
     container?.read(webSocketServiceProvider).disconnectAll();
     notifyListeners();
