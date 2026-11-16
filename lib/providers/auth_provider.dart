@@ -10,6 +10,7 @@ class AuthProvider extends ChangeNotifier {
   AuthProvider({
     AuthApiClient? apiService,
     Future<SharedPreferences> Function()? prefsFactory,
+
     /// When given, the market config is refreshed after every sign-in (for the
     /// signed-in user's country). Null in tests: no network.
     MarketConfigStore? market,
@@ -756,11 +757,20 @@ class AuthProvider extends ChangeNotifier {
     // Same session handling as the OTP path, minus the phone capture: an
     // email login does not tell us a phone number, and inventing one would
     // overwrite whatever the profile already holds.
-    final profileUpdated = _applyProfileFromUserPayload(
-      _extractUserPayload(response),
-    );
+    final user = _extractUserPayload(response);
+    final profileUpdated = _applyProfileFromUserPayload(user);
     await _persistIfNeeded([profileUpdated]);
-    _market?.refresh();
+    // 16 Nov: the account's own country, not this device's last one. A US
+    // rider signing in by email was kept on the India config and told
+    // "coming soon" in Boise. The phone path does the same via the number.
+    final country = user?['market_country'];
+    if (country is String && RegExp(r'^[A-Za-z]{2}$').hasMatch(country)) {
+      _market?.refresh(country: country);
+    } else {
+      _market?.refreshForPhone(
+        user == null ? null : _pickFirstString(user, ['phone_number', 'phone']),
+      );
+    }
 
     _setLoading(false);
     return null;
