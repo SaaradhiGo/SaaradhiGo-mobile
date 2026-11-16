@@ -193,6 +193,12 @@ class MapProvider extends ChangeNotifier {
 
   List<Map<String, dynamic>> get nearbyDrivers => _nearbyDrivers;
   Map<String, Map<String, dynamic>> get fareEstimates => _fareEstimates;
+
+  /// Set when no fare came back because the pickup or drop is outside every
+  /// zone: the server's message, naming the area. The sheet shows it instead
+  /// of "check your connection".
+  String? _outsideArea;
+  String? get outsideArea => _outsideArea;
   bool get isLoadingFares => _isLoadingFares;
   String? get selectedVehicleType => _selectedVehicleType;
   LatLng? get precisePickupLocation => _precisePickupLocation;
@@ -678,6 +684,8 @@ class MapProvider extends ChangeNotifier {
 
     _isLoadingFares = true;
     _fareEstimates = {};
+    _outsideArea = null;
+    _fareService.lastOutsideArea = null;
     // A code applied to the previous quote says nothing about this one.
     PromoSelection.instance.clear();
     // Nor does a "fare updated" line about the previous quote.
@@ -711,6 +719,7 @@ class MapProvider extends ChangeNotifier {
           .round();
       _fareEstimates[types[i]] = estimate;
     }
+    if (_fareEstimates.isEmpty) _outsideArea = _fareService.lastOutsideArea;
     // A class chosen for the previous route may not be priced on this one.
     if (_selectedVehicleType != null &&
         !_fareEstimates.containsKey(_selectedVehicleType)) {

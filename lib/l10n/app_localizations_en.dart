@@ -1008,4 +1008,17 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get linkCopied => 'Link copied';
+
+  @override
+  String get placeOutsideServiceArea =>
+      'This place is outside our service area';
+
+  @override
+  String placeOutsideServiceAreaNamed(String area) {
+    return 'This place is outside our service area ($area)';
+  }
+
+  @override
+  String get chooseAnotherDrop =>
+      'Choose a place inside the area to see fares.';
 }

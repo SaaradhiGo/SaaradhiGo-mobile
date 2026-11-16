@@ -25,3 +25,4 @@ trustedContacts, trustedContactsCount, trustedContactsNone, autoShareTrips, auto
 
 Saved places (2026-11-09):
 shareTrip, shareTripText, shareLinkAgain, stopSharing, sharingStopped, shareFailed, linkCopied
+placeOutsideServiceArea, placeOutsideServiceAreaNamed, chooseAnotherDrop (16 Nov, round 3)

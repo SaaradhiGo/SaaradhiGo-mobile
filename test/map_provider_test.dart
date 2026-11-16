@@ -1,6 +1,7 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:latlong2/latlong.dart';
 import 'package:saaradhigo_rider/providers/map_provider.dart';
+import 'package:saaradhigo_rider/services/fare_service.dart' show outsideAreaName;
 import 'package:saaradhigo_rider/services/map_service.dart';
 import 'package:saaradhigo_rider/services/ride_service.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -35,6 +36,12 @@ class FakeLocationService extends Fake implements LocationService {
 }
 
 class FakeFareService extends Fake implements FareService {
+  @override
+  String? lastOutsideArea;
+
+  /// The server's outside-area message: every estimate is refused with it.
+  String? outside;
+
   /// What /pricing/vehicle-types/ answers; null means it could not be reached.
   List<String>? types = ['bike', 'auto', 'sedan'];
 
@@ -54,6 +61,10 @@ class FakeFareService extends Fake implements FareService {
     required int durationMin,
     required String vehicleType,
   }) async {
+    if (outside != null) {
+      lastOutsideArea = outside;
+      return null;
+    }
     if (unpriced.contains(vehicleType)) return null;
     return {
       'estimated_fare': '100.00',
@@ -154,6 +165,35 @@ void main() {
       
       expect(mapProvider.fareEstimates.containsKey('sedan'), isTrue);
       expect(mapProvider.fareEstimates['sedan']?['time_to_drop'], 9);
+    });
+
+    test('a drop outside the area names the area, not the connection', () async {
+      // Round 3: College of Idaho, inside the rectangle, outside the outline.
+      fakeFareService.outside =
+          'This place is outside our service area (Treasure Valley).';
+      await mapProvider.prepareAndCalculateRoute(
+        presetPickup: const LatLng(17.3850, 78.4867),
+        pickupName: 'Home',
+        dropPlaceId: 'destination_id',
+      );
+      expect(mapProvider.fareEstimates, isEmpty);
+      expect(mapProvider.outsideArea, contains('Treasure Valley'));
+      expect(outsideAreaName(mapProvider.outsideArea), 'Treasure Valley');
+
+      fakeFareService.outside = null;
+      await mapProvider.prepareAndCalculateRoute(
+        presetPickup: const LatLng(17.3850, 78.4867),
+        pickupName: 'Home',
+        dropPlaceId: 'destination_id',
+      );
+      expect(mapProvider.outsideArea, isNull);
+    });
+
+    test('the area name is read from the message', () {
+      expect(outsideAreaName('This place is outside our service area (Hyderabad).'),
+          'Hyderabad');
+      expect(outsideAreaName('This place is outside our service area.'), isNull);
+      expect(outsideAreaName(null), isNull);
     });
 
     test('only classes the server lists and prices are offered', () async {

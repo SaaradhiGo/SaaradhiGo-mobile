@@ -998,4 +998,16 @@ class AppLocalizationsHi extends AppLocalizations {
 
   @override
   String get linkCopied => 'लिंक कॉपी हो गया';
+
+  @override
+  String get placeOutsideServiceArea => 'यह जगह हमारे सेवा क्षेत्र से बाहर है';
+
+  @override
+  String placeOutsideServiceAreaNamed(String area) {
+    return 'यह जगह हमारे सेवा क्षेत्र ($area) से बाहर है';
+  }
+
+  @override
+  String get chooseAnotherDrop =>
+      'किराया देखने के लिए क्षेत्र के अंदर कोई जगह चुनें।';
 }
