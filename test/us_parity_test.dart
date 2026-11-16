@@ -260,4 +260,27 @@ void main() {
     expect(sent!.containsKey('email'), isFalse);
     expect(sent!['emergency_contact'], '9876543210');
   });
+
+  testWidgets('a negative receipt line reads −₹0.10, never ₹-0.10', (
+    tester,
+  ) async {
+    final inv = TripInvoice.fromTrip({
+      'invoice': {
+        'company': {'name': 'DeepTrics Software Solutions Pvt Ltd'},
+        'currency': 'INR',
+        'breakdown': {
+          'lines': [
+            {'label': 'Rounding', 'amount': '-0.10'},
+          ],
+          'total': '247',
+        },
+      },
+    })!;
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(body: InvoiceCard(invoice: inv)),
+      ),
+    );
+    expect(find.text('−⁠₹0.10'), findsOneWidget);
+  });
 }

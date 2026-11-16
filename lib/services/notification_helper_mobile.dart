@@ -30,6 +30,19 @@ class NotificationHelper {
         debugPrint('Notification tapped: ${details.payload}');
       },
     );
+    // The ongoing-ride foreground service posts on this channel; Android
+    // refuses a foreground notification on a channel that does not exist.
+    await _notificationsPlugin
+        .resolvePlatformSpecificImplementation<
+          AndroidFlutterLocalNotificationsPlugin
+        >()
+        ?.createNotificationChannel(
+          AndroidNotificationChannel(
+            channelId,
+            channelName,
+            importance: Importance.low,
+          ),
+        );
   }
 
   static Future<void> showNotification(

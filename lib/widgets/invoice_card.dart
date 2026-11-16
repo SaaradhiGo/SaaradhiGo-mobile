@@ -15,11 +15,15 @@ class InvoiceCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final i = invoice;
-    String money(String? v) => v == null
-        ? ''
-        : (double.tryParse(v) == null
-              ? v
-              : exactMoney(double.parse(v), i.currency));
+    // A negative line ("Rounding") reads "−₹0.10", never "₹-0.10".
+    String money(String? v) {
+      final n = v == null ? null : double.tryParse(v);
+      if (n == null) return v ?? '';
+      return n < 0
+          ? '−⁠${exactMoney(-n, i.currency)}'
+          : exactMoney(n, i.currency);
+    }
+
     Widget row(String label, String? amount, {bool bold = false}) => Padding(
       padding: const EdgeInsets.only(bottom: SgSpace.s1),
       child: Row(
