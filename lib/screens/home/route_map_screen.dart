@@ -16,6 +16,7 @@ import '../../ui/trip_widgets.dart' show routeLine;
 import '../../ui/sg_text.dart';
 import '../../ui/sg_tokens.dart';
 import '../../ui/sg_widgets.dart';
+import '../../services/fare_service.dart' show outsideAreaName;
 
 class RouteMapScreen extends StatefulWidget {
   const RouteMapScreen({super.key});
@@ -498,6 +499,31 @@ class _RouteMapScreenState extends State<RouteMapScreen> {
       );
     }
     final options = RideOption.fromEstimates(provider.fareEstimates);
+    final outside = provider.outsideArea;
+    if (options.isEmpty && outside != null) {
+      final area = outsideAreaName(outside);
+      return SgSheetSurface(
+        child: Column(
+          key: const Key('outside_service_area'),
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(
+              area == null
+                  ? sgStrings(context).placeOutsideServiceArea
+                  : sgStrings(context).placeOutsideServiceAreaNamed(area),
+              style: SgText.title,
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: SgSpace.s2),
+            Text(
+              sgStrings(context).chooseAnotherDrop,
+              style: SgText.caption,
+              textAlign: TextAlign.center,
+            ),
+          ],
+        ),
+      );
+    }
     if (options.isEmpty) {
       return SgSheetSurface(
         child: Column(

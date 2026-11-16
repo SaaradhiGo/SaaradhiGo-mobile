@@ -603,5 +603,11 @@
   "shareFailed": "ఈ ట్రిప్‌ను షేర్ చేయలేకపోయాము. మళ్లీ ప్రయత్నించండి.",
   "@shareFailed": {"description": "needs native review"},
   "linkCopied": "లింక్ కాపీ చేయబడింది",
-  "@linkCopied": {"description": "needs native review"}
+  "@linkCopied": {"description": "needs native review"},
+  "placeOutsideServiceArea": "ఈ ప్రదేశం మా సేవా ప్రాంతం బయట ఉంది",
+  "@placeOutsideServiceArea": {"description": "needs native review"},
+  "placeOutsideServiceAreaNamed": "ఈ ప్రదేశం మా సేవా ప్రాంతం ({area}) బయట ఉంది",
+  "@placeOutsideServiceAreaNamed": {"description": "needs native review"},
+  "chooseAnotherDrop": "ఛార్జీలు చూడటానికి ప్రాంతం లోపల ఒక చోటును ఎంచుకోండి.",
+  "@chooseAnotherDrop": {"description": "needs native review"}
 }

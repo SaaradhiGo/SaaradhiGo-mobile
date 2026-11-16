@@ -50,6 +50,9 @@ class _Fares extends Fake implements FareService {
   final String currency;
 
   @override
+  String? lastOutsideArea;
+
+  @override
   Future<List<String>?> vehicleTypesAt(double lat, double lng) async => [
     'sedan',
   ];

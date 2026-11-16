@@ -602,5 +602,11 @@
   "shareFailed": "We couldn't share this trip. Try again.",
   "@shareFailed": {"description": "Share: failed"},
   "linkCopied": "Link copied",
-  "@linkCopied": {"description": "Share: no share sheet, so the link was copied"}
+  "@linkCopied": {"description": "Share: no share sheet, so the link was copied"},
+  "placeOutsideServiceArea": "This place is outside our service area",
+  "@placeOutsideServiceArea": {"description": "Fare sheet: the pickup or drop is outside every service zone"},
+  "placeOutsideServiceAreaNamed": "This place is outside our service area ({area})",
+  "@placeOutsideServiceAreaNamed": {"description": "Fare sheet: outside the zone, naming the area, e.g. Treasure Valley", "placeholders": {"area": {"type": "String"}}},
+  "chooseAnotherDrop": "Choose a place inside the area to see fares.",
+  "@chooseAnotherDrop": {"description": "Fare sheet: under the outside-area line"}
 }

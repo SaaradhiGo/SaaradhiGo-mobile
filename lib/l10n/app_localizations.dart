@@ -1887,6 +1887,24 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Link copied'**
   String get linkCopied;
+
+  /// Fare sheet: the pickup or drop is outside every service zone
+  ///
+  /// In en, this message translates to:
+  /// **'This place is outside our service area'**
+  String get placeOutsideServiceArea;
+
+  /// Fare sheet: outside the zone, naming the area, e.g. Treasure Valley
+  ///
+  /// In en, this message translates to:
+  /// **'This place is outside our service area ({area})'**
+  String placeOutsideServiceAreaNamed(String area);
+
+  /// Fare sheet: under the outside-area line
+  ///
+  /// In en, this message translates to:
+  /// **'Choose a place inside the area to see fares.'**
+  String get chooseAnotherDrop;
 }
 
 class _AppLocalizationsDelegate
