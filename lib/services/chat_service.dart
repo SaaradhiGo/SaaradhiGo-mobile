@@ -7,6 +7,7 @@ import 'package:web_socket_channel/web_socket_channel.dart';
 import 'package:web_socket_channel/status.dart' as ws_status;
 
 import '../core/app_config.dart';
+import 'ws_ticket.dart';
 
 /// Connects to /ws/ride/trip/<id>/chat/?token=<jwt> and streams messages.
 ///
@@ -24,11 +25,13 @@ class ChatService {
 
   Stream<Map<String, dynamic>> get events => _controller.stream;
 
-  void connect({required int tripId, required String token}) {
+  Future<void> connect({required int tripId, required String token}) async {
     _intentionalDisconnect = false;
-    final uri = Uri.parse(
+    // A 30 s single-use ticket in the address, never the token (16 Nov).
+    final uri = await ticketedWsUri(
       '${AppConfig.wsBaseUrl}/ride/trip/$tripId/chat/?token=$token',
     );
+    if (_intentionalDisconnect) return;
     try {
       _channel = WebSocketChannel.connect(uri);
       _sub = _channel!.stream.listen(

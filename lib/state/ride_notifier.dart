@@ -307,7 +307,15 @@ class RideNotifier extends Notifier<RideState> {
         final tripStatus = await rideService.getTripStatus(token, savedTripId);
         if (_isStale(gen, 'Saved-trip answer')) return;
 
-        if (tripStatus != null &&
+        final saved = tripStatus?['data'];
+        if (state.status == RideStatus.searchingDriver &&
+            saved is Map &&
+            saved['status'] == 'cancelled') {
+          // 16 Nov ruling: the search ended while the app was away. Say so
+          // ("No drivers nearby right now", Try again), never a silent Home.
+          await _clearActiveTripId();
+          failSearch(kNoDriverMessage);
+        } else if (tripStatus != null &&
             tripStatus['status'] == 'success' &&
             tripStatus['data'] != null) {
           // Trip still exists, sync state using trip-specific endpoints

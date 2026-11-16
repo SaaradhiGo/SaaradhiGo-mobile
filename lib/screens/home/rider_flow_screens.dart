@@ -391,11 +391,9 @@ class _SearchingDriverScreenState extends State<SearchingDriverScreen> {
           if (mounted && context.mounted) {
             String currentRoute = '';
             try {
-              currentRoute = GoRouter.of(context)
-                  .routerDelegate
-                  .currentConfiguration
-                  .last
-                  .matchedLocation;
+              currentRoute = GoRouter.of(
+                context,
+              ).routerDelegate.currentConfiguration.last.matchedLocation;
             } catch (e) {
               debugPrint('Guard route check failed: $e');
             }
@@ -529,7 +527,7 @@ class _SearchingDriverScreenState extends State<SearchingDriverScreen> {
             Semantics(
               liveRegion: true,
               child: Text(
-                l.noClassFree(vehicleClassName(type)),
+                l.noDriversNearbyNow,
                 key: const Key('no_driver_heading'),
                 style: SgText.heading,
               ),
@@ -578,7 +576,7 @@ class _SearchingDriverScreenState extends State<SearchingDriverScreen> {
             const SizedBox(height: SgSpace.s4),
             SgPrimaryButton(
               key: const Key('no_driver_keep_looking'),
-              label: l.keepLooking,
+              label: l.tryAgain,
               onPressed: _startSearch,
             ),
             const SizedBox(height: SgSpace.s2),
