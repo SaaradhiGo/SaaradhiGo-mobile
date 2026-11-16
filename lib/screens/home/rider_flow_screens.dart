@@ -330,6 +330,22 @@ class _SearchingDriverScreenState extends State<SearchingDriverScreen> {
     });
   }
 
+  /// Try again after no driver: the server released the card hold, so a US
+  /// card booking holds the card again first (16 Nov).
+  Future<void> _retrySearch() async {
+    final mp = _mapProvider;
+    if (mp == null) return;
+    final problem = await mp.holdCardIfNeeded();
+    if (!mounted) return;
+    if (problem == null) {
+      _startSearch();
+    } else if (problem.isNotEmpty) {
+      ScaffoldMessenger.of(context)
+        ..hideCurrentSnackBar()
+        ..showSnackBar(SnackBar(content: Text(problem)));
+    }
+  }
+
   void _startSearch() {
     _mapProvider?.requestRide(context: context);
     _elapsed
@@ -577,7 +593,7 @@ class _SearchingDriverScreenState extends State<SearchingDriverScreen> {
             SgPrimaryButton(
               key: const Key('no_driver_keep_looking'),
               label: l.tryAgain,
-              onPressed: _startSearch,
+              onPressed: _retrySearch,
             ),
             const SizedBox(height: SgSpace.s2),
             SgGhostButton(
