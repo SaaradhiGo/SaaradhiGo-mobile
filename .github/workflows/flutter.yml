@@ -126,7 +126,10 @@ jobs:
             # Round 3: Gradle never read ~/.android here, so every build had a new key
             # (blank map, no update in place). The build reads qa.debugKeystore only.
             # The QA key is a debug key: Android's standard debug password unless set.
+            # Leading echo: Flutter writes this file with no final newline, which glued our
+            # first line onto the last one and left Gradle on a runner key (16 Nov).
             {
+              echo
               echo "qa.debugKeystore=$HOME/.android/debug.keystore"
               echo "qa.debugKeystorePassword=${QA_DEBUG_KEYSTORE_PASSWORD:-android}"
             } >> android/local.properties
