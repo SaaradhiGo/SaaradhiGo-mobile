@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import '../services/card_hold_service.dart';
 import '../core/vehicle_classes.dart';
 import 'package:flutter/material.dart';
 import '../utils/recent_places.dart';
@@ -89,6 +90,34 @@ class MapProvider extends ChangeNotifier {
   }
 
   /// The quote the ticket shows for the chosen class, sent with the booking.
+  /// USA: a card booking is held in Stripe's sheet before it is requested.
+  bool get needsCardHold =>
+      _paymentMethod == 'card' && selectedQuoteCurrency == 'USD';
+
+  String? get selectedQuoteCurrency {
+    final type = _selectedVehicleType;
+    final c = type == null ? null : _fareEstimates[type]?['currency'];
+    return c?.toString().toUpperCase();
+  }
+
+  int? _cardHoldId;
+
+  /// Holds the card for the chosen quote when the market needs it. Returns null
+  /// when the booking may go ahead, or the message to show (empty: the rider
+  /// closed the sheet; nothing to say).
+  Future<String?> holdCardIfNeeded({CardHoldService? service}) async {
+    _cardHoldId = null;
+    if (!needsCardHold) return null;
+    final quoteId = selectedQuoteId;
+    if (quoteId == null) return 'This fare has expired. Get a new one.';
+    final outcome = await (service ?? CardHoldService()).hold(quoteId);
+    if (outcome.ok) {
+      _cardHoldId = outcome.holdId;
+      return null;
+    }
+    return outcome.message ?? '';
+  }
+
   String? get selectedQuoteId {
     final type = _selectedVehicleType;
     final id = type == null ? null : _fareEstimates[type]?['quote_id'];
@@ -754,7 +783,9 @@ class MapProvider extends ChangeNotifier {
           paymentMethod: selectedPaymentMethod,
           promoCode: PromoSelection.instance.code,
           quoteId: quoteId,
+          cardHoldId: _cardHoldId,
         );
+    _cardHoldId = null;
   }
 
   /// True when the last cancellation did not reach the server.

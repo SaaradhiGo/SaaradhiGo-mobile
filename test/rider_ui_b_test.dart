@@ -463,6 +463,7 @@ void main() {
       expect(paidLabelFor('cash'), 'PAID BY CASH');
       expect(paidLabelFor('wallet'), 'PAID FROM WALLET');
       expect(paidLabelFor('upi'), 'PAID BY UPI');
+      expect(paidLabelFor('card'), 'PAID BY CARD');
     });
 
     testWidgets('Done saves the stars, or just leaves when there are none', (

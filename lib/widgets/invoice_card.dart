@@ -32,8 +32,10 @@ class InvoiceCard extends StatelessWidget {
               ),
             ),
           ),
+          // An amount never wraps ("−$29.58" on one line).
           Text(
             money(amount),
+            softWrap: false,
             style: SgText.body.copyWith(
               fontWeight: bold ? FontWeight.w600 : FontWeight.w400,
             ),
@@ -84,6 +86,31 @@ class InvoiceCard extends StatelessWidget {
           if ((double.tryParse(i.tip ?? '') ?? 0) > 0) row('Tip', i.tip),
           if (i.totalCharged != null && i.totalCharged != i.total)
             row('Total charged', i.totalCharged, bold: true),
+          for (final r in i.refunds)
+            Padding(
+              key: const Key('invoice_refund'),
+              padding: const EdgeInsets.only(bottom: SgSpace.s1),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: Text(
+                      r.date.isEmpty ? r.label : '${r.label} · ${r.date}',
+                      style: SgText.body,
+                    ),
+                  ),
+                  Text(
+                    '\u2212\u2060${money(r.amount)}',
+                    softWrap: false,
+                    style: SgText.body,
+                  ),
+                ],
+              ),
+            ),
+          if (i.netCharged != null && i.refunds.isNotEmpty)
+            KeyedSubtree(
+              key: const Key('invoice_net_charged'),
+              child: row('Net charged', i.netCharged, bold: true),
+            ),
         ],
       ),
     );

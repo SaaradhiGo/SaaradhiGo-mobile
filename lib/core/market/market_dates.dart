@@ -5,6 +5,26 @@
 library;
 
 import 'package:intl/intl.dart';
+import 'package:timezone/data/latest.dart' as tzdata;
+import 'package:timezone/timezone.dart' as tz;
+
+bool _tzReady = false;
+
+/// [instant] as the wall clock read where the trip happened ([zone], an IANA
+/// name such as America/Boise), not on the phone. Unknown zone: the phone's.
+DateTime inTripZone(DateTime instant, String? zone) {
+  if (zone == null || zone.isEmpty) return instant.toLocal();
+  if (!_tzReady) {
+    tzdata.initializeTimeZones();
+    _tzReady = true;
+  }
+  try {
+    final t = tz.TZDateTime.from(instant, tz.getLocation(zone));
+    return DateTime(t.year, t.month, t.day, t.hour, t.minute, t.second);
+  } catch (_) {
+    return instant.toLocal();
+  }
+}
 
 class MarketDates {
   const MarketDates({required this.isUs});

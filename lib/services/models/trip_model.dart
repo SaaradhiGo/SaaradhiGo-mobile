@@ -102,4 +102,8 @@ class Trip {
 
   MarketDates get dates =>
       MarketDates.forTrip(currency: currency, timezone: timezone);
+
+  /// When the trip was booked, on the clock where it happened.
+  DateTime? get localCreatedAt =>
+      createdAt == null ? null : inTripZone(createdAt!, timezone);
 }
