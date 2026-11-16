@@ -53,18 +53,38 @@ class CardHoldOutcome {
   bool get ok => holdId != null;
 }
 
+/// Apple's merchant id (merchant.com....), from `--dart-define=STRIPE_MERCHANT_IDENTIFIER`.
+const kStripeMerchantIdentifier = String.fromEnvironment(
+  'STRIPE_MERCHANT_IDENTIFIER',
+);
+
+/// Apple Pay in the sheet only on iOS with a merchant id. Round 3: the
+/// Android QA build asked for Apple Pay without one, Stripe's assert threw,
+/// and "Confirm pickup and book" did nothing for every US rider.
+PaymentSheetApplePay? holdSheetApplePay({
+  required bool isIOS,
+  String merchantId = kStripeMerchantIdentifier,
+}) => isIOS && merchantId.isNotEmpty
+    ? const PaymentSheetApplePay(merchantCountryCode: 'US')
+    : null;
+
 /// Shows Stripe's payment sheet for a hold; replaced in tests.
 typedef PresentHoldSheet = Future<bool> Function(CardHold hold);
 
 Future<bool> presentStripeHoldSheet(CardHold hold) async {
   Stripe.publishableKey = hold.publishableKey;
+  final isIOS = defaultTargetPlatform == TargetPlatform.iOS;
+  final applePay = holdSheetApplePay(isIOS: isIOS);
+  if (applePay != null) {
+    Stripe.merchantIdentifier = kStripeMerchantIdentifier;
+  }
   await Stripe.instance.applySettings();
   await Stripe.instance.initPaymentSheet(
     paymentSheetParameters: SetupPaymentSheetParameters(
       paymentIntentClientSecret: hold.clientSecret,
       merchantDisplayName: 'SaaradhiGo',
       googlePay: const PaymentSheetGooglePay(merchantCountryCode: 'US'),
-      applePay: const PaymentSheetApplePay(merchantCountryCode: 'US'),
+      applePay: applePay,
     ),
   );
   try {
