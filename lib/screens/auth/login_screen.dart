@@ -5,6 +5,8 @@ import 'package:provider/provider.dart';
 
 import '../../providers/auth_provider.dart';
 import '../components/market_overlays.dart';
+import '../../core/legal/policy_links.dart';
+import '../profile/about_screen.dart' show openPolicy;
 
 import '../../ui/appearance_settings.dart';
 import '../../ui/sg_appearance.dart';
@@ -340,6 +342,25 @@ class _LoginScreenState extends State<LoginScreen> {
                       fontSize: SgText.sizeSmall,
                       height: 1.4,
                     ),
+                  ),
+                  Wrap(
+                    alignment: WrapAlignment.center,
+                    children: [
+                      for (final link in kRiderPolicyLinks.where(
+                        (l) => l.path == '/terms' || l.path == '/privacy',
+                      ))
+                        TextButton(
+                          key: Key('login_link_${link.path.substring(1)}'),
+                          onPressed: () => openPolicy(link),
+                          child: Text(
+                            link.label,
+                            style: SgText.caption.copyWith(
+                              color: SgColors.goldText,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ),
+                    ],
                   ),
                 ],
               ),

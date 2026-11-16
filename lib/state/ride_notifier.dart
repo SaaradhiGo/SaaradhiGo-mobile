@@ -676,6 +676,18 @@ class RideNotifier extends Notifier<RideState> {
       return;
     }
 
+    // The last trip is unpaid: show the server's sentence, and "Pay now" when
+    // the card can be retried.
+    if (isUnpaidLastTripFrame(data)) {
+      BookingRefusalState.instance.reportMessage(
+        kUnpaidLastTrip,
+        unpaidLastTripMessage(data),
+        canPay: data['can_retry_card'] == true,
+      );
+      unawaited(clearState());
+      return;
+    }
+
     // Cash is not available for this account. Neutral message, and back out of
     // the "searching" screen.
     if (type == 'error' && data['code']?.toString() == kCashNotAvailable) {

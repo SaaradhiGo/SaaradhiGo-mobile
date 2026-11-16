@@ -54,6 +54,7 @@ class WebSocketService {
     String? promoCode,
     String? clientRequestId,
     String? quoteId,
+    int? cardHoldId,
   }) => {
     'action': 'request',
     'type': 'ride_request',
@@ -72,6 +73,8 @@ class WebSocketService {
     // The quote shown on the ticket: the server books at exactly its fare,
     // or refuses with QUOTE_EXPIRED and a fresh one (quote_lock.dart).
     if (quoteId != null && quoteId.isNotEmpty) 'quote_id': quoteId,
+    // USA: the card held for this fare in Stripe's sheet (card_hold_service.dart).
+    if (cardHoldId != null) 'card_hold_id': cardHoldId,
   };
 
   /// Frames after which the booking must not be sent again on a reconnect:
@@ -98,6 +101,7 @@ class WebSocketService {
     required String paymentMethod,
     String? promoCode,
     String? quoteId,
+    int? cardHoldId,
   }) {
     debugPrint("WebSocketService: requestRide invoked.");
     _isIntentionalDisconnect = false;
@@ -124,6 +128,7 @@ class WebSocketService {
       promoCode: promoCode,
       clientRequestId: const Uuid().v4(),
       quoteId: quoteId,
+      cardHoldId: cardHoldId,
     );
 
     debugPrint("WebSocketService: Payload prepared. Connecting to ride WS.");

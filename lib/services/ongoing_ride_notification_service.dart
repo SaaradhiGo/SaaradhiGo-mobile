@@ -23,7 +23,9 @@ class OngoingRideNotificationService {
         onStart: onStart,
         autoStart: false,
         isForegroundMode: true,
-        notificationChannelId: channelId,
+        // No custom channel: Android restarts this sticky service natively, before Dart
+        // can create one ("invalid channel" crash, emulator 16 Nov); the plugin's own is made natively.
+        notificationChannelId: null,
         initialNotificationTitle: 'SaaradhiGo Ride',
         initialNotificationContent: 'Connecting...',
         foregroundServiceNotificationId: notificationId,

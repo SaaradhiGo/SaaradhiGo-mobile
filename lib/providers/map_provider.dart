@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import '../services/card_hold_service.dart';
 import '../core/vehicle_classes.dart';
 import 'package:flutter/material.dart';
 import '../utils/recent_places.dart';
@@ -89,6 +90,34 @@ class MapProvider extends ChangeNotifier {
   }
 
   /// The quote the ticket shows for the chosen class, sent with the booking.
+  /// USA: a card booking is held in Stripe's sheet before it is requested.
+  bool get needsCardHold =>
+      _paymentMethod == 'card' && selectedQuoteCurrency == 'USD';
+
+  String? get selectedQuoteCurrency {
+    final type = _selectedVehicleType;
+    final c = type == null ? null : _fareEstimates[type]?['currency'];
+    return c?.toString().toUpperCase();
+  }
+
+  int? _cardHoldId;
+
+  /// Holds the card for the chosen quote when the market needs it. Returns null
+  /// when the booking may go ahead, or the message to show (empty: the rider
+  /// closed the sheet; nothing to say).
+  Future<String?> holdCardIfNeeded({CardHoldService? service}) async {
+    _cardHoldId = null;
+    if (!needsCardHold) return null;
+    final quoteId = selectedQuoteId;
+    if (quoteId == null) return 'This fare has expired. Get a new one.';
+    final outcome = await (service ?? CardHoldService()).hold(quoteId);
+    if (outcome.ok) {
+      _cardHoldId = outcome.holdId;
+      return null;
+    }
+    return outcome.message ?? '';
+  }
+
   String? get selectedQuoteId {
     final type = _selectedVehicleType;
     final id = type == null ? null : _fareEstimates[type]?['quote_id'];
@@ -227,9 +256,56 @@ class MapProvider extends ChangeNotifier {
       container?.read(rideNotifierProvider).status ==
           RideStatus.driverArrived ||
       container?.read(rideNotifierProvider).status == RideStatus.driverAccepted;
-  // Payment method is fixed to 'cash' as we are using Cashfree for online payments
-  String get selectedPaymentMethod {
-    return 'cash';
+  // How the rider pays, chosen before booking on the choose-a-ride screen.
+  // Cash until the server says what else is open at this pickup
+  // (`GET /ride/booking-options/`), so a failed call can only ever mean cash.
+  String _paymentMethod = 'cash';
+  bool _paymentPicked = false;
+  List<String> _paymentMethods = const ['cash'];
+  String get selectedPaymentMethod => _paymentMethod;
+  List<String> get paymentMethods => List.unmodifiable(_paymentMethods);
+
+  void selectPaymentMethod(String method) {
+    _paymentPicked = true;
+    if (_paymentMethod == method) return;
+    _paymentMethod = method;
+    notifyListeners();
+  }
+
+  /// Loads how the rider can pay at [pickup]. Keeps what the rider already
+  /// chose; otherwise takes the server's default (the method last used).
+  Future<void> loadPaymentOptions(LatLng pickup) async {
+    final payment = (await _fareService.bookingOptions(
+      pickup.latitude,
+      pickup.longitude,
+    ))?['payment'];
+    if (payment is! Map) return;
+    final methods = <String>[
+      for (final m in (payment['methods'] as List? ?? const []))
+        if (m is String && m.isNotEmpty) m,
+    ];
+    if (methods.isEmpty) return;
+    _paymentMethods = methods;
+    final def = payment['default']?.toString();
+    if (!methods.contains(_paymentMethod) || !_paymentPicked) {
+      _paymentMethod = (def != null && methods.contains(def))
+          ? def
+          : methods.first;
+    }
+    notifyListeners();
+  }
+
+  /// The "city not live yet" line from the fare estimate, when it said so.
+  /// Fares still show; booking shows this instead (see [BookingRefusalState]).
+  String? get launchingMessage {
+    for (final e in _fareEstimates.values) {
+      final l = e['launching'];
+      if (l is Map && l['code']?.toString() == 'CITY_NOT_LIVE') {
+        final m = l['message']?.toString() ?? '';
+        return m.isEmpty ? "We're not in your area yet." : m;
+      }
+    }
+    return null;
   }
 
   bool get isTripInProgress {
@@ -707,7 +783,9 @@ class MapProvider extends ChangeNotifier {
           paymentMethod: selectedPaymentMethod,
           promoCode: PromoSelection.instance.code,
           quoteId: quoteId,
+          cardHoldId: _cardHoldId,
         );
+    _cardHoldId = null;
   }
 
   /// True when the last cancellation did not reach the server.
@@ -756,7 +834,7 @@ class MapProvider extends ChangeNotifier {
   /// There is one exception. With no `tripId` there is nothing booked
   /// server-side -- the rider is cancelling a local search -- so there is
   /// nothing to confirm and the local teardown is the whole operation.
-  Future<bool> cancelRideRequest() async {
+  Future<bool> cancelRideRequest({String? reason}) async {
     final currentTripId = tripId;
     cancelMayNotHaveReachedServer = false;
 
@@ -765,7 +843,11 @@ class MapProvider extends ChangeNotifier {
       try {
         final token = await TokenStore.readAccessToken() ?? '';
         if (token.isNotEmpty) {
-          accepted = await _rideService.cancelTrip(token, currentTripId);
+          accepted = await _rideService.cancelTrip(
+            token,
+            currentTripId,
+            reason: reason,
+          );
         }
       } catch (e) {
         debugPrint('Error cancelling trip on backend: $e');

@@ -241,6 +241,14 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "1.0.8"
+  cupertino_ui:
+    dependency: transitive
+    description:
+      name: cupertino_ui
+      sha256: "369e39a1c5c030a6212589c3da1809920b1c2cfade7b02aade7695bfa4b88c3a"
+      url: "https://pub.dev"
+    source: hosted
+    version: "1.1.6"
   dart_style:
     dependency: transitive
     description:
@@ -555,6 +563,14 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "3.1.2"
+  flutter_stripe:
+    dependency: "direct main"
+    description:
+      name: flutter_stripe
+      sha256: "71a428ea5031995478a6ca6a5168dd09fafbf1a359b7de1e6c9ae281404ce73f"
+      url: "https://pub.dev"
+    source: hosted
+    version: "15.0.0"
   flutter_svg:
     dependency: "direct main"
     description:
@@ -965,6 +981,14 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "0.13.0"
+  material_ui:
+    dependency: transitive
+    description:
+      name: material_ui
+      sha256: "474c135fd46b56ff1d35ca982155e8863d28fbc6464d1192acf4ee53a738680e"
+      url: "https://pub.dev"
+    source: hosted
+    version: "1.11.0"
   meta:
     dependency: transitive
     description:
@@ -1410,6 +1434,30 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "1.4.1"
+  stripe_android:
+    dependency: transitive
+    description:
+      name: stripe_android
+      sha256: "45baa857b454cd72665ef380ef657eb586e561afc4799e0d07fd538c601ce663"
+      url: "https://pub.dev"
+    source: hosted
+    version: "15.0.0"
+  stripe_ios:
+    dependency: transitive
+    description:
+      name: stripe_ios
+      sha256: f641c70fc9cf0446a9208fd42760895a89449cee1e124babe6d1c1aedb035787
+      url: "https://pub.dev"
+    source: hosted
+    version: "15.0.0"
+  stripe_platform_interface:
+    dependency: transitive
+    description:
+      name: stripe_platform_interface
+      sha256: b04315c68a9947e8de66e52ffa430951f062b7f5eae02e1cf09510a7702d3df9
+      url: "https://pub.dev"
+    source: hosted
+    version: "15.0.0"
   term_glyph:
     dependency: transitive
     description:
@@ -1443,13 +1491,13 @@ packages:
     source: hosted
     version: "0.6.18"
   timezone:
-    dependency: transitive
+    dependency: "direct main"
     description:
       name: timezone
-      sha256: "784a5e34d2eb62e1326f24d6f600aaaee452eb8ca8ef2f384a59244e292d158b"
+      sha256: "9f4e5a1a0e4fef7dd3424842c0575db01bfb7a11730e8d55753fcd5c5c98767b"
       url: "https://pub.dev"
     source: hosted
-    version: "0.11.0"
+    version: "0.11.2"
   typed_data:
     dependency: transitive
     description:

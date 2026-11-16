@@ -50,6 +50,9 @@ class _FakeRideService implements RideService {
   }
 
   @override
+  Future<String?> getReceiptPdfUrl(String token, String tripId) async => null;
+
+  @override
   Future<Map<String, dynamic>?> getTripDetails(String token, String tripId) async {
     if (getTripDetailsThrows) {
       throw Exception('Network error');

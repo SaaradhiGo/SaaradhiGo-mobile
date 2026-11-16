@@ -33,6 +33,32 @@ class FareService {
     }
   }
 
+  /// `GET /ride/booking-options/`: how the rider can pay at this pickup and
+  /// the default. Null when the call fails (the caller then offers cash only).
+  Future<Map<String, dynamic>?> bookingOptions(double lat, double lng) async {
+    try {
+      final token = (await SharedPreferences.getInstance()).getString(
+        'access_token',
+      );
+      if (token == null) return null;
+      final response = await http
+          .get(
+            Uri.parse(
+              '${AppConfig.baseUrl}/ride/booking-options/?lat=$lat&lng=$lng',
+            ),
+            headers: {'Authorization': 'Bearer $token'},
+          )
+          .timeout(const Duration(seconds: 8));
+      if (response.statusCode != 200) return null;
+      final body = json.decode(response.body);
+      final data = body is Map ? (body['data'] ?? body) : null;
+      return data is Map<String, dynamic> ? data : null;
+    } catch (e) {
+      debugPrint('Error loading booking options: $e');
+      return null;
+    }
+  }
+
   Future<Map<String, dynamic>?> estimateFare({
     required double pickupLat,
     required double pickupLng,

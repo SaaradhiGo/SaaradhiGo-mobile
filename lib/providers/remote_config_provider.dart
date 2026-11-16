@@ -4,6 +4,7 @@ import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 
 import '../core/app_config.dart';
+import '../core/legal/legal_entity.dart';
 
 /// Fetches server-controlled feature flags from `GET /api/v1/config/`
 /// once at app start. Lets us flip behavior (e.g. enable wallet
@@ -22,6 +23,7 @@ class RemoteConfigProvider extends ChangeNotifier {
   String _walletDisplayName = 'SaaradhiGo Credits';
   List<String> _refundModes = const ['original'];
   bool _loaded = false;
+  Map<String, LegalEntity> _legal = const {};
   String? _error;
 
   bool get walletTopupsEnabled => _walletTopupsEnabled;
@@ -30,6 +32,10 @@ class RemoteConfigProvider extends ChangeNotifier {
   String get walletDisplayName => _walletDisplayName;
   List<String> get refundModes => List.unmodifiable(_refundModes);
   bool get loaded => _loaded;
+
+  /// The operator for a market: the server's entity, else only the name.
+  LegalEntity legalFor(String countryCode) =>
+      _legal[countryCode.toUpperCase()] ?? LegalEntity.fallback(countryCode);
   String? get error => _error;
 
   bool get refundToCreditSupported => _refundModes.contains('credit');
@@ -48,6 +54,7 @@ class RemoteConfigProvider extends ChangeNotifier {
       }
       final body = jsonDecode(resp.body) as Map<String, dynamic>;
       final data = (body['data'] ?? body) as Map<String, dynamic>;
+      _legal = parseLegal(data['legal']);
       final wallet = (data['wallet'] ?? const {}) as Map<String, dynamic>;
       _walletTopupsEnabled = wallet['topups_enabled'] == true;
       _walletCreditsOnly =

@@ -38,6 +38,7 @@ import 'services/api_service.dart';
 import 'navigation/session_end.dart';
 import 'screens/auth/login_screen.dart';
 import 'screens/auth/otp_verification_screen.dart';
+import 'screens/profile/about_screen.dart';
 import 'screens/profile/profile_setup_screen.dart';
 import 'screens/profile/referral_screen.dart';
 import 'screens/profile/notification_preferences_screen.dart';
@@ -291,6 +292,11 @@ class _SaaradhiGoAppState extends State<SaaradhiGoApp> {
               const ReferralScreen(),
         ),
         GoRoute(
+          path: '/about',
+          builder: (BuildContext context, GoRouterState state) =>
+              const AboutScreen(),
+        ),
+        GoRoute(
           path: '/help-support',
           builder: (BuildContext context, GoRouterState state) =>
               const HelpSupportScreen(),
@@ -358,6 +364,7 @@ class _SaaradhiGoAppState extends State<SaaradhiGoApp> {
             return RateReviewDriverScreen(
               tripId: extra['trip_id']?.toString(),
               driverName: extra['driver_name']?.toString(),
+              vehicleLine: extra['vehicle_line']?.toString(),
               fareText: extra['fare_text']?.toString(),
               method: extra['method']?.toString(),
               paid: extra['paid'] != false,

@@ -15,6 +15,7 @@
 //
 // Deleting them is a reasonable future change; doing it silently as part of a
 // lint cleanup is not, which is why this comment exists instead.
+import '../../widgets/card_paid_panel.dart';
 import '../../ui/sg_layout.dart';
 import '../../core/pricing/quote_lock.dart';
 import '../../core/trip_eta.dart';
@@ -46,6 +47,7 @@ import '../../services/trip_charge.dart';
 import '../../widgets/trip_charge_card.dart';
 
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:url_launcher/url_launcher.dart';
 import 'package:provider/provider.dart' as p;
 
 import '../../utils/money.dart';
@@ -57,6 +59,9 @@ import '../../ui/appearance_settings.dart' show paymentMethodLabel, sgStrings;
 import '../../ui/booking_widgets.dart';
 import '../../ui/trip_t2_widgets.dart';
 import '../../ui/choose_ride_sheet.dart';
+import '../../ui/cancel_reasons.dart';
+import '../../services/models/trip_invoice.dart';
+import '../../widgets/invoice_card.dart';
 import '../../ui/ride_rating_panel.dart';
 import '../../ui/sg_text.dart';
 import '../../ui/sg_tokens.dart';
@@ -72,7 +77,18 @@ import '../../ui/trip_widgets.dart';
 /// silent one.
 Future<bool> _cancelRideAndReport(BuildContext context) async {
   final provider = context.read<MapProvider>();
-  final confirmed = await provider.cancelRideRequest();
+  // Why, by trip state. Nothing booked yet (a local search) needs no reason.
+  String? reason;
+  if (provider.tripId != null) {
+    reason = await showCancelReasonSheet(
+      context,
+      driverAssigned: !provider.isRequestingRide,
+    );
+    // Backed out: keep the ride, say nothing.
+    if (reason == null) return false;
+    if (!context.mounted) return false;
+  }
+  final confirmed = await provider.cancelRideRequest(reason: reason);
   if (!confirmed && context.mounted) {
     ScaffoldMessenger.maybeOf(context)?.showSnackBar(
       SnackBar(
@@ -87,6 +103,17 @@ Future<bool> _cancelRideAndReport(BuildContext context) async {
     );
   }
   return confirmed;
+}
+
+/// Leaves a ride screen once the cancel is confirmed. A ride started from the
+/// booking flow replaces the stack (`go`), so there may be nothing to pop: popping
+/// the last page left a black screen (found on the QA phone, 12 Nov).
+void _leaveAfterCancel(BuildContext context) {
+  if (Navigator.of(context).canPop()) {
+    Navigator.of(context).pop();
+  } else {
+    context.go('/home');
+  }
 }
 
 /// Who the rider is riding with, read from the ride payload the screens render.
@@ -417,7 +444,7 @@ class _SearchingDriverScreenState extends State<SearchingDriverScreen> {
               final confirmed = await _cancelRideAndReport(context);
               if (!confirmed || !mounted) return;
               setState(() => _canPop = true);
-              if (context.mounted) Navigator.of(context).pop();
+              if (context.mounted) _leaveAfterCancel(context);
             }
           },
           child: _DarkMapScaffold(
@@ -743,7 +770,7 @@ class _DriverFoundScreenState extends State<DriverFoundScreen> {
               final confirmed = await _cancelRideAndReport(context);
               if (!confirmed || !mounted || !context.mounted) return;
               setState(() => _canPop = true);
-              Navigator.of(context).pop();
+              _leaveAfterCancel(context);
             }
           },
           child: _DarkMapScaffold(
@@ -863,7 +890,7 @@ class _DriverFoundScreenState extends State<DriverFoundScreen> {
     _showCancelConfirmation(context).then((shouldCancel) async {
       if (shouldCancel && context.mounted) {
         final confirmed = await _cancelRideAndReport(context);
-        if (confirmed && context.mounted) context.pop();
+        if (confirmed && context.mounted) _leaveAfterCancel(context);
       }
     });
   }
@@ -1079,7 +1106,7 @@ class _FullMapTrackingScreenState extends State<FullMapTrackingScreen> {
               final confirmed = await _cancelRideAndReport(context);
               if (!confirmed || !mounted || !context.mounted) return;
               setState(() => _canPop = true);
-              Navigator.of(context).pop();
+              _leaveAfterCancel(context);
             }
           },
           child: _DarkMapScaffold(
@@ -1238,18 +1265,49 @@ class _RidePaymentSummaryScreenState extends State<RidePaymentSummaryScreen> {
   /// The trip detail, loaded for a trip support ended (distance driven, the
   /// fare for it, whether anything was charged).
   Map<String, dynamic>? _receipt;
+  TripInvoice? _invoice;
 
   /// The trip to rate, captured on open: every payment path clears the local
   /// ride state before the rating screen, which then had nothing to rate.
   String? _rateTripId;
   String? _rateDriverName;
+  String? _vehicleLine;
 
   /// Kept for the rating screen, for the same reason: the ride state is gone.
   String? _dropName;
   String? _durationText;
   String? _fareText;
+
+  /// The invoice's total charged (ride total plus any tip), when the server
+  /// sends one: the headline amount once the trip is paid.
+  String? _chargedText;
   String? _payMethod;
   final DateTime _openedAt = DateTime.now();
+
+  /// The trip as the server reads it (card hold, market rules), once loaded.
+  Map? _tripData;
+
+  /// USA: paid by the card held at booking; nothing to choose here.
+  bool get _cardHeld =>
+      _tripData?['card_held'] == true ||
+      (_payMethod == 'card' &&
+          (_tripData?['currency'] ?? '').toString().toUpperCase() == 'USD');
+
+  List<int> get _tipPresets {
+    final rules = _tripData?['market_rules'];
+    if (rules is! Map || rules['tips_enabled'] != true) return const [];
+    return [
+      for (final p in (rules['tip_presets'] as List? ?? const []))
+        if (int.tryParse('$p') != null) int.parse('$p'),
+    ];
+  }
+
+  Future<void> _finishCardPaid() async {
+    final mapProvider = p.Provider.of<MapProvider>(context, listen: false);
+    await mapProvider.clearRideStateLocally();
+    if (!mounted) return;
+    _goRate(method: 'card', paid: true);
+  }
 
   void _goRate({String? method, bool paid = true}) {
     context.go(
@@ -1257,7 +1315,8 @@ class _RidePaymentSummaryScreenState extends State<RidePaymentSummaryScreen> {
       extra: {
         'trip_id': _rateTripId,
         'driver_name': _rateDriverName,
-        'fare_text': _fareText,
+        'vehicle_line': _vehicleLine,
+        'fare_text': _chargedText ?? _fareText,
         'method': method ?? _payMethod,
         'paid': paid,
         'detail': tripDetailLine(_dropName, _openedAt, _durationText),
@@ -1283,7 +1342,12 @@ class _RidePaymentSummaryScreenState extends State<RidePaymentSummaryScreen> {
       _rateTripId =
           mp.tripId ??
           (raw is Map ? (raw['trip_id'] ?? raw['id'])?.toString() : null);
-      _rateDriverName = raw is Map ? raw['driver_name']?.toString() : null;
+      final who = _DriverView(raw);
+      _rateDriverName = who.name.isEmpty ? null : who.name;
+      _vehicleLine = [
+        if (who.vehicleLine != null) who.vehicleLine!,
+        if (who.plate.isNotEmpty) who.plate,
+      ].join(' · ');
       _dropName = mp.destinationAddress;
       _durationText = mp.duration;
       _payMethod =
@@ -1304,14 +1368,41 @@ class _RidePaymentSummaryScreenState extends State<RidePaymentSummaryScreen> {
       );
       context.read<WalletProvider>().refreshWallet();
       _loadReceiptIfEndedBySupport();
+      _loadInvoice();
     });
+  }
+
+  // The receipt or tax invoice, issued by the market's entity. Absent until
+  // the server has one (and on servers that predate it): nothing shows then.
+  Future<void> _loadInvoice() async {
+    final id = context.read<MapProvider>().tripId ?? _rateTripId;
+    if (id == null) return;
+    final token = (await SharedPreferences.getInstance()).getString(
+      'access_token',
+    );
+    if (token == null) return;
+    final body = await _rideService.getTripStatus(token, id);
+    final data = body?['data'];
+    final trip = data is Map ? data : body;
+    if (mounted && trip is Map) setState(() => _tripData = trip);
+    final invoice = TripInvoice.fromTrip(trip);
+    if (mounted && invoice != null && invoice.companyName.isNotEmpty) {
+      final charged = double.tryParse(invoice.totalCharged ?? '');
+      setState(() {
+        _invoice = invoice;
+        if (charged != null) {
+          _chargedText = exactMoney(charged, invoice.currency);
+        }
+      });
+    }
   }
 
   Timer? _settledPoll;
 
   Future<void> _checkSettled() async {
     final id = _rateTripId;
-    if (id == null || _cashHandled) return;
+    // A card-held trip settles by itself; "cash received" would be wrong there.
+    if (id == null || _cashHandled || _cardHeld) return;
     final token = (await SharedPreferences.getInstance()).getString(
       'access_token',
     );
@@ -1830,6 +1921,10 @@ class _RidePaymentSummaryScreenState extends State<RidePaymentSummaryScreen> {
                       ),
                       plain: charge.notCharged || endedBySupport,
                     ),
+                  if (_invoice != null) ...[
+                    const SizedBox(height: SgSpace.s3),
+                    InvoiceCard(invoice: _invoice!),
+                  ],
                   if (_confirming != null) ...[
                     const SizedBox(height: SgSpace.s3),
                     Text(
@@ -1847,6 +1942,16 @@ class _RidePaymentSummaryScreenState extends State<RidePaymentSummaryScreen> {
                     NotChargedPanel(
                       message: _notChargedMessage,
                       onContinue: _continueWhenNotCharged,
+                    )
+                  else if (_cardHeld)
+                    CardPaidPanel(
+                      tripId: _rateTripId,
+                      amountText:
+                          _chargedText ?? exactMoney(payTotal, currencyCode),
+                      driverFirst: _driverFirst(rideData, context),
+                      tipPresets: _tipPresets,
+                      onTipped: _loadInvoice,
+                      onDone: _finishCardPaid,
                     )
                   else ...[
                     _buildPaymentOption(
@@ -2118,10 +2223,22 @@ class RateReviewDriverScreen extends StatelessWidget {
     this.method,
     this.paid = true,
     this.detail = '',
+    this.vehicleLine,
+    this.rideService,
+    this.openUrl,
+    this.accessToken,
   });
 
   final String? tripId;
   final String? driverName;
+
+  /// "White Maruti Suzuki Dzire · TS09AB1234", when the app knows the car.
+  final String? vehicleLine;
+
+  /// Test seams: the HTTP service, the URL opener and the sign-in token.
+  final RideService? rideService;
+  final Future<bool> Function(Uri url)? openUrl;
+  final Future<String?> Function()? accessToken;
 
   /// What the summary knew, so this screen can show what was paid.
   final String? fareText;
@@ -2155,24 +2272,146 @@ class RateReviewDriverScreen extends StatelessWidget {
               paidLabel: paidLabelFor(method, paid: paid),
               fareText: fareText,
               paid: paid,
-              below: RideRatingPanel(
+              below: _TripSummaryBelow(
                 tripId: id,
                 driverName: driverName,
-                onDone: (rated) {
-                  if (rated) {
-                    ScaffoldMessenger.maybeOf(context)?.showSnackBar(
-                      SnackBar(
-                        content: Text(sgStrings(context).thanksForRating),
-                      ),
-                    );
-                  }
-                  context.go('/home');
-                },
+                vehicleLine: vehicleLine,
+                rideService: rideService,
+                openUrl: openUrl,
+                accessToken: accessToken,
+                child: RideRatingPanel(
+                  tripId: id,
+                  driverName: driverName,
+                  onDone: (rated) {
+                    if (rated) {
+                      ScaffoldMessenger.maybeOf(context)?.showSnackBar(
+                        SnackBar(
+                          content: Text(sgStrings(context).thanksForRating),
+                        ),
+                      );
+                    }
+                    context.go('/home');
+                  },
+                ),
               ),
             ),
           ],
         ),
       ),
+    );
+  }
+}
+
+/// Who drove, a "View receipt" link, then the rating and Done.
+class _TripSummaryBelow extends StatefulWidget {
+  const _TripSummaryBelow({
+    required this.tripId,
+    required this.child,
+    this.driverName,
+    this.vehicleLine,
+    this.rideService,
+    this.openUrl,
+    this.accessToken,
+  });
+
+  final String tripId;
+  final String? driverName, vehicleLine;
+  final RideService? rideService;
+  final Future<bool> Function(Uri url)? openUrl;
+  final Future<String?> Function()? accessToken;
+  final Widget child;
+
+  @override
+  State<_TripSummaryBelow> createState() => _TripSummaryBelowState();
+}
+
+class _TripSummaryBelowState extends State<_TripSummaryBelow> {
+  bool _busy = false;
+
+  Future<void> _viewReceipt() async {
+    if (_busy) return;
+    setState(() => _busy = true);
+    final messenger = ScaffoldMessenger.maybeOf(context);
+    var opened = false;
+    try {
+      final token = widget.accessToken != null
+          ? await widget.accessToken!()
+          : (await SharedPreferences.getInstance()).getString('access_token');
+      final url = token == null
+          ? null
+          : await (widget.rideService ?? RideService()).getReceiptPdfUrl(
+              token,
+              widget.tripId,
+            );
+      if (url != null) {
+        final uri = Uri.parse(url);
+        opened = widget.openUrl != null
+            ? await widget.openUrl!(uri)
+            : await launchUrl(uri, mode: LaunchMode.externalApplication);
+      }
+    } catch (_) {
+      opened = false;
+    }
+    if (!opened) {
+      messenger?.showSnackBar(
+        const SnackBar(content: Text('The receipt is not ready yet.')),
+      );
+    }
+    if (mounted) setState(() => _busy = false);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final name = (widget.driverName ?? '').trim();
+    final car = (widget.vehicleLine ?? '').trim();
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        if (name.isNotEmpty || car.isNotEmpty)
+          Container(
+            key: const Key('summary_driver'),
+            padding: const EdgeInsets.all(SgSpace.s4),
+            margin: const EdgeInsets.only(bottom: SgSpace.s3),
+            decoration: BoxDecoration(
+              color: SgColors.bg100,
+              borderRadius: BorderRadius.circular(SgRadius.lg),
+              border: Border.all(color: SgColors.goldLine),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text('YOUR DRIVER', style: SgText.label),
+                if (name.isNotEmpty)
+                  Text(
+                    name,
+                    key: const Key('summary_driver_name'),
+                    style: SgText.title,
+                  ),
+                if (car.isNotEmpty)
+                  Text(
+                    car,
+                    key: const Key('summary_vehicle'),
+                    style: SgText.body.copyWith(color: SgColors.inkMuted),
+                  ),
+              ],
+            ),
+          ),
+        Center(
+          child: TextButton(
+            key: const Key('view_receipt'),
+            onPressed: _busy ? null : _viewReceipt,
+            child: Text(
+              'View receipt',
+              style: SgText.body.copyWith(
+                color: SgColors.goldText,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ),
+        ),
+        const SizedBox(height: SgSpace.s3),
+        widget.child,
+      ],
     );
   }
 }
