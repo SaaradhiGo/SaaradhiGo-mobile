@@ -81,6 +81,7 @@ void main() {
   // http.get(...) calls and every http.Client() use AppHttpClient, which adds the
   // X-App-* headers and watches for 426 APP_UPDATE_REQUIRED. The binding and
   // runApp must share this zone.
+  AppHttpClient.tokenRefresher = () => ApiService().refreshAccessToken();
   http.runWithClient(_main, () => AppHttpClient());
 }
 
