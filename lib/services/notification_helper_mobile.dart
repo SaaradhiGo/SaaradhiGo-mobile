@@ -20,9 +20,9 @@ class NotificationHelper {
           iOS: initializationSettingsDarwin,
         );
 
-    final dynamic plugin = _notificationsPlugin;
-    await plugin.initialize(
-      initializationSettings,
+    // Typed v21 call: a `dynamic` positional call failed at runtime and push never started.
+    await _notificationsPlugin.initialize(
+      settings: initializationSettings,
       onDidReceiveNotificationResponse: (NotificationResponse details) {
         // When notification is tapped, we want to ensure the app is in foreground
         // and let the Home screen logic (initState) handle redirection.
@@ -39,12 +39,11 @@ class NotificationHelper {
     String channelId,
     String channelName,
   ) async {
-    final dynamic plugin = _notificationsPlugin;
-    await plugin.show(
-      id,
-      title,
-      body,
-      NotificationDetails(
+    await _notificationsPlugin.show(
+      id: id,
+      title: title,
+      body: body,
+      notificationDetails: NotificationDetails(
         android: AndroidNotificationDetails(
           channelId,
           channelName,

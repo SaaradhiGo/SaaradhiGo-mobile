@@ -8,6 +8,7 @@ import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:saaradhigo_rider/core/market/market_dates.dart';
+import 'package:saaradhigo_rider/services/api_service.dart';
 import 'package:saaradhigo_rider/services/card_hold_service.dart';
 import 'package:saaradhigo_rider/services/models/trip_invoice.dart';
 import 'package:saaradhigo_rider/services/models/trip_model.dart';
@@ -227,5 +228,36 @@ void main() {
       inTripZone(DateTime.utc(2026, 11, 14, 18, 30), 'Asia/Kolkata').hour,
       0,
     );
+  });
+
+  // Regression (emulator, 16 Nov): the service sent "dob": "" and the server refused the whole
+  // update, so a rider with no date of birth on file could not get past Complete Profile.
+  test('a profile update sends only what the rider filled in', () async {
+    Map<String, dynamic>? sent;
+    final api = ApiService(
+      client: MockClient((r) async {
+        sent = jsonDecode(r.body) as Map<String, dynamic>;
+        return http.Response(
+          jsonEncode({
+            'data': {'full_name': 'Harish'},
+          }),
+          200,
+        );
+      }),
+    );
+    await api.updateProfile(
+      fullName: 'Harish',
+      email: '',
+      gender: 'male',
+      dob: '',
+      emergencyContact: '9876543210',
+      houseNo: '12A',
+      street: '',
+      city: 'Hyderabad',
+      zipCode: '500034',
+    );
+    expect(sent!.containsKey('dob'), isFalse);
+    expect(sent!.containsKey('email'), isFalse);
+    expect(sent!['emergency_contact'], '9876543210');
   });
 }

@@ -105,6 +105,7 @@ class ApiService implements AuthApiClient {
       }
     }
 
+    final hadSession = (_accessToken ?? '').isNotEmpty;
     final future = () async {
       final refresh = await TokenStore.readRefreshToken();
       if (refresh == null || refresh.isEmpty) {
@@ -150,7 +151,8 @@ class ApiService implements AuthApiClient {
       return await future;
     } on _SessionGone catch (e) {
       debugPrint('Token refresh refused: ${e.reason}');
-      await _endSession();
+      // Never signed in (a fresh install): nothing expired, so no "session expired" banner.
+      await _endSession(announce: e.reason != 'no refresh token' || hadSession);
       return null;
     } catch (e) {
       // A network fault or 5xx: keep the session, the view shows its error
@@ -206,10 +208,10 @@ class ApiService implements AuthApiClient {
   }
 
   /// Clears the tokens and tells the app to go to Log in.
-  Future<void> _endSession() async {
+  Future<void> _endSession({bool announce = true}) async {
     await TokenStore.clear();
     _accessToken = null;
-    SessionEvents.emitExpired();
+    if (announce) SessionEvents.emitExpired();
   }
 
   // Request OTP
@@ -380,6 +382,23 @@ class ApiService implements AuthApiClient {
     String? homeCity,
   }) async {
     if (_accessToken == null) await _loadTokens();
+    // Only what the rider filled in: the server refuses the whole update for a
+    // blank date ("dob": ""), which kept a rider with no birth date off the app.
+    final fields = <String, String>{
+      for (final e in {
+        'full_name': fullName,
+        'email': email,
+        'gender': gender,
+        'dob': dob,
+        'emergency_contact': emergencyContact,
+        'house_no': houseNo,
+        'street': street,
+        'city': city,
+        'zip_code': zipCode,
+        'home_city': homeCity ?? '',
+      }.entries)
+        if (e.value.trim().isNotEmpty) e.key: e.value.trim(),
+    };
 
     try {
       final uri = Uri.parse('$baseUrl${AppConfig.authUpdate}');
@@ -391,18 +410,7 @@ class ApiService implements AuthApiClient {
         request.headers['Authorization'] = 'Bearer $_accessToken';
 
         request.fields['is_updated'] = 'true';
-        request.fields['full_name'] = fullName;
-        request.fields['email'] = email;
-        request.fields['gender'] = gender;
-        request.fields['dob'] = dob;
-        request.fields['emergency_contact'] = emergencyContact;
-        request.fields['house_no'] = houseNo;
-        request.fields['street'] = street;
-        request.fields['city'] = city;
-        request.fields['zip_code'] = zipCode;
-        if (homeCity != null && homeCity.isNotEmpty) {
-          request.fields['home_city'] = homeCity;
-        }
+        request.fields.addAll(fields);
 
         final xFile = XFile(profilePicPath);
         final bytes = await xFile.readAsBytes();
@@ -423,19 +431,7 @@ class ApiService implements AuthApiClient {
             'Content-Type': 'application/json',
             'Authorization': 'Bearer $_accessToken',
           },
-          body: jsonEncode({
-            'is_updated': true,
-            'full_name': fullName,
-            'email': email,
-            'gender': gender,
-            'dob': dob,
-            'emergency_contact': emergencyContact,
-            'house_no': houseNo,
-            'street': street,
-            'city': city,
-            'zip_code': zipCode,
-            if (homeCity != null && homeCity.isNotEmpty) 'home_city': homeCity,
-          }),
+          body: jsonEncode({'is_updated': true, ...fields}),
         );
       }
 
