@@ -109,6 +109,11 @@ class AppHttpClient extends http.BaseClient {
   final http.Client _inner;
   final UpdateRequiredState _update;
 
+  /// Set at start-up (main.dart): a fresh access token, or null. 16 Nov: after
+  /// 15 idle minutes the fare call got 401 and the rider read "check your
+  /// connection"; a signed-in call is now retried once with a fresh token.
+  static Future<String?> Function()? tokenRefresher;
+
   @override
   Future<http.StreamedResponse> send(http.BaseRequest request) async {
     final version = await AppIdentity.version();
@@ -118,7 +123,26 @@ class AppHttpClient extends http.BaseClient {
     request.headers.putIfAbsent('X-App-Platform', () => AppIdentity.platform);
     request.headers.putIfAbsent('X-App-Name', () => AppIdentity.name);
 
-    final response = await _inner.send(request);
+    var response = await _inner.send(request);
+    final refresher = tokenRefresher;
+    final auth = request.headers['Authorization'] ?? '';
+    if (response.statusCode == 401 &&
+        refresher != null &&
+        request is http.Request &&
+        auth.startsWith('Bearer ')) {
+      final fresh = await refresher();
+      if (fresh != null && fresh.isNotEmpty) {
+        await response.stream.drain<void>();
+        final retry = http.Request(request.method, request.url)
+          ..bodyBytes = request.bodyBytes
+          ..followRedirects = request.followRedirects
+          ..maxRedirects = request.maxRedirects;
+        retry.headers
+          ..addAll(request.headers)
+          ..['Authorization'] = 'Bearer $fresh';
+        response = await _inner.send(retry);
+      }
+    }
     if (response.statusCode != 426) return response;
 
     final bytes = await response.stream.toBytes();

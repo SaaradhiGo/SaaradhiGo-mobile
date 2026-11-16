@@ -7,6 +7,7 @@ import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../core/app_config.dart';
+import '../core/market/booking_refusal.dart';
 
 /// A card held at booking for the locked fare (USA; backend
 /// servers/payments/card_hold.py). The card never reaches SaaradhiGo:
@@ -111,9 +112,20 @@ class CardHoldService {
       final body = r.body.isEmpty ? null : jsonDecode(r.body);
       if (r.statusCode >= 300) {
         final err = body is Map ? body['error'] : null;
-        return CardHoldOutcome.failed(
-          (err is Map ? err['message']?.toString() : null) ?? _notAvailable,
-        );
+        final message = err is Map ? err['message']?.toString() : null;
+        // 16 Nov: an unpaid last trip opens the same sheet as at booking,
+        // with "Pay now" (it used to be a passing snackbar, no way to pay).
+        if (err is Map && err['code']?.toString() == kUnpaidLastTrip) {
+          BookingRefusalState.instance.reportMessage(
+            kUnpaidLastTrip,
+            (message == null || message.isEmpty)
+                ? kUnpaidFallbackMessage
+                : message,
+            canPay: true,
+          );
+          return const CardHoldOutcome.cancelled();
+        }
+        return CardHoldOutcome.failed(message ?? _notAvailable);
       }
       final hold = CardHold.fromJson(body);
       if (hold == null) return const CardHoldOutcome.failed(_notAvailable);
