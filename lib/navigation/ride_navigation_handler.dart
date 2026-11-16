@@ -100,6 +100,16 @@ class RideNavigationHandler extends ConsumerWidget {
     final tripStatus = rideState.status;
     final tripId = rideState.tripId;
 
+    // Round 3: a finished trip recovered at launch (paid at drop while the
+    // app was closed) opens its receipt and tip. The decision below treats a
+    // completed trip as "no active trip" and sent the rider Home.
+    if (tripStatus == RideStatus.rideCompleted &&
+        tripId != null &&
+        tripId.isNotEmpty) {
+      if (!_isOn(context, '/ride-summary')) _r(context).go('/ride-summary');
+      return;
+    }
+
     // Determine if there's an active trip
     final hasActiveTrip = rideState.isActiveRide;
 
@@ -166,6 +176,11 @@ class RideNavigationHandler extends ConsumerWidget {
       // Fallback to original navigation logic if no route determined
       _fallbackNavigation(context, rideState);
     }
+  }
+
+  bool _isOn(BuildContext context, String path) {
+    final c = _r(context).routerDelegate.currentConfiguration;
+    return c.isNotEmpty && c.last.matchedLocation == path;
   }
 
   /// Checks if the current route is the home screen

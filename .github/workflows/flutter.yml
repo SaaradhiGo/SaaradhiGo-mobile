@@ -118,10 +118,18 @@ jobs:
       - name: QA debug keystore
         env:
           QA_DEBUG_KEYSTORE_B64: ${{ secrets.QA_DEBUG_KEYSTORE_B64 }}
+          QA_DEBUG_KEYSTORE_PASSWORD: ${{ secrets.QA_DEBUG_KEYSTORE_PASSWORD }}
         run: |
           if [ -n "$QA_DEBUG_KEYSTORE_B64" ]; then
             mkdir -p ~/.android
             echo "$QA_DEBUG_KEYSTORE_B64" | base64 -d > ~/.android/debug.keystore
+            # Round 3: Gradle never read ~/.android here, so every build had a new key
+            # (blank map, no update in place). The build reads qa.debugKeystore only.
+            # The QA key is a debug key: Android's standard debug password unless set.
+            {
+              echo "qa.debugKeystore=$HOME/.android/debug.keystore"
+              echo "qa.debugKeystorePassword=${QA_DEBUG_KEYSTORE_PASSWORD:-android}"
+            } >> android/local.properties
             echo "Using the QA debug keystore."
           else
             echo "No QA keystore secret: runner debug key, maps will not load."
@@ -139,6 +147,15 @@ jobs:
             --android-project-arg maps.apiKey="$MAPS_API_KEY" \
             --dart-define=BASE_URL="$QA_API" \
             --dart-define=WS_BASE_URL="$QA_WS"
+
+      - name: The APK carries the QA certificate
+        env:
+          QA_KEY_SHA256: ${{ vars.QA_DEBUG_KEY_SHA256 }}
+        run: |
+          signer=$(find "$ANDROID_HOME" -name apksigner -type f | head -1)
+          got=$("$signer" verify --print-certs build/app/outputs/flutter-apk/app-debug.apk | sed -n 's/.*SHA-256 digest: //p' | head -1)
+          echo "APK certificate SHA-256: $got"
+          [ -z "$QA_KEY_SHA256" ] || [ "$got" = "$QA_KEY_SHA256" ] || { echo "Not the QA key: testers could not update and maps would not load."; exit 1; }
 
       - name: Report artifact size
         # A sudden jump in size is usually an accidentally bundled asset.
