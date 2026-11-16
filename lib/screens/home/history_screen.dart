@@ -1,4 +1,5 @@
 import '../../ui/appearance_settings.dart' show sgStrings;
+import '../../ui/trip_widgets.dart' show exactMoney;
 import '../../core/vehicle_classes.dart';
 import '../components/market_overlays.dart';
 import 'package:flutter/material.dart';
@@ -33,8 +34,8 @@ class _HistoryScreenState extends State<HistoryScreen> {
   Map<String, List<Trip>> _groupTripsByMonth(List<Trip> trips) {
     final Map<String, List<Trip>> grouped = {};
     for (final trip in trips) {
-      final monthYear = trip.createdAt != null
-          ? trip.dates.monthYear(trip.createdAt!)
+      final monthYear = trip.localCreatedAt != null
+          ? trip.dates.monthYear(trip.localCreatedAt!)
           : 'RECENTLY';
       if (!grouped.containsKey(monthYear)) {
         grouped[monthYear] = [];
@@ -224,8 +225,8 @@ class _HistoryRideCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final dateStr = trip.createdAt != null
-        ? trip.dates.shortDateTime(trip.createdAt!)
+    final dateStr = trip.localCreatedAt != null
+        ? trip.dates.shortDateTime(trip.localCreatedAt!)
         : 'Recently';
     final fare = trip.displayAmount;
     final canRebook =
@@ -258,8 +259,12 @@ class _HistoryRideCard extends StatelessWidget {
                 ),
               ),
               // What was charged, exactly as the receipt says.
+              // In the trip's own currency ($ for a Boise trip), never the phone's market.
               Text(
-                '${marketOf(context).currencySymbol}$fare',
+                trip.currency == null
+                    ? '${marketOf(context).currencySymbol}$fare'
+                    : exactMoney(double.tryParse(fare) ?? 0, trip.currency),
+                softWrap: false,
                 style: SgText.fare,
               ),
             ],

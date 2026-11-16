@@ -15,6 +15,7 @@
 //
 // Deleting them is a reasonable future change; doing it silently as part of a
 // lint cleanup is not, which is why this comment exists instead.
+import '../../widgets/card_paid_panel.dart';
 import '../../ui/sg_layout.dart';
 import '../../core/pricing/quote_lock.dart';
 import '../../core/trip_eta.dart';
@@ -1283,6 +1284,31 @@ class _RidePaymentSummaryScreenState extends State<RidePaymentSummaryScreen> {
   String? _payMethod;
   final DateTime _openedAt = DateTime.now();
 
+  /// The trip as the server reads it (card hold, market rules), once loaded.
+  Map? _tripData;
+
+  /// USA: paid by the card held at booking; nothing to choose here.
+  bool get _cardHeld =>
+      _tripData?['card_held'] == true ||
+      (_payMethod == 'card' &&
+          (_tripData?['currency'] ?? '').toString().toUpperCase() == 'USD');
+
+  List<int> get _tipPresets {
+    final rules = _tripData?['market_rules'];
+    if (rules is! Map || rules['tips_enabled'] != true) return const [];
+    return [
+      for (final p in (rules['tip_presets'] as List? ?? const []))
+        if (int.tryParse('$p') != null) int.parse('$p'),
+    ];
+  }
+
+  Future<void> _finishCardPaid() async {
+    final mapProvider = p.Provider.of<MapProvider>(context, listen: false);
+    await mapProvider.clearRideStateLocally();
+    if (!mounted) return;
+    _goRate(method: 'card', paid: true);
+  }
+
   void _goRate({String? method, bool paid = true}) {
     context.go(
       '/rate-driver',
@@ -1357,7 +1383,9 @@ class _RidePaymentSummaryScreenState extends State<RidePaymentSummaryScreen> {
     if (token == null) return;
     final body = await _rideService.getTripStatus(token, id);
     final data = body?['data'];
-    final invoice = TripInvoice.fromTrip(data is Map ? data : body);
+    final trip = data is Map ? data : body;
+    if (mounted && trip is Map) setState(() => _tripData = trip);
+    final invoice = TripInvoice.fromTrip(trip);
     if (mounted && invoice != null && invoice.companyName.isNotEmpty) {
       final charged = double.tryParse(invoice.totalCharged ?? '');
       setState(() {
@@ -1373,7 +1401,8 @@ class _RidePaymentSummaryScreenState extends State<RidePaymentSummaryScreen> {
 
   Future<void> _checkSettled() async {
     final id = _rateTripId;
-    if (id == null || _cashHandled) return;
+    // A card-held trip settles by itself; "cash received" would be wrong there.
+    if (id == null || _cashHandled || _cardHeld) return;
     final token = (await SharedPreferences.getInstance()).getString(
       'access_token',
     );
@@ -1913,6 +1942,16 @@ class _RidePaymentSummaryScreenState extends State<RidePaymentSummaryScreen> {
                     NotChargedPanel(
                       message: _notChargedMessage,
                       onContinue: _continueWhenNotCharged,
+                    )
+                  else if (_cardHeld)
+                    CardPaidPanel(
+                      tripId: _rateTripId,
+                      amountText:
+                          _chargedText ?? exactMoney(payTotal, currencyCode),
+                      driverFirst: _driverFirst(rideData, context),
+                      tipPresets: _tipPresets,
+                      onTipped: _loadInvoice,
+                      onDone: _finishCardPaid,
                     )
                   else ...[
                     _buildPaymentOption(

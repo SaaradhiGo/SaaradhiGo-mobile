@@ -9,6 +9,13 @@ class InvoiceLine {
   final String amount;
 }
 
+class InvoiceRefund {
+  const InvoiceRefund(this.label, this.amount, this.date);
+  final String label;
+  final String amount;
+  final String date;
+}
+
 class TripInvoice {
   const TripInvoice({
     required this.title,
@@ -30,6 +37,8 @@ class TripInvoice {
     this.tip,
     this.totalCharged,
     this.currency,
+    this.refunds = const [],
+    this.netCharged,
   });
 
   /// "Receipt" while GST is off, "Tax invoice" when on.
@@ -50,6 +59,7 @@ class TripInvoice {
   final String? taxAmount;
   final bool taxIncluded;
   final List<InvoiceLine> extras;
+
   /// The ride total: fare plus booking fee, without tip.
   final String? total;
 
@@ -58,6 +68,10 @@ class TripInvoice {
   final String? tip;
   final String? totalCharged;
   final String? currency;
+
+  /// Refunds that went through, then what the card paid net of them.
+  final List<InvoiceRefund> refunds;
+  final String? netCharged;
 
   /// Null when the trip has no usable invoice.
   static TripInvoice? fromTrip(Object? trip) {
@@ -100,9 +114,24 @@ class TripInvoice {
       total:
           (breakdown is Map ? breakdown['total'] : null)?.toString() ??
           inv['total']?.toString(),
-      tip: inv['tip']?.toString(),
-      totalCharged: inv['total_charged']?.toString(),
-      currency: inv['currency']?.toString(),
+      // The server puts the US lines inside the breakdown; older ones at the top.
+      tip:
+          (breakdown is Map ? breakdown['tip'] : null)?.toString() ??
+          inv['tip']?.toString(),
+      totalCharged:
+          (breakdown is Map ? breakdown['total_charged'] : null)?.toString() ??
+          inv['total_charged']?.toString(),
+      currency:
+          inv['currency']?.toString() ??
+          (breakdown is Map ? breakdown['currency'] : null)?.toString(),
+      refunds: [
+        if (breakdown is Map && breakdown['refunds'] is List)
+          for (final r in breakdown['refunds'] as List)
+            if (r is Map && s(r, 'amount').isNotEmpty)
+              InvoiceRefund(s(r, 'label'), s(r, 'amount'), s(r, 'date')),
+      ],
+      netCharged: (breakdown is Map ? breakdown['net_charged'] : null)
+          ?.toString(),
     );
   }
 }

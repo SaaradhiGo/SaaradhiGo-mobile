@@ -88,6 +88,7 @@ class _Socket extends WebSocketService {
     required String paymentMethod,
     String? promoCode,
     String? quoteId,
+    int? cardHoldId,
   }) => quoteIds.add(quoteId);
 }
 

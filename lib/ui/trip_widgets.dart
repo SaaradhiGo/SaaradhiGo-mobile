@@ -1070,13 +1070,15 @@ String _paidLabel(String? method) {
       return 'PAID BY CASH';
     case 'wallet':
       return 'PAID FROM WALLET';
+    case 'card':
+      return 'PAID BY CARD';
     case 'upi':
+      return 'PAID BY UPI';
     case 'upi_card':
     case 'online':
-    case 'card':
     case 'razorpay':
     case 'cashfree':
-      return 'PAID BY UPI';
+      return 'PAID ONLINE';
   }
   return 'FARE';
 }

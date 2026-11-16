@@ -235,7 +235,18 @@ class _PrecisePickupScreenState extends State<PrecisePickupScreen> {
       // it is being re-quoted, or when there is no fare to show.
       onConfirm: (_snappedLocation == null || requoting || chosen == null)
           ? null
-          : () => context.push('/searching-driver'),
+          : () async {
+              // USA: the locked fare is held on the card before anything is booked.
+              final problem = await mapProvider.holdCardIfNeeded();
+              if (!context.mounted) return;
+              if (problem == null) {
+                context.push('/searching-driver');
+              } else if (problem.isNotEmpty) {
+                ScaffoldMessenger.of(context)
+                  ..hideCurrentSnackBar()
+                  ..showSnackBar(SnackBar(content: Text(problem)));
+              }
+            },
     );
     // Tablet: the map on the left, the ticket as a 440 panel on the right.
     if (sgIsTablet(context)) {

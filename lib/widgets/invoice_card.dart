@@ -15,11 +15,15 @@ class InvoiceCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final i = invoice;
-    String money(String? v) => v == null
-        ? ''
-        : (double.tryParse(v) == null
-              ? v
-              : exactMoney(double.parse(v), i.currency));
+    // A negative line ("Rounding") reads "−₹0.10", never "₹-0.10".
+    String money(String? v) {
+      final n = v == null ? null : double.tryParse(v);
+      if (n == null) return v ?? '';
+      return n < 0
+          ? '−⁠${exactMoney(-n, i.currency)}'
+          : exactMoney(n, i.currency);
+    }
+
     Widget row(String label, String? amount, {bool bold = false}) => Padding(
       padding: const EdgeInsets.only(bottom: SgSpace.s1),
       child: Row(
@@ -32,8 +36,10 @@ class InvoiceCard extends StatelessWidget {
               ),
             ),
           ),
+          // An amount never wraps ("−$29.58" on one line).
           Text(
             money(amount),
+            softWrap: false,
             style: SgText.body.copyWith(
               fontWeight: bold ? FontWeight.w600 : FontWeight.w400,
             ),
@@ -84,6 +90,31 @@ class InvoiceCard extends StatelessWidget {
           if ((double.tryParse(i.tip ?? '') ?? 0) > 0) row('Tip', i.tip),
           if (i.totalCharged != null && i.totalCharged != i.total)
             row('Total charged', i.totalCharged, bold: true),
+          for (final r in i.refunds)
+            Padding(
+              key: const Key('invoice_refund'),
+              padding: const EdgeInsets.only(bottom: SgSpace.s1),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: Text(
+                      r.date.isEmpty ? r.label : '${r.label} · ${r.date}',
+                      style: SgText.body,
+                    ),
+                  ),
+                  Text(
+                    '\u2212\u2060${money(r.amount)}',
+                    softWrap: false,
+                    style: SgText.body,
+                  ),
+                ],
+              ),
+            ),
+          if (i.netCharged != null && i.refunds.isNotEmpty)
+            KeyedSubtree(
+              key: const Key('invoice_net_charged'),
+              child: row('Net charged', i.netCharged, bold: true),
+            ),
         ],
       ),
     );
