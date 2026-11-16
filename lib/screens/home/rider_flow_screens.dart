@@ -60,6 +60,7 @@ import '../../ui/booking_widgets.dart';
 import '../../ui/trip_t2_widgets.dart';
 import '../../ui/choose_ride_sheet.dart';
 import '../../ui/cancel_reasons.dart';
+import '../../ui/cancel_confirm.dart';
 import '../../services/models/trip_invoice.dart';
 import '../../widgets/invoice_card.dart';
 import '../../ui/ride_rating_panel.dart';
@@ -86,6 +87,11 @@ Future<bool> _cancelRideAndReport(BuildContext context) async {
     );
     // Backed out: keep the ride, say nothing.
     if (reason == null) return false;
+    if (!context.mounted) return false;
+    // 16 Nov: a booked trip is never cancelled on one tap; the rider sees what it costs first.
+    final cost = await fetchCancelCost(provider.tripId!);
+    if (!context.mounted) return false;
+    if (!await confirmCancelTrip(context, cost)) return false;
     if (!context.mounted) return false;
   }
   final confirmed = await provider.cancelRideRequest(reason: reason);
@@ -385,9 +391,11 @@ class _SearchingDriverScreenState extends State<SearchingDriverScreen> {
           if (mounted && context.mounted) {
             String currentRoute = '';
             try {
-              currentRoute = GoRouter.of(
-                context,
-              ).routerDelegate.currentConfiguration.last.matchedLocation;
+              currentRoute = GoRouter.of(context)
+                  .routerDelegate
+                  .currentConfiguration
+                  .last
+                  .matchedLocation;
             } catch (e) {
               debugPrint('Guard route check failed: $e');
             }
