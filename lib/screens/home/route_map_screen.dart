@@ -336,7 +336,7 @@ class _RouteMapScreenState extends State<RouteMapScreen> {
                 // A short route strip; the fares are the screen.
                 height: tablet
                     ? null
-                    : MediaQuery.of(context).size.height * 0.26,
+                    : MediaQuery.of(context).size.height * 0.32,
                 child: Stack(
                   children: [
                     // Ensure FlutterMap has explicit constraints to prevent "render box with no size" errors
@@ -362,11 +362,14 @@ class _RouteMapScreenState extends State<RouteMapScreen> {
                               initialZoom: initialZoom,
                               markers: markers,
                               polylines: polylines,
+                              // 17 Nov: the SDK pads every side by the largest inset, so a
+                              // 96dp top inset left the short strip ~27dp for the route and
+                              // the pins nearly touched. Keep the insets small.
                               fitPadding: EdgeInsets.fromLTRB(
-                                32,
-                                MediaQuery.of(context).padding.top + 72,
-                                32,
-                                32,
+                                24,
+                                MediaQuery.of(context).padding.top + 16,
+                                24,
+                                24,
                               ),
                               onMapCreated: (c) {
                                 _mapController = c;

@@ -133,18 +133,19 @@ class SgPalette {
     route: Color(0xFFFFD700),
   );
 
+  // 17 Nov 2026: the product standard (white, light grey bands, three greys), as on the web.
   static const light = SgPalette._(
     brightness: Brightness.light,
-    bg000: Color(0xFFFAF7F2),
+    bg000: Color(0xFFFFFFFF),
     bg100: Color(0xFFFFFFFF),
-    bg200: Color(0xFFF3EEE6),
-    bg300: Color(0xFFE9E3D9),
-    line: Color(0xFFE7E1D7),
-    lineStrong: Color(0xFF8C8579),
-    ink: Color(0xFF1B1A17),
-    inkMuted: Color(0xFF57524A),
-    inkSubtle: Color(0xFF6B655B),
-    goldText: Color(0xFF8A5300), // gold as text, and links
+    bg200: Color(0xFFF6F6F6),
+    bg300: Color(0xFFE4E4E4),
+    line: Color(0xFFE4E4E4),
+    lineStrong: Color(0xFF8A8A8A),
+    ink: Color(0xFF121212),
+    inkMuted: Color(0xFF4A4A4A),
+    inkSubtle: Color(0xFF6B6B6B),
+    goldText: Color(0xFF8A5A00), // gold as text, and links
     goldLine: Color(0x478A5300), // rgba(138,83,0,0.28)
     goldSoft: Color(0x2EF5A623), // marigold at 18%
     bgGlass: Color(0xCCFFFFFF),
@@ -159,9 +160,9 @@ class SgPalette {
     classComfort: Color(0xFF5B3FA8),
     classSuv: Color(0xFF334155),
     primary: Color(0xFFF5A623), // marigold
-    onPrimary: Color(0xFF1B1A17),
+    onPrimary: Color(0xFF121212),
     logo: Color(0xFF7A6000), // the deep-gold flat logo
-    route: Color(0xFF1B1A17),
+    route: Color(0xFF121212),
   );
 }
 
