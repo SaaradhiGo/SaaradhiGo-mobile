@@ -42,8 +42,9 @@ class HelpSupportScreen extends StatelessWidget {
       bottomNavigationBar: SafeArea(
         top: false,
         child: Container(
-          height: 84,
-          padding: const EdgeInsets.fromLTRB(24, 12, 24, 24),
+          // 18 Nov: grows with the text size rather than overflow (as Privacy and security).
+          constraints: const BoxConstraints(minHeight: 84),
+          padding: const EdgeInsets.fromLTRB(24, 12, 24, 12),
           decoration: BoxDecoration(
             color: SgColors.bg100.withValues(alpha: 0.90),
             border: Border(top: BorderSide(color: SgColors.line)),

@@ -147,7 +147,7 @@ class SgPalette {
     inkSubtle: Color(0xFF6B6B6B),
     goldText: Color(0xFF8A5A00), // gold as text, and links
     goldLine: Color(0x478A5300), // rgba(138,83,0,0.28)
-    goldSoft: Color(0x2EF5A623), // marigold at 18%
+    goldSoft: Color(0xFFF6F6F6), // 18 Nov: selected fills are the grey band, not cream
     bgGlass: Color(0xCCFFFFFF),
     pickup: Color(0xFF0D7762), // spec #0E7C66 is 4.44:1 on bg-200; matches web
     success: Color(0xFF0B6B57),
