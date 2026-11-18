@@ -77,13 +77,10 @@ class ManagePaymentMethodsScreen extends StatelessWidget {
                 label: Text(sgStrings(context).addPaymentMethod),
                 style: OutlinedButton.styleFrom(
                   padding: const EdgeInsets.symmetric(vertical: 20),
-                  foregroundColor: SgColors.goldText,
-                  side: BorderSide(
-                    color: SgColors.goldText.withValues(alpha: 0.4),
-                  ),
-                  backgroundColor: const Color(
-                    0xFF8B6508,
-                  ).withValues(alpha: 0.1),
+                  // 18 Nov: a secondary button (white, hairline, ink), not a tinted gold tile.
+                  foregroundColor: SgColors.ink,
+                  side: BorderSide(color: SgColors.lineStrong),
+                  backgroundColor: SgColors.bg100,
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(16),
                   ),

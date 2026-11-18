@@ -426,7 +426,7 @@ class _WalletTxnCard extends StatelessWidget {
           child: Container(
             padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(
-              color: SgColors.bg300,
+              color: SgColors.bg100,
               borderRadius: BorderRadius.circular(16),
               border: Border.all(color: SgColors.line),
             ),
@@ -437,20 +437,21 @@ class _WalletTxnCard extends StatelessWidget {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Row(
+                      // 18 Nov: the title wraps instead of "Wallet T..."; the status pill moves under it.
+                      Text(
+                        transaction.title,
+                        style: TextStyle(
+                          color: SgColors.ink,
+                          fontSize: SgText.sizeBody,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      Wrap(
+                        spacing: 8,
+                        runSpacing: 4,
+                        crossAxisAlignment: WrapCrossAlignment.center,
                         children: [
-                          Expanded(
-                            child: Text(
-                              transaction.title,
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                              style: TextStyle(
-                                color: SgColors.ink,
-                                fontSize: SgText.sizeBody,
-                                fontWeight: FontWeight.w600,
-                              ),
-                            ),
-                          ),
                           Container(
                             padding: const EdgeInsets.symmetric(
                               horizontal: 8,
@@ -470,16 +471,15 @@ class _WalletTxnCard extends StatelessWidget {
                               ),
                             ),
                           ),
+                          Text(
+                            dateStr,
+                            style: TextStyle(
+                              color: SgColors.inkMuted,
+                              fontSize: SgText.sizeSmall,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
                         ],
-                      ),
-                      const SizedBox(height: 4),
-                      Text(
-                        dateStr,
-                        style: TextStyle(
-                          color: SgColors.inkMuted,
-                          fontSize: SgText.sizeSmall,
-                          fontWeight: FontWeight.w600,
-                        ),
                       ),
                     ],
                   ),
