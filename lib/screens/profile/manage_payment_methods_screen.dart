@@ -143,7 +143,7 @@ class _PaymentTile extends StatelessWidget {
               ),
               child: Icon(
                 icon,
-                color: isWallet ? SgColors.goldText : SgColors.inkMuted,
+                color: isWallet ? SgColors.ink : SgColors.inkMuted, // 18 Nov: ink, not a gold glyph on grey
                 size: 20,
               ),
             ),

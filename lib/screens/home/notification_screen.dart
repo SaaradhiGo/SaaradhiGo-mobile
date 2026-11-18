@@ -205,7 +205,7 @@ class _NotificationTile extends StatelessWidget {
         color: SgColors.bg100,
         borderRadius: BorderRadius.circular(16),
         border: Border.all(
-          color: notification.isRead ? SgColors.line : SgColors.ink,
+          color: notification.isRead ? SgColors.line : SgColors.lineStrong, // a quiet edge, not a black outline
           width: 1,
         ),
       ),
