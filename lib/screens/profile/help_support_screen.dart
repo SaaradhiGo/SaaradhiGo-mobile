@@ -127,13 +127,13 @@ class HelpSupportScreen extends StatelessWidget {
                   GridView(
                     shrinkWrap: true,
                     physics: const NeverScrollableScrollPhysics(),
-                    gridDelegate:
-                        const SliverGridDelegateWithFixedCrossAxisCount(
-                          crossAxisCount: 2,
-                          mainAxisSpacing: 20,
-                          crossAxisSpacing: 20,
-                          childAspectRatio: 1.70,
-                        ),
+                    // 18 Nov: the row height follows the text size (a fixed 1.7 ratio clipped the labels).
+                    gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                      crossAxisCount: 2,
+                      mainAxisSpacing: 20,
+                      crossAxisSpacing: 20,
+                      mainAxisExtent: 84 + MediaQuery.textScalerOf(context).scale(SgText.sizeSmall) * 2.9,
+                    ),
                     children: [
                       _MiniTile(
                         icon: Icons.directions_car,
@@ -215,7 +215,9 @@ class _HelpNavItem extends StatelessWidget {
       child: InkWell(
         onTap: onTap,
         borderRadius: BorderRadius.circular(10),
+        // 18 Nov: sized by its content; a max-size column filled the screen once the bar lost its fixed height.
         child: Column(
+          mainAxisSize: MainAxisSize.min,
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             Icon(icon, color: color, size: 24, shadows: shadows),
@@ -302,7 +304,7 @@ class _MiniTile extends StatelessWidget {
       borderRadius: BorderRadius.circular(20),
       child: Container(
         decoration: BoxDecoration(
-          color: SgColors.bg300,
+          color: SgColors.bg100,
           borderRadius: BorderRadius.circular(20),
           border: Border.all(color: SgColors.line),
         ),
