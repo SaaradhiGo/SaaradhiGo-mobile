@@ -353,7 +353,7 @@ class _ContactTile extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       decoration: BoxDecoration(
-        color: SgColors.bg300,
+        color: SgColors.bg100,
         borderRadius: BorderRadius.circular(20),
         border: Border.all(color: SgColors.line),
       ),
@@ -362,10 +362,10 @@ class _ContactTile extends StatelessWidget {
         leading: Container(
           padding: const EdgeInsets.all(10),
           decoration: BoxDecoration(
-            color: SgColors.gold500.withValues(alpha: 0.1),
+            color: SgColors.bg200,
             shape: BoxShape.circle,
           ),
-          child: Icon(icon, color: SgColors.goldText, size: 24),
+          child: Icon(icon, color: SgColors.ink, size: 24),
         ),
         title: Text(
           title,
