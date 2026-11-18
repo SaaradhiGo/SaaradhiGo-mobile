@@ -353,16 +353,18 @@ class AccountView extends StatelessWidget {
                   width: 56,
                   height: 56,
                   clipBehavior: Clip.antiAlias,
+                  // 18 Nov: the grey band with a hairline, an ink person; not a cream disc.
                   decoration: BoxDecoration(
-                    color: SgColors.codeSoft,
+                    color: SgColors.bg200,
                     shape: BoxShape.circle,
+                    border: Border.all(color: SgColors.line),
                   ),
                   child: (avatarUrl ?? '').trim().isEmpty
                       ? Center(
                           child: SgIcon(
                             SgIcons.user,
                             size: 24,
-                            color: SgColors.goldText,
+                            color: SgColors.ink,
                           ),
                         )
                       : SgAvatar(name: shown, url: avatarUrl),
