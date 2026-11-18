@@ -70,9 +70,9 @@ class SgAvatar extends StatelessWidget {
       height: size,
       clipBehavior: Clip.antiAlias,
       decoration: BoxDecoration(
-        color: SgColors.bg300,
+        color: SgColors.bg200,
         shape: BoxShape.circle,
-        border: Border.all(color: SgColors.goldLine),
+        border: Border.all(color: SgColors.line),
       ),
       child: photo.isEmpty
           ? fallback

@@ -201,12 +201,11 @@ class _NotificationTile extends StatelessWidget {
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
       decoration: BoxDecoration(
-        color: notification.isRead ? SgColors.bg200 : SgColors.bg200,
+        // 18 Nov: white card, hairline; an unread one has an ink edge (no cream, no pastel disc).
+        color: SgColors.bg100,
         borderRadius: BorderRadius.circular(16),
         border: Border.all(
-          color: notification.isRead
-              ? Colors.transparent
-              : SgColors.goldText.withValues(alpha: 0.3),
+          color: notification.isRead ? SgColors.line : SgColors.ink,
           width: 1,
         ),
       ),
@@ -221,18 +220,14 @@ class _NotificationTile extends StatelessWidget {
               Container(
                 padding: const EdgeInsets.all(10),
                 decoration: BoxDecoration(
-                  color: notification.isRead
-                      ? SgColors.bg200
-                      : SgColors.gold500.withValues(alpha: 0.1),
+                  color: SgColors.bg200,
                   shape: BoxShape.circle,
                 ),
                 child: Icon(
                   notification.isRead
                       ? Icons.notifications_none
                       : Icons.notifications_active,
-                  color: notification.isRead
-                      ? SgColors.inkSubtle
-                      : SgColors.goldText,
+                  color: notification.isRead ? SgColors.inkSubtle : SgColors.ink,
                   size: 20,
                 ),
               ),
