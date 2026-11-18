@@ -180,13 +180,16 @@ class _RouteMapScreenState extends State<RouteMapScreen> {
           : (dropoff != null && _isValidCoordinate(dropoff))
           ? [pickup, dropoff]
           : [pickup];
+      // 17 Nov: the Google SDK pads every side by the largest inset. A 96dp top
+      // inset on the short route strip left the route ~80dp and the pickup and
+      // drop pins nearly touching, so the insets stay small (as fitPadding).
       _mapController?.fitPoints(
         points,
         padding: EdgeInsets.fromLTRB(
-          32,
-          MediaQuery.of(context).padding.top + 72,
-          32,
-          32,
+          24,
+          MediaQuery.of(context).padding.top + 16,
+          24,
+          24,
         ),
       );
 
