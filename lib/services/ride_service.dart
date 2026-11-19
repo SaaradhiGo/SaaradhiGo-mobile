@@ -9,6 +9,7 @@ import 'api_service.dart';
 import 'session_events.dart';
 import '../core/market/booking_refusal.dart';
 import '../utils/log_redaction.dart';
+import 'ws_ticket.dart';
 
 class RideService {
   /// `client` exists so tests can drive this class's own parsing and request
@@ -121,7 +122,9 @@ class RideService {
       debugPrint('Connecting to Ride Request WebSocket...');
       // Close existing connection if any
       _rideRequestChannel?.sink.close();
-      _rideRequestChannel = WebSocketChannel.connect(Uri.parse(wsUrl));
+      _rideRequestChannel = WebSocketChannel.connect(
+        await ticketedWsUri(wsUrl),
+      );
 
       final requestPayload = {
         'type': 'ride_request',
@@ -152,7 +155,7 @@ class RideService {
       debugPrint('Connecting to Trip WebSocket: $tripId');
       // Close existing connection if any
       _tripChannel?.sink.close();
-      _tripChannel = WebSocketChannel.connect(Uri.parse(wsUrl));
+      _tripChannel = WebSocketChannel.connect(await ticketedWsUri(wsUrl));
     } catch (e) {
       debugPrint('Trip WebSocket error: $e');
       rethrow;

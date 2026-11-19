@@ -193,6 +193,12 @@ class MapProvider extends ChangeNotifier {
 
   List<Map<String, dynamic>> get nearbyDrivers => _nearbyDrivers;
   Map<String, Map<String, dynamic>> get fareEstimates => _fareEstimates;
+
+  /// Set when no fare came back because the pickup or drop is outside every
+  /// zone: the server's message, naming the area. The sheet shows it instead
+  /// of "check your connection".
+  String? _outsideArea;
+  String? get outsideArea => _outsideArea;
   bool get isLoadingFares => _isLoadingFares;
   String? get selectedVehicleType => _selectedVehicleType;
   LatLng? get precisePickupLocation => _precisePickupLocation;
@@ -678,6 +684,8 @@ class MapProvider extends ChangeNotifier {
 
     _isLoadingFares = true;
     _fareEstimates = {};
+    _outsideArea = null;
+    _fareService.lastOutsideArea = null;
     // A code applied to the previous quote says nothing about this one.
     PromoSelection.instance.clear();
     // Nor does a "fare updated" line about the previous quote.
@@ -711,6 +719,7 @@ class MapProvider extends ChangeNotifier {
           .round();
       _fareEstimates[types[i]] = estimate;
     }
+    if (_fareEstimates.isEmpty) _outsideArea = _fareService.lastOutsideArea;
     // A class chosen for the previous route may not be priced on this one.
     if (_selectedVehicleType != null &&
         !_fareEstimates.containsKey(_selectedVehicleType)) {
@@ -749,6 +758,11 @@ class MapProvider extends ChangeNotifier {
     final effectivePickup = _precisePickupLocation ?? _pickupLocation!.latLng;
     // Read before the line below is cleared: this is the fare on the ticket.
     final quoteId = selectedQuoteId;
+    // 16 Nov: read with the quote, before any await. The search screen can
+    // start twice; the second call used to read null after the first cleared
+    // it, its frame (no hold) was the one sent, and a US card trip was booked
+    // with nothing to capture ("waiting for payment").
+    final cardHoldId = _cardHoldId;
     _quoteLock.clear();
 
     container
@@ -783,9 +797,8 @@ class MapProvider extends ChangeNotifier {
           paymentMethod: selectedPaymentMethod,
           promoCode: PromoSelection.instance.code,
           quoteId: quoteId,
-          cardHoldId: _cardHoldId,
+          cardHoldId: cardHoldId,
         );
-    _cardHoldId = null;
   }
 
   /// True when the last cancellation did not reach the server.
@@ -809,6 +822,10 @@ class MapProvider extends ChangeNotifier {
   /// "we could not cancel your ride", and the completed ride would stay on
   /// screen. Two different intents were sharing one method; now they do not.
   Future<void> clearRideStateLocally() async {
+    // Called once the rider is done with the receipt: it never reopens.
+    await ClosedReceipts.add(
+      container?.read(rideNotifierProvider).tripId ?? tripId,
+    );
     await container?.read(rideNotifierProvider.notifier).clearState();
     container?.read(webSocketServiceProvider).disconnectAll();
     notifyListeners();

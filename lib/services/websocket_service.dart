@@ -6,6 +6,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:uuid/uuid.dart';
 import '../core/app_config.dart';
 import 'api_service.dart';
+import 'ws_ticket.dart';
 
 final webSocketServiceProvider = Provider<WebSocketService>((ref) {
   return WebSocketService();
@@ -173,8 +174,11 @@ class WebSocketService {
     _connectTripChannel(wsUrl);
   }
 
-  void _connectRideChannel(String wsUrl) {
+  Future<void> _connectRideChannel(String wsUrl) async {
     debugPrint("WebSocketService: _connectRideChannel executing...");
+    // The token never goes in the address: a 30 s single-use ticket does.
+    final uri = await ticketedWsUri(wsUrl);
+    if (_isIntentionalDisconnect) return;
     try {
       // Drop the old channel's listener first, so its onDone cannot schedule
       // a reconnect that races this one.
@@ -182,7 +186,7 @@ class WebSocketService {
       _rideSubscription?.cancel();
       _rideSubscription = null;
       _rideChannel?.sink.close();
-      _rideChannel = WebSocketChannel.connect(Uri.parse(wsUrl));
+      _rideChannel = WebSocketChannel.connect(uri);
       debugPrint("WebSocketService: WebSocketChannel initialized.");
 
       _rideSubscription = _rideChannel!.stream.listen(
@@ -266,20 +270,22 @@ class WebSocketService {
     });
   }
 
-  void _connectTripChannel(String wsUrl) {
+  Future<void> _connectTripChannel(String wsUrl) async {
     debugPrint(
       "WebSocketService: _connectTripChannel starting for ${redactWsToken(wsUrl)}",
     );
     _isConnectingTrip = true;
     _tripOpen = false;
     _activeTripWsUrl = wsUrl;
+    final uri = await ticketedWsUri(wsUrl);
+    if (_isIntentionalDisconnect || _activeTripWsUrl != wsUrl) return;
 
     try {
       // Cancel old subscription first to prevent ghost onDone callbacks
       _tripSubscription?.cancel();
       _tripSubscription = null;
       _tripChannel?.sink.close();
-      _tripChannel = WebSocketChannel.connect(Uri.parse(wsUrl));
+      _tripChannel = WebSocketChannel.connect(uri);
 
       _tripSubscription = _tripChannel!.stream.listen(
         (data) {

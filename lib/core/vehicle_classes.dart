@@ -142,13 +142,9 @@ SgVehicleClass? vehicleColourClass(String? type) {
 }
 
 /// The icon colour for a backend type.
-Color vehicleIconColour(String? type) {
-  final c = vehicleColourClass(type);
-  return c == null ? SgColors.ink : SgColors.vehicleClass(c);
-}
+/// 17 Nov 2026 (product standard): one icon colour for every class; status colours are for status.
+Color vehicleIconColour(String? type) => SgColors.ink;
 
 /// The tile behind the icon for a backend type.
-Color vehicleTileColour(String? type) {
-  final c = vehicleColourClass(type);
-  return c == null ? SgColors.bg300 : SgColors.vehicleClassTile(c);
-}
+/// 17 Nov 2026: icons never sit on a coloured tile; the tile is the plain band grey.
+Color vehicleTileColour(String? type) => SgColors.bg200;

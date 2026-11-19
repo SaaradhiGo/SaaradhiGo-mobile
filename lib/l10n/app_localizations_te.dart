@@ -1,6 +1,5 @@
 // ignore: unused_import
 import 'package:intl/intl.dart' as intl;
-
 import 'app_localizations.dart';
 
 // ignore_for_file: type=lint
@@ -329,6 +328,9 @@ class AppLocalizationsTe extends AppLocalizations {
 
   @override
   String get notCharged => 'మీకు ఎలాంటి ఛార్జీ పడలేదు';
+
+  @override
+  String get noDriversNearbyNow => 'ఇప్పుడు దగ్గరలో డ్రైవర్లు లేరు';
 
   @override
   String get keepLooking => 'వెతుకుతూనే ఉండండి';
@@ -1007,4 +1009,16 @@ class AppLocalizationsTe extends AppLocalizations {
 
   @override
   String get linkCopied => 'లింక్ కాపీ చేయబడింది';
+
+  @override
+  String get placeOutsideServiceArea => 'ఈ ప్రదేశం మా సేవా ప్రాంతం బయట ఉంది';
+
+  @override
+  String placeOutsideServiceAreaNamed(String area) {
+    return 'ఈ ప్రదేశం మా సేవా ప్రాంతం ($area) బయట ఉంది';
+  }
+
+  @override
+  String get chooseAnotherDrop =>
+      'ఛార్జీలు చూడటానికి ప్రాంతం లోపల ఒక చోటును ఎంచుకోండి.';
 }

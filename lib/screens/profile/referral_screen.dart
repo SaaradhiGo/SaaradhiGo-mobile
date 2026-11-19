@@ -322,7 +322,7 @@ class _ReferralScreenState extends State<ReferralScreen> {
       return 'You joined with a referral code. Your reward is pending review.';
     }
     if (a.requiredTrips > 0) {
-      return 'You joined with a referral code: ${a.tripsCompleted} of ${a.requiredTrips} rides done.';
+      return 'You joined with a referral code: ${a.tripsCompleted} of ${a.requiredTrips} ${a.requiredTrips == 1 ? 'ride' : 'rides'} done.';
     }
     return 'You joined with a referral code.';
   }
@@ -374,7 +374,7 @@ class _ReferralScreenState extends State<ReferralScreen> {
       label = 'Reward on its way';
     } else {
       label = r.requiredTrips > 0
-          ? '${r.tripsCompleted} of ${r.requiredTrips} rides'
+          ? '${r.tripsCompleted} of ${r.requiredTrips} ${r.requiredTrips == 1 ? 'ride' : 'rides'}'
           : 'Joined';
     }
     return Padding(

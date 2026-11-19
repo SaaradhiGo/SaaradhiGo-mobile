@@ -30,12 +30,16 @@ class _FakeRideService implements RideService {
   Future<Map<String, dynamic>?> fetchActiveTrip(String token) async => active;
 
   @override
-  Future<Map<String, dynamic>?> getTripStatus(String token, String tripId) async =>
-      tripStatus;
+  Future<Map<String, dynamic>?> getTripStatus(
+    String token,
+    String tripId,
+  ) async => tripStatus;
 
   @override
-  Future<Map<String, dynamic>?> getTripDetails(String token, String tripId) async =>
-      null;
+  Future<Map<String, dynamic>?> getTripDetails(
+    String token,
+    String tripId,
+  ) async => null;
 
   @override
   Future<bool> cancelTrip(
@@ -99,17 +103,27 @@ void main() {
         'message': 'No driver accepted your request. Please try again.',
       });
 
-      expect(state().status, RideStatus.searchingDriver,
-          reason: 'leaving the status alone keeps the global navigator out of it');
-      expect(state().searchFailure,
-          'No driver accepted your request. Please try again.');
+      expect(
+        state().status,
+        RideStatus.searchingDriver,
+        reason: 'leaving the status alone keeps the global navigator out of it',
+      );
+      expect(
+        state().searchFailure,
+        'No driver accepted your request. Please try again.',
+      );
       expect(state().tripId, isNull, reason: 'that trip is over on the server');
     });
 
     test('a refused booking is said plainly, never as a developer message', () {
-      searching().updateFromWebSocket(
-          {'type': 'error', 'message': 'Failed to create trip'});
-      expect(state().searchFailure, "We couldn't book your ride. Please try again.");
+      searching().updateFromWebSocket({
+        'type': 'error',
+        'message': 'Failed to create trip',
+      });
+      expect(
+        state().searchFailure,
+        "We couldn't book your ride. Please try again.",
+      );
     });
 
     test('a refusal written for riders is shown as written', () {
@@ -117,28 +131,43 @@ void main() {
         'type': 'error',
         'message': 'Your account cannot request rides right now.',
       });
-      expect(state().searchFailure, 'Your account cannot request rides right now.');
+      expect(
+        state().searchFailure,
+        'Your account cannot request rides right now.',
+      );
     });
 
-    test('a search that could not start cancels the trip it left behind', () async {
-      searching().updateFromWebSocket({
-        'type': 'dispatch_failed',
-        'trip_id': 9,
-        'message': 'We could not start the driver search. Please retry in a moment.',
-      });
-      await Future<void>.delayed(Duration.zero);
-      expect(state().searchFailure, isNotNull);
-      expect(service.cancelled, ['9'], reason: '"Try again" must be the only booking');
-    });
+    test(
+      'a search that could not start cancels the trip it left behind',
+      () async {
+        searching().updateFromWebSocket({
+          'type': 'dispatch_failed',
+          'trip_id': 9,
+          'message':
+              'We could not start the driver search. Please retry in a moment.',
+        });
+        await Future<void>.delayed(Duration.zero);
+        expect(state().searchFailure, isNotNull);
+        expect(service.cancelled, [
+          '9',
+        ], reason: '"Try again" must be the only booking');
+      },
+    );
 
-    test('a cancel for another reason is still a cancellation, not a failure', () {
-      final n = searching();
-      n.updateFromWebSocket({'type': 'trip_created', 'trip_id': 5});
-      n.updateFromWebSocket(
-          {'type': 'trip_update', 'trip_id': 5, 'status': 'cancel'});
-      expect(state().searchFailure, isNull);
-      expect(state().status, RideStatus.cancelled);
-    });
+    test(
+      'a cancel for another reason is still a cancellation, not a failure',
+      () {
+        final n = searching();
+        n.updateFromWebSocket({'type': 'trip_created', 'trip_id': 5});
+        n.updateFromWebSocket({
+          'type': 'trip_update',
+          'trip_id': 5,
+          'status': 'cancel',
+        });
+        expect(state().searchFailure, isNull);
+        expect(state().status, RideStatus.cancelled);
+      },
+    );
 
     test('Try again starts clean', () {
       final n = searching();
@@ -148,12 +177,15 @@ void main() {
       expect(state().tripId, isNull);
     });
 
-    test('never acknowledged and no trip on the server: say so, stop resending', () async {
-      final n = searching();
-      await n.verifySearch();
-      expect(state().searchFailure, kSearchUnreachableMessage);
-      expect(socket.abandoned, 1);
-    });
+    test(
+      'never acknowledged and no trip on the server: say so, stop resending',
+      () async {
+        final n = searching();
+        await n.verifySearch();
+        expect(state().searchFailure, kSearchUnreachableMessage);
+        expect(socket.abandoned, 1);
+      },
+    );
 
     test('never acknowledged but the trip exists: recover to it', () async {
       final n = searching();
@@ -178,28 +210,38 @@ void main() {
       expect(state().searchFailure, kNoDriverMessage);
     });
 
-    test('still unanswered at the hard deadline: cancel it and say so', () async {
-      final n = searching();
-      n.updateFromWebSocket({'type': 'trip_created', 'trip_id': 41});
-      service.tripStatus = {
-        'status': 'success',
-        'data': {'id': 41, 'status': 'requested'},
-      };
-      await n.verifySearch();
-      expect(state().searchFailure, isNull, reason: 'the server deadline still runs');
-      await n.verifySearch(giveUp: true);
-      expect(service.cancelled, ['41']);
-      expect(state().searchFailure, kNoDriverMessage);
-    });
+    test(
+      'still unanswered at the hard deadline: cancel it and say so',
+      () async {
+        final n = searching();
+        n.updateFromWebSocket({'type': 'trip_created', 'trip_id': 41});
+        service.tripStatus = {
+          'status': 'success',
+          'data': {'id': 41, 'status': 'requested'},
+        };
+        await n.verifySearch();
+        expect(
+          state().searchFailure,
+          isNull,
+          reason: 'the server deadline still runs',
+        );
+        await n.verifySearch(giveUp: true);
+        expect(service.cancelled, ['41']);
+        expect(state().searchFailure, kNoDriverMessage);
+      },
+    );
 
-    test('a network failure ends the search only at the hard deadline', () async {
-      final n = searching();
-      n.updateFromWebSocket({'type': 'trip_created', 'trip_id': 42});
-      await n.verifySearch();
-      expect(state().searchFailure, isNull);
-      await n.verifySearch(giveUp: true);
-      expect(state().searchFailure, kSearchUnreachableMessage);
-    });
+    test(
+      'a network failure ends the search only at the hard deadline',
+      () async {
+        final n = searching();
+        n.updateFromWebSocket({'type': 'trip_created', 'trip_id': 42});
+        await n.verifySearch();
+        expect(state().searchFailure, isNull);
+        await n.verifySearch(giveUp: true);
+        expect(state().searchFailure, kSearchUnreachableMessage);
+      },
+    );
   });
 
   group('asked N drivers nearby', () {
@@ -248,40 +290,74 @@ void main() {
   });
 
   group('the booking frame', () {
-    test('carries an idempotency key, so a reconnect resend is not a second ride', () {
-      final frame = WebSocketService.buildRideRequestPayload(
-        pickupLat: 1,
-        pickupLng: 2,
-        destinationLat: 3,
-        destinationLng: 4,
-        distanceKm: 5,
-        durationMin: 6,
-        vehicleType: 'auto',
-        pickupAddress: 'A',
-        destinationAddress: 'B',
-        paymentMethod: 'cash',
-        clientRequestId: 'abc',
-      );
-      expect(frame['client_request_id'], 'abc');
-    });
+    test(
+      'carries an idempotency key, so a reconnect resend is not a second ride',
+      () {
+        final frame = WebSocketService.buildRideRequestPayload(
+          pickupLat: 1,
+          pickupLng: 2,
+          destinationLat: 3,
+          destinationLng: 4,
+          distanceKm: 5,
+          durationMin: 6,
+          vehicleType: 'auto',
+          pickupAddress: 'A',
+          destinationAddress: 'B',
+          paymentMethod: 'cash',
+          clientRequestId: 'abc',
+        );
+        expect(frame['client_request_id'], 'abc');
+      },
+    );
   });
 
   group('a paid trip leaves nothing behind', () {
     test('completed and paid is settled', () {
-      expect(isSettledCompletedTrip({'status': 'completed', 'payment_status': 'completed'}),
-          isTrue);
+      expect(
+        isSettledCompletedTrip({
+          'status': 'completed',
+          'payment_status': 'completed',
+        }),
+        isTrue,
+      );
     });
 
     test('completed and unpaid still asks for payment', () {
-      expect(isSettledCompletedTrip({'status': 'completed', 'payment_status': 'pending'}),
-          isFalse);
+      expect(
+        isSettledCompletedTrip({
+          'status': 'completed',
+          'payment_status': 'pending',
+        }),
+        isFalse,
+      );
       expect(isSettledCompletedTrip({'status': 'completed'}), isFalse);
     });
 
-    test('recovering a paid trip shows no payment banner', () async {
+    test(
+      'recovering a paid trip shows its receipt, no payment banner',
+      () async {
+        service.active = {
+          'status': 'success',
+          'data': {
+            'id': 116,
+            'status': 'completed',
+            'payment_status': 'completed',
+          },
+        };
+        await container.read(rideNotifierProvider.notifier).loadInitialState();
+        expect(state().status, RideStatus.rideCompleted);
+      },
+    );
+
+    test('a receipt the rider closed does not come back', () async {
+      await ClosedReceipts.add('116');
       service.active = {
         'status': 'success',
-        'data': {'id': 116, 'status': 'completed', 'payment_status': 'completed'},
+        'data': {
+          'id': 116,
+          'status': 'completed',
+          'payment_status': 'completed',
+        },
       };
       await container.read(rideNotifierProvider.notifier).loadInitialState();
       expect(state().status, RideStatus.none);
@@ -289,13 +365,18 @@ void main() {
 
     testWidgets('the banner hands its tap to the router', (tester) async {
       var opened = 0;
-      await tester.pumpWidget(MaterialApp(
-        home: Scaffold(body: PaymentPendingBanner(onOpen: () => opened++)),
-      ));
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(body: PaymentPendingBanner(onOpen: () => opened++)),
+        ),
+      );
       await tester.tap(find.text('Pay now'));
       expect(opened, 1);
-      expect(find.textContaining('Pending'), findsNothing,
-          reason: 'sentence case, and it says what to do');
+      expect(
+        find.textContaining('Pending'),
+        findsNothing,
+        reason: 'sentence case, and it says what to do',
+      );
     });
   });
 
@@ -303,29 +384,38 @@ void main() {
     test("the driver's cash confirmation marks the trip paid", () {
       final n = container.read(rideNotifierProvider.notifier);
       n.updateFromWebSocket({'type': 'cash_payment_confirmed', 'trip_id': 118});
-      expect(state().rawResponse?['cash_confirmed'], isTrue,
-          reason: 'the payment screen kept offering the wallet for a ride paid in cash');
+      expect(
+        state().rawResponse?['cash_confirmed'],
+        isTrue,
+        reason:
+            'the payment screen kept offering the wallet for a ride paid in cash',
+      );
       expect(state().rawResponse?['payment_status'], 'completed');
     });
   });
 
   group('completing the profile', () {
-    test('blank fields are left out, so an empty date of birth cannot fail the save', () {
-      final body = profileUpdatePayload({
-        'full_name': 'QA Rider',
-        'dob': '',
-        'emergency_contact': '',
-        'gender': 'male',
-        'home_city': null,
-      });
-      expect(body, {'full_name': 'QA Rider', 'gender': 'male'});
-    });
+    test(
+      'blank fields are left out, so an empty date of birth cannot fail the save',
+      () {
+        final body = profileUpdatePayload({
+          'full_name': 'QA Rider',
+          'dob': '',
+          'emergency_contact': '',
+          'gender': 'male',
+          'home_city': null,
+        });
+        expect(body, {'full_name': 'QA Rider', 'gender': 'male'});
+      },
+    );
   });
 
   group('destination rows', () {
     test('a prediction with only a description is split into two lines', () {
-      final s = PlaceSuggestion.fromJson(
-          {'place_id': 'x', 'description': 'Benz Circle, Vijayawada, Andhra Pradesh'});
+      final s = PlaceSuggestion.fromJson({
+        'place_id': 'x',
+        'description': 'Benz Circle, Vijayawada, Andhra Pradesh',
+      });
       expect(s.mainText, 'Benz Circle');
       expect(s.secondaryText, 'Vijayawada, Andhra Pradesh');
     });
@@ -334,7 +424,10 @@ void main() {
       final s = PlaceSuggestion.fromJson({
         'place_id': 'x',
         'description': 'MG Road, Vijayawada',
-        'structured_formatting': {'main_text': 'MG Road', 'secondary_text': 'Labbipet'},
+        'structured_formatting': {
+          'main_text': 'MG Road',
+          'secondary_text': 'Labbipet',
+        },
       });
       expect(s.mainText, 'MG Road');
       expect(s.secondaryText, 'Labbipet');

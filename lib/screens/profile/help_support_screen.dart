@@ -42,8 +42,9 @@ class HelpSupportScreen extends StatelessWidget {
       bottomNavigationBar: SafeArea(
         top: false,
         child: Container(
-          height: 84,
-          padding: const EdgeInsets.fromLTRB(24, 12, 24, 24),
+          // 18 Nov: grows with the text size rather than overflow (as Privacy and security).
+          constraints: const BoxConstraints(minHeight: 84),
+          padding: const EdgeInsets.fromLTRB(24, 12, 24, 12),
           decoration: BoxDecoration(
             color: SgColors.bg100.withValues(alpha: 0.90),
             border: Border(top: BorderSide(color: SgColors.line)),
@@ -126,13 +127,13 @@ class HelpSupportScreen extends StatelessWidget {
                   GridView(
                     shrinkWrap: true,
                     physics: const NeverScrollableScrollPhysics(),
-                    gridDelegate:
-                        const SliverGridDelegateWithFixedCrossAxisCount(
-                          crossAxisCount: 2,
-                          mainAxisSpacing: 20,
-                          crossAxisSpacing: 20,
-                          childAspectRatio: 1.70,
-                        ),
+                    // 18 Nov: the row height follows the text size (a fixed 1.7 ratio clipped the labels).
+                    gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                      crossAxisCount: 2,
+                      mainAxisSpacing: 20,
+                      crossAxisSpacing: 20,
+                      mainAxisExtent: 84 + MediaQuery.textScalerOf(context).scale(SgText.sizeSmall) * 2.9,
+                    ),
                     children: [
                       _MiniTile(
                         icon: Icons.directions_car,
@@ -214,7 +215,9 @@ class _HelpNavItem extends StatelessWidget {
       child: InkWell(
         onTap: onTap,
         borderRadius: BorderRadius.circular(10),
+        // 18 Nov: sized by its content; a max-size column filled the screen once the bar lost its fixed height.
         child: Column(
+          mainAxisSize: MainAxisSize.min,
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             Icon(icon, color: color, size: 24, shadows: shadows),
@@ -301,7 +304,7 @@ class _MiniTile extends StatelessWidget {
       borderRadius: BorderRadius.circular(20),
       child: Container(
         decoration: BoxDecoration(
-          color: SgColors.bg300,
+          color: SgColors.bg100,
           borderRadius: BorderRadius.circular(20),
           border: Border.all(color: SgColors.line),
         ),
@@ -350,7 +353,7 @@ class _ContactTile extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       decoration: BoxDecoration(
-        color: SgColors.bg300,
+        color: SgColors.bg100,
         borderRadius: BorderRadius.circular(20),
         border: Border.all(color: SgColors.line),
       ),
@@ -359,10 +362,10 @@ class _ContactTile extends StatelessWidget {
         leading: Container(
           padding: const EdgeInsets.all(10),
           decoration: BoxDecoration(
-            color: SgColors.gold500.withValues(alpha: 0.1),
+            color: SgColors.bg200,
             shape: BoxShape.circle,
           ),
-          child: Icon(icon, color: SgColors.goldText, size: 24),
+          child: Icon(icon, color: SgColors.ink, size: 24),
         ),
         title: Text(
           title,

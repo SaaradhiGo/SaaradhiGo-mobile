@@ -133,20 +133,21 @@ class SgPalette {
     route: Color(0xFFFFD700),
   );
 
+  // 17 Nov 2026: the product standard (white, light grey bands, three greys), as on the web.
   static const light = SgPalette._(
     brightness: Brightness.light,
-    bg000: Color(0xFFFAF7F2),
+    bg000: Color(0xFFFFFFFF),
     bg100: Color(0xFFFFFFFF),
-    bg200: Color(0xFFF3EEE6),
-    bg300: Color(0xFFE9E3D9),
-    line: Color(0xFFE7E1D7),
-    lineStrong: Color(0xFF8C8579),
-    ink: Color(0xFF1B1A17),
-    inkMuted: Color(0xFF57524A),
-    inkSubtle: Color(0xFF6B655B),
-    goldText: Color(0xFF8A5300), // gold as text, and links
+    bg200: Color(0xFFF6F6F6),
+    bg300: Color(0xFFE4E4E4),
+    line: Color(0xFFE4E4E4),
+    lineStrong: Color(0xFF8A8A8A),
+    ink: Color(0xFF121212),
+    inkMuted: Color(0xFF4A4A4A),
+    inkSubtle: Color(0xFF6B6B6B),
+    goldText: Color(0xFF8A5A00), // gold as text, and links
     goldLine: Color(0x478A5300), // rgba(138,83,0,0.28)
-    goldSoft: Color(0x2EF5A623), // marigold at 18%
+    goldSoft: Color(0xFFF6F6F6), // 18 Nov: selected fills are the grey band, not cream
     bgGlass: Color(0xCCFFFFFF),
     pickup: Color(0xFF0D7762), // spec #0E7C66 is 4.44:1 on bg-200; matches web
     success: Color(0xFF0B6B57),
@@ -159,9 +160,9 @@ class SgPalette {
     classComfort: Color(0xFF5B3FA8),
     classSuv: Color(0xFF334155),
     primary: Color(0xFFF5A623), // marigold
-    onPrimary: Color(0xFF1B1A17),
+    onPrimary: Color(0xFF121212),
     logo: Color(0xFF7A6000), // the deep-gold flat logo
-    route: Color(0xFF1B1A17),
+    route: Color(0xFF121212),
   );
 }
 
@@ -314,4 +315,69 @@ class SgMotion {
   static const press = Duration(milliseconds: 140);
   static const sheet = Duration(milliseconds: 240);
   static const curve = Curves.easeOut;
+}
+
+/// The product standard (owner brief, 17 Nov 2026), the same values as the web's `--ui-*` tokens:
+/// white ground, very light grey bands, three text greys, black header, gold only for the primary
+/// action and key highlights, status colours only for status. Light unless the person chooses dark.
+/// `sg_standard_theme.dart` builds the app theme from it; Phase 2 moves every screen onto it.
+@immutable
+class SgStandardPalette {
+  const SgStandardPalette._({
+    required this.brightness,
+    required this.bg,
+    required this.band,
+    required this.surface,
+    required this.line,
+    required this.lineStrong,
+    required this.text,
+    required this.text2,
+    required this.text3,
+    required this.ink,
+    required this.onInk,
+    required this.gold,
+    required this.onGold,
+    required this.goldText,
+    required this.ok,
+    required this.okBg,
+    required this.warn,
+    required this.warnBg,
+    required this.bad,
+    required this.badBg,
+  });
+
+  final Brightness brightness;
+  final Color bg, band, surface, line, lineStrong, text, text2, text3, ink, onInk;
+  final Color gold, onGold, goldText, ok, okBg, warn, warnBg, bad, badBg;
+
+  static const light = SgStandardPalette._(
+    brightness: Brightness.light,
+    bg: Color(0xFFFFFFFF), band: Color(0xFFF6F6F6), surface: Color(0xFFFFFFFF),
+    line: Color(0xFFE4E4E4), lineStrong: Color(0xFFBDBDBD),
+    text: Color(0xFF121212), text2: Color(0xFF4A4A4A), text3: Color(0xFF6B6B6B),
+    ink: Color(0xFF000000), onInk: Color(0xFFFFFFFF),
+    gold: Color(0xFFF5A623), onGold: Color(0xFF121212), goldText: Color(0xFF8A5A00),
+    ok: Color(0xFF0D7762), okBg: Color(0xFFE8F3F0), warn: Color(0xFF8A5A00), warnBg: Color(0xFFFFF4DC),
+    bad: Color(0xFFB3261E), badBg: Color(0xFFFCECEB),
+  );
+
+  static const dark = SgStandardPalette._(
+    brightness: Brightness.dark,
+    bg: Color(0xFF0B0B0B), band: Color(0xFF141414), surface: Color(0xFF161616),
+    line: Color(0xFF2C2C2C), lineStrong: Color(0xFF4A4A4A),
+    text: Color(0xFFF2F2F2), text2: Color(0xFFC4C4C4), text3: Color(0xFF9A9A9A),
+    ink: Color(0xFF000000), onInk: Color(0xFFFFFFFF),
+    gold: Color(0xFFF5A623), onGold: Color(0xFF121212), goldText: Color(0xFFF5C451),
+    ok: Color(0xFF3CC29E), okBg: Color(0xFF0F2A23), warn: Color(0xFFF5C451), warnBg: Color(0xFF2B2210),
+    bad: Color(0xFFF2867E), badBg: Color(0xFF2E1412),
+  );
+}
+
+/// The standard's sizes: type 14/16/20/28/40, an 8 px grid, 48 px buttons, one radius.
+abstract final class SgStandard {
+  static const small = 14.0, body = 16.0, title = 20.0, heading = 28.0, display = 40.0;
+  static const space1 = 8.0, space2 = 16.0, space3 = 24.0, space4 = 32.0, space6 = 48.0;
+  static const buttonHeight = 48.0, tapTarget = 44.0;
+  static const radius = 12.0, cardRadius = 16.0;
+  static const icon = 24.0, iconSmall = 20.0, iconStroke = 1.75;
 }

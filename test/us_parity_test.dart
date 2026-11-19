@@ -7,6 +7,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:saaradhigo_rider/core/market/booking_refusal.dart';
 import 'package:saaradhigo_rider/core/market/market_dates.dart';
 import 'package:saaradhigo_rider/services/api_service.dart';
 import 'package:saaradhigo_rider/services/card_hold_service.dart';
@@ -150,8 +151,9 @@ void main() {
     });
 
     test(
-      "the server's refusal is shown as it says (unpaid last trip)",
+      'an unpaid last trip opens the refusal sheet with Pay now (16 Nov)',
       () async {
+        BookingRefusalState.instance.dismiss();
         final client = MockClient(
           (r) async => http.Response(
             jsonEncode({
@@ -167,7 +169,12 @@ void main() {
           client: client,
           present: (_) async => true,
         ).hold('q1');
-        expect(out.message, 'Pay for your last trip first.');
+        expect(out.ok, isFalse);
+        expect(out.message, isNull); // no snackbar: the sheet says it
+        final shown = BookingRefusalState.instance.latest;
+        expect(shown?.code, 'UNPAID_LAST_TRIP');
+        expect(shown?.message, 'Pay for your last trip first.');
+        expect(shown?.canPay, isTrue);
       },
     );
   });

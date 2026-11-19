@@ -224,7 +224,7 @@ class LocationService {
 
       return {
         'distance': '${km.toStringAsFixed(1)} km',
-        'duration': '$minutes mins',
+        'duration': '$minutes min',
         'distance_km': km,
         'duration_min': minutes,
         'bounds': bounds,

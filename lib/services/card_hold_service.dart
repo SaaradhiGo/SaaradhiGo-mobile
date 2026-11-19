@@ -7,6 +7,7 @@ import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../core/app_config.dart';
+import '../core/market/booking_refusal.dart';
 
 /// A card held at booking for the locked fare (USA; backend
 /// servers/payments/card_hold.py). The card never reaches SaaradhiGo:
@@ -52,18 +53,38 @@ class CardHoldOutcome {
   bool get ok => holdId != null;
 }
 
+/// Apple's merchant id (merchant.com....), from `--dart-define=STRIPE_MERCHANT_IDENTIFIER`.
+const kStripeMerchantIdentifier = String.fromEnvironment(
+  'STRIPE_MERCHANT_IDENTIFIER',
+);
+
+/// Apple Pay in the sheet only on iOS with a merchant id. Round 3: the
+/// Android QA build asked for Apple Pay without one, Stripe's assert threw,
+/// and "Confirm pickup and book" did nothing for every US rider.
+PaymentSheetApplePay? holdSheetApplePay({
+  required bool isIOS,
+  String merchantId = kStripeMerchantIdentifier,
+}) => isIOS && merchantId.isNotEmpty
+    ? const PaymentSheetApplePay(merchantCountryCode: 'US')
+    : null;
+
 /// Shows Stripe's payment sheet for a hold; replaced in tests.
 typedef PresentHoldSheet = Future<bool> Function(CardHold hold);
 
 Future<bool> presentStripeHoldSheet(CardHold hold) async {
   Stripe.publishableKey = hold.publishableKey;
+  final isIOS = defaultTargetPlatform == TargetPlatform.iOS;
+  final applePay = holdSheetApplePay(isIOS: isIOS);
+  if (applePay != null) {
+    Stripe.merchantIdentifier = kStripeMerchantIdentifier;
+  }
   await Stripe.instance.applySettings();
   await Stripe.instance.initPaymentSheet(
     paymentSheetParameters: SetupPaymentSheetParameters(
       paymentIntentClientSecret: hold.clientSecret,
       merchantDisplayName: 'SaaradhiGo',
       googlePay: const PaymentSheetGooglePay(merchantCountryCode: 'US'),
-      applePay: const PaymentSheetApplePay(merchantCountryCode: 'US'),
+      applePay: applePay,
     ),
   );
   try {
@@ -111,9 +132,20 @@ class CardHoldService {
       final body = r.body.isEmpty ? null : jsonDecode(r.body);
       if (r.statusCode >= 300) {
         final err = body is Map ? body['error'] : null;
-        return CardHoldOutcome.failed(
-          (err is Map ? err['message']?.toString() : null) ?? _notAvailable,
-        );
+        final message = err is Map ? err['message']?.toString() : null;
+        // 16 Nov: an unpaid last trip opens the same sheet as at booking,
+        // with "Pay now" (it used to be a passing snackbar, no way to pay).
+        if (err is Map && err['code']?.toString() == kUnpaidLastTrip) {
+          BookingRefusalState.instance.reportMessage(
+            kUnpaidLastTrip,
+            (message == null || message.isEmpty)
+                ? kUnpaidFallbackMessage
+                : message,
+            canPay: true,
+          );
+          return const CardHoldOutcome.cancelled();
+        }
+        return CardHoldOutcome.failed(message ?? _notAvailable);
       }
       final hold = CardHold.fromJson(body);
       if (hold == null) return const CardHoldOutcome.failed(_notAvailable);

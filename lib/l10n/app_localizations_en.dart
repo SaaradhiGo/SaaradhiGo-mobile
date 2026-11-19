@@ -1,6 +1,5 @@
 // ignore: unused_import
 import 'package:intl/intl.dart' as intl;
-
 import 'app_localizations.dart';
 
 // ignore_for_file: type=lint
@@ -329,6 +328,9 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get notCharged => 'You have not been charged';
+
+  @override
+  String get noDriversNearbyNow => 'No drivers nearby right now';
 
   @override
   String get keepLooking => 'Keep looking';
@@ -1006,4 +1008,17 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get linkCopied => 'Link copied';
+
+  @override
+  String get placeOutsideServiceArea =>
+      'This place is outside our service area';
+
+  @override
+  String placeOutsideServiceAreaNamed(String area) {
+    return 'This place is outside our service area ($area)';
+  }
+
+  @override
+  String get chooseAnotherDrop =>
+      'Choose a place inside the area to see fares.';
 }

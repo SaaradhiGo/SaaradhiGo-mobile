@@ -126,6 +126,33 @@ bool isSettledCompletedTrip(dynamic trip) {
   return payment == 'completed' || payment == 'not_charged';
 }
 
+/// Trips whose receipt the rider has closed (Done on the receipt).
+///
+/// A trip paid by itself (a card charged at drop, cash the driver confirmed)
+/// used to be cleared on resume, so a rider whose app was in the background
+/// at drop landed on Home with no receipt and no tip (launch round 2, trip
+/// 228). Such a trip now opens the receipt until the rider closes it.
+class ClosedReceipts {
+  static const _key = 'closed_receipt_trip_ids';
+  static const _keep = 20;
+
+  static Future<bool> contains(String tripId) async {
+    final prefs = await SharedPreferences.getInstance();
+    return (prefs.getStringList(_key) ?? const []).contains(tripId);
+  }
+
+  static Future<void> add(String? tripId) async {
+    if (tripId == null || tripId.isEmpty) return;
+    final prefs = await SharedPreferences.getInstance();
+    final ids = [...?prefs.getStringList(_key)]..remove(tripId);
+    ids.add(tripId);
+    await prefs.setStringList(
+      _key,
+      ids.length > _keep ? ids.sublist(ids.length - _keep) : ids,
+    );
+  }
+}
+
 class RideNotifier extends Notifier<RideState> {
   /// Pending auto-dismiss of the "ride cancelled" overlay.
   ///
@@ -307,7 +334,15 @@ class RideNotifier extends Notifier<RideState> {
         final tripStatus = await rideService.getTripStatus(token, savedTripId);
         if (_isStale(gen, 'Saved-trip answer')) return;
 
-        if (tripStatus != null &&
+        final saved = tripStatus?['data'];
+        if (state.status == RideStatus.searchingDriver &&
+            saved is Map &&
+            saved['status'] == 'cancelled') {
+          // 16 Nov ruling: the search ended while the app was away. Say so
+          // ("No drivers nearby right now", Try again), never a silent Home.
+          await _clearActiveTripId();
+          failSearch(kNoDriverMessage);
+        } else if (tripStatus != null &&
             tripStatus['status'] == 'success' &&
             tripStatus['data'] != null) {
           // Trip still exists, sync state using trip-specific endpoints
@@ -383,12 +418,16 @@ class RideNotifier extends Notifier<RideState> {
       _showCancelledOverlayBriefly();
       return;
     }
-    if (isSettledCompletedTrip(statusData['data'])) {
+    final settled = isSettledCompletedTrip(statusData['data']);
+    if (settled && await ClosedReceipts.contains(tripId)) {
       await clearState();
       return;
     }
 
-    final mapped = rideStatusFromBackendCode(tripStatus);
+    // Paid already: the receipt (and tip), never the "payment pending" banner.
+    final mapped = settled
+        ? RideStatus.rideCompleted
+        : rideStatusFromBackendCode(tripStatus);
     if (mapped == null) {
       // Do not silently keep the old status: that is how 'reached' produced a
       // blank screen for a rider with a driver waiting outside.
@@ -462,7 +501,8 @@ class RideNotifier extends Notifier<RideState> {
       _showCancelledOverlayBriefly();
       return;
     }
-    if (isSettledCompletedTrip(tripData)) {
+    final settled = isSettledCompletedTrip(tripData);
+    if (settled && await ClosedReceipts.contains(tripId)) {
       await clearState();
       return;
     }
@@ -474,7 +514,9 @@ class RideNotifier extends Notifier<RideState> {
       return;
     }
 
-    final mapped = rideStatusFromBackendCode(tripStatus);
+    final mapped = settled
+        ? RideStatus.rideCompleted
+        : rideStatusFromBackendCode(tripStatus);
     if (mapped == null) {
       // Do not silently keep the old status: that is how 'reached' produced a
       // blank screen for a rider with a driver waiting outside.
@@ -528,6 +570,9 @@ class RideNotifier extends Notifier<RideState> {
     'promo_code',
     'currency',
     'payment_status',
+    // How it was paid: a reopened receipt must know a card trip from cash.
+    'payment_method',
+    'card_held',
     // The on-trip arrival line ("Arriving about HH:MM").
     'started_at',
     'estimated_duration_min',

@@ -70,26 +70,8 @@ class ManagePaymentMethodsScreen extends StatelessWidget {
                   context.go('/home?tab=2');
                 },
               ),
-              const SizedBox(height: 24),
-              OutlinedButton.icon(
-                onPressed: () {},
-                icon: const Icon(Icons.add, size: 20),
-                label: Text(sgStrings(context).addPaymentMethod),
-                style: OutlinedButton.styleFrom(
-                  padding: const EdgeInsets.symmetric(vertical: 20),
-                  foregroundColor: SgColors.goldText,
-                  side: BorderSide(
-                    color: SgColors.goldText.withValues(alpha: 0.4),
-                  ),
-                  backgroundColor: const Color(
-                    0xFF8B6508,
-                  ).withValues(alpha: 0.1),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(16),
-                  ),
-                  textStyle: TextStyle(fontWeight: FontWeight.w600),
-                ),
-              ),
+              // 18 Nov (owner): no "Add New Payment Method" button. Riders add a card when they
+              // book (it is held for the locked fare); there is nothing saved to add to here.
             ],
           );
         },
@@ -146,7 +128,7 @@ class _PaymentTile extends StatelessWidget {
               ),
               child: Icon(
                 icon,
-                color: isWallet ? SgColors.goldText : SgColors.inkMuted,
+                color: isWallet ? SgColors.ink : SgColors.inkMuted, // 18 Nov: ink, not a gold glyph on grey
                 size: 20,
               ),
             ),

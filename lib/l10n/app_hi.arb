@@ -182,6 +182,8 @@
   "@noClassFree": {"description": "needs native review"},
   "notCharged": "आपसे कोई पैसा नहीं लिया गया",
   "@notCharged": {"description": "needs native review"},
+  "noDriversNearbyNow": "अभी पास में कोई ड्राइवर नहीं है",
+  "@noDriversNearbyNow": {"description": "needs native review"},
   "keepLooking": "ढूँढते रहें",
   "@keepLooking": {"description": "needs native review"},
   "tryAnotherRide": "या कोई और राइड आज़माएँ",
@@ -601,5 +603,11 @@
   "shareFailed": "हम यह ट्रिप शेयर नहीं कर सके। फिर से कोशिश करें।",
   "@shareFailed": {"description": "needs native review"},
   "linkCopied": "लिंक कॉपी हो गया",
-  "@linkCopied": {"description": "needs native review"}
+  "@linkCopied": {"description": "needs native review"},
+  "placeOutsideServiceArea": "यह जगह हमारे सेवा क्षेत्र से बाहर है",
+  "@placeOutsideServiceArea": {"description": "needs native review"},
+  "placeOutsideServiceAreaNamed": "यह जगह हमारे सेवा क्षेत्र ({area}) से बाहर है",
+  "@placeOutsideServiceAreaNamed": {"description": "needs native review"},
+  "chooseAnotherDrop": "किराया देखने के लिए क्षेत्र के अंदर कोई जगह चुनें।",
+  "@chooseAnotherDrop": {"description": "needs native review"}
 }

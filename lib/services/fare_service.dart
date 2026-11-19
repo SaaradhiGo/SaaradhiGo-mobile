@@ -6,6 +6,14 @@ import '../core/app_config.dart';
 import '../core/market/booking_refusal.dart';
 import 'package:latlong2/latlong.dart';
 
+const kOutOfServiceArea = 'OUT_OF_SERVICE_AREA';
+
+/// The area named in the server's outside-area message, or null.
+String? outsideAreaName(String? message) {
+  final m = RegExp(r'\(([^()]+)\)\.?\s*$').firstMatch(message ?? '');
+  return m?.group(1)?.trim();
+}
+
 class FareService {
   /// The classes priced at [lat],[lng], or null when the API cannot say.
   /// An empty list is a real answer: nothing is priced there.
@@ -95,6 +103,7 @@ class FareService {
       if (response.statusCode == 200) {
         final data = json.decode(response.body);
         if (data['status'] == 'success') {
+          lastOutsideArea = null;
           return data['data'];
         }
       } else {
@@ -107,11 +116,19 @@ class FareService {
     return null;
   }
 
+  /// The server's words for the last pickup or drop outside every zone, e.g.
+  /// "This place is outside our service area (Treasure Valley)." Null after
+  /// any other answer. Round 3: this used to read "check your connection".
+  String? lastOutsideArea;
+
   void _reportRefusal(String body, LatLng pickup) {
     try {
       final decoded = json.decode(body);
       final error = decoded is Map ? decoded['error'] : null;
       final code = error is Map ? error['code']?.toString() : null;
+      if (code == kOutOfServiceArea) {
+        lastOutsideArea = (error as Map)['message']?.toString() ?? '';
+      }
       if (isBookingRefusalCode(code)) {
         BookingRefusalState.instance.report(code!, pickup: pickup);
       }

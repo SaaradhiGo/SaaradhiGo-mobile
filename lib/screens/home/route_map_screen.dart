@@ -16,6 +16,7 @@ import '../../ui/trip_widgets.dart' show routeLine;
 import '../../ui/sg_text.dart';
 import '../../ui/sg_tokens.dart';
 import '../../ui/sg_widgets.dart';
+import '../../services/fare_service.dart' show outsideAreaName;
 
 class RouteMapScreen extends StatefulWidget {
   const RouteMapScreen({super.key});
@@ -179,13 +180,16 @@ class _RouteMapScreenState extends State<RouteMapScreen> {
           : (dropoff != null && _isValidCoordinate(dropoff))
           ? [pickup, dropoff]
           : [pickup];
+      // 17 Nov: the Google SDK pads every side by the largest inset. A 96dp top
+      // inset on the short route strip left the route ~80dp and the pickup and
+      // drop pins nearly touching, so the insets stay small (as fitPadding).
       _mapController?.fitPoints(
         points,
         padding: EdgeInsets.fromLTRB(
-          32,
-          MediaQuery.of(context).padding.top + 72,
-          32,
-          32,
+          24,
+          MediaQuery.of(context).padding.top + 16,
+          24,
+          24,
         ),
       );
 
@@ -335,7 +339,7 @@ class _RouteMapScreenState extends State<RouteMapScreen> {
                 // A short route strip; the fares are the screen.
                 height: tablet
                     ? null
-                    : MediaQuery.of(context).size.height * 0.26,
+                    : MediaQuery.of(context).size.height * 0.32,
                 child: Stack(
                   children: [
                     // Ensure FlutterMap has explicit constraints to prevent "render box with no size" errors
@@ -361,11 +365,14 @@ class _RouteMapScreenState extends State<RouteMapScreen> {
                               initialZoom: initialZoom,
                               markers: markers,
                               polylines: polylines,
+                              // 17 Nov: the SDK pads every side by the largest inset, so a
+                              // 96dp top inset left the short strip ~27dp for the route and
+                              // the pins nearly touched. Keep the insets small.
                               fitPadding: EdgeInsets.fromLTRB(
-                                32,
-                                MediaQuery.of(context).padding.top + 72,
-                                32,
-                                32,
+                                24,
+                                MediaQuery.of(context).padding.top + 16,
+                                24,
+                                24,
                               ),
                               onMapCreated: (c) {
                                 _mapController = c;
@@ -498,6 +505,31 @@ class _RouteMapScreenState extends State<RouteMapScreen> {
       );
     }
     final options = RideOption.fromEstimates(provider.fareEstimates);
+    final outside = provider.outsideArea;
+    if (options.isEmpty && outside != null) {
+      final area = outsideAreaName(outside);
+      return SgSheetSurface(
+        child: Column(
+          key: const Key('outside_service_area'),
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(
+              area == null
+                  ? sgStrings(context).placeOutsideServiceArea
+                  : sgStrings(context).placeOutsideServiceAreaNamed(area),
+              style: SgText.title,
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: SgSpace.s2),
+            Text(
+              sgStrings(context).chooseAnotherDrop,
+              style: SgText.caption,
+              textAlign: TextAlign.center,
+            ),
+          ],
+        ),
+      );
+    }
     if (options.isEmpty) {
       return SgSheetSurface(
         child: Column(
