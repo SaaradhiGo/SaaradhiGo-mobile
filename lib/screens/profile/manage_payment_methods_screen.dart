@@ -70,23 +70,8 @@ class ManagePaymentMethodsScreen extends StatelessWidget {
                   context.go('/home?tab=2');
                 },
               ),
-              const SizedBox(height: 24),
-              OutlinedButton.icon(
-                onPressed: () {},
-                icon: const Icon(Icons.add, size: 20),
-                label: Text(sgStrings(context).addPaymentMethod),
-                style: OutlinedButton.styleFrom(
-                  padding: const EdgeInsets.symmetric(vertical: 20),
-                  // 18 Nov: a secondary button (white, hairline, ink), not a tinted gold tile.
-                  foregroundColor: SgColors.ink,
-                  side: BorderSide(color: SgColors.lineStrong),
-                  backgroundColor: SgColors.bg100,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(16),
-                  ),
-                  textStyle: TextStyle(fontWeight: FontWeight.w600),
-                ),
-              ),
+              // 18 Nov (owner): no "Add New Payment Method" button. Riders add a card when they
+              // book (it is held for the locked fare); there is nothing saved to add to here.
             ],
           );
         },
