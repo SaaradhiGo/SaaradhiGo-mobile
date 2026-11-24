@@ -146,6 +146,7 @@ class _DriverView {
   String get pin => (ride['otp'] ?? '').toString().trim();
   String? get photo => info['photo_url']?.toString();
   String? get tripId => (ride['trip_id'] ?? ride['id'])?.toString();
+  String? get tripRef => (ride['public_ref'] ?? ride['trip_ref'])?.toString();
 
   String get _model {
     final m = '${vehicle['brand'] ?? ''} ${vehicle['model'] ?? ''}'.trim();
@@ -189,6 +190,7 @@ class _DriverView {
 
   TripSafetyContext get safety => TripSafetyContext(
     tripId: tripId,
+    tripRef: tripRef,
     driverName: name.isEmpty ? null : name,
     vehicleNumber: plate.isEmpty ? null : plate,
     vehicleModel: _model.isEmpty ? null : _model,
@@ -937,6 +939,7 @@ class _FullMapTrackingScreenState extends State<FullMapTrackingScreen> {
 
     return TripSafetyContext(
       tripId: mapProvider.tripId ?? ride?['trip_id']?.toString(),
+      tripRef: (ride?['public_ref'] ?? ride?['trip_ref'])?.toString(),
       driverName: ride?['driver_name'] as String?,
       vehicleNumber: ride?['vehicle_number'] as String?,
       vehicleModel: ride?['vehicle_model'] as String?,
