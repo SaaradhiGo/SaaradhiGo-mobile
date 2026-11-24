@@ -123,10 +123,9 @@ PaymentOrder parseCreateOrder(Map<String, dynamic>? body) {
     for (final k in const ['name', 'contact', 'email'])
       if (_nonEmpty(prefillRaw[k]) != null) k: _nonEmpty(prefillRaw[k])!,
   };
-  final tripId = _nonEmpty(data['trip_id']);
   final description =
       _nonEmpty(data['description']) ??
-      (tripId != null ? 'Payment for Trip #$tripId' : 'SaaradhiGo ride');
+      'SaaradhiGo ride'; // the server sends the description with the trip's reference
 
   if (gateway == 'razorpay') {
     final orderId =

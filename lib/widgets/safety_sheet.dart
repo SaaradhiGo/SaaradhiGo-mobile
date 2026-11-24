@@ -50,6 +50,7 @@ String get _emergencyNumber =>
 class TripSafetyContext {
   const TripSafetyContext({
     this.tripId,
+    this.tripRef,
     this.driverName,
     this.vehicleNumber,
     this.vehicleModel,
@@ -58,6 +59,10 @@ class TripSafetyContext {
   });
 
   final String? tripId;
+
+  /// The trip's reference as people see it (HYD-261116-K7Q4). Shared instead of the
+  /// internal id, which is never shown (owner, 24 Nov).
+  final String? tripRef;
   final String? driverName;
   final String? vehicleNumber;
   final String? vehicleModel;
@@ -82,8 +87,8 @@ class TripSafetyContext {
         .map((v) => v!.trim())
         .join(' ');
     if (vehicle.isNotEmpty) parts.add('Vehicle: $vehicle');
-    if (tripId != null && tripId!.trim().isNotEmpty) {
-      parts.add('Trip: #${tripId!.trim()}');
+    if (tripRef != null && tripRef!.trim().isNotEmpty) {
+      parts.add('Trip: ${tripRef!.trim()}');
     }
     if (hasLocation) {
       parts.add(

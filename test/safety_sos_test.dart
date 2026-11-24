@@ -162,6 +162,7 @@ void main() {
     test('shares the facts the server gave us, and no invented link', () {
       const trip = TripSafetyContext(
         tripId: '45',
+        tripRef: 'HYD-261116-K7Q4',
         driverName: 'A Driver',
         vehicleNumber: 'TS09AB1234',
         vehicleModel: 'Swift Dzire',
@@ -174,7 +175,8 @@ void main() {
       expect(message, contains('A Driver'));
       expect(message, contains('TS09AB1234'));
       expect(message, contains('Swift Dzire'));
-      expect(message, contains('#45'));
+      expect(message, contains('Trip: HYD-261116-K7Q4'));
+      expect(message, isNot(contains('#45')), reason: 'the internal id is never shared');
       expect(message, contains('17.445000,78.380000'));
       // No public live-tracking endpoint exists. A link that 404s during an
       // emergency is worse than no link.
@@ -185,7 +187,7 @@ void main() {
       const trip = TripSafetyContext(tripId: '9');
       final message = trip.shareMessage();
 
-      expect(message, contains('#9'));
+      expect(message, isNot(contains('#9')));
       expect(message.toLowerCase(), isNot(contains('null')));
       expect(message.toLowerCase(), isNot(contains('unknown')));
       expect(message, isNot(contains('My location')));
