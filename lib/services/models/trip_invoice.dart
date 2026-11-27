@@ -4,9 +4,20 @@
 library;
 
 class InvoiceLine {
-  const InvoiceLine(this.label, this.amount);
+  const InvoiceLine(
+    this.label,
+    this.amount, {
+    this.note = '',
+    this.onBehalf = false,
+  });
   final String label;
   final String amount;
+
+  /// 27 Nov (trip charges): whom a toll or airport fee is collected for.
+  final String note;
+
+  /// A toll, airport fee or permit collected on behalf of someone else.
+  final bool onBehalf;
 }
 
 class InvoiceRefund {
@@ -33,6 +44,7 @@ class TripInvoice {
     this.taxAmount,
     this.taxIncluded = true,
     this.extras = const [],
+    this.onBehalfTitle = 'Collected on behalf of others',
     this.total,
     this.tip,
     this.totalCharged,
@@ -60,6 +72,9 @@ class TripInvoice {
   final bool taxIncluded;
   final List<InvoiceLine> extras;
 
+  /// The heading over the extras collected on behalf of others.
+  final String onBehalfTitle;
+
   /// The ride total: fare plus booking fee, without tip.
   final String? total;
 
@@ -85,7 +100,12 @@ class TripInvoice {
       if (v is List)
         for (final e in v)
           if (e is Map && s(e, 'label').isNotEmpty)
-            InvoiceLine(s(e, 'label'), s(e, 'amount')),
+            InvoiceLine(
+              s(e, 'label'),
+              s(e, 'amount'),
+              note: s(e, 'note'),
+              onBehalf: e['on_behalf'] == true,
+            ),
     ];
     final tax = breakdown is Map ? breakdown['tax'] : null;
     final title = s(inv, 'title').isNotEmpty
@@ -111,6 +131,9 @@ class TripInvoice {
       taxAmount: tax is Map ? tax['amount']?.toString() : null,
       taxIncluded: tax is Map ? tax['included'] != false : true,
       extras: list(breakdown is Map ? breakdown['extras'] : null),
+      onBehalfTitle: s(breakdown, 'on_behalf_title').isEmpty
+          ? 'Collected on behalf of others'
+          : s(breakdown, 'on_behalf_title'),
       total:
           (breakdown is Map ? breakdown['total'] : null)?.toString() ??
           inv['total']?.toString(),
