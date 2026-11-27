@@ -34,6 +34,37 @@ import '../ui/sg_text.dart';
 String? _money(dynamic raw, {String? currencyCode}) =>
     formatMoney(raw, currencyCode);
 
+/// Whom a toll or airport fee is collected for (27 Nov). The server's own words
+/// when the quote carries them (`fare_lines.extras[].note`), else the same rule.
+String _onBehalfNote(Map raw, Map<String, dynamic>? fareData) {
+  final lines = fareData?['fare_lines'];
+  final extras = lines is Map ? lines['extras'] : null;
+  if (extras is List) {
+    for (final e in extras) {
+      if (e is Map &&
+          e['label'] == raw['label'] &&
+          (e['note'] ?? '').toString().isNotEmpty) {
+        return e['note'].toString();
+      }
+    }
+  }
+  final kind = (raw['kind'] ?? '').toString();
+  final remitTo = (raw['remit_to'] ?? '').toString();
+  final permit =
+      raw['collection'] == 'platform_remits' ||
+      (kind == 'permit' && (raw['collection'] ?? '') == '');
+  if (permit && remitTo.isNotEmpty) {
+    return 'Collected on behalf of $remitTo. SaaradhiGo pays it.';
+  }
+  if (kind == 'toll_plaza' || kind == 'tolled_road') {
+    return 'Collected on behalf of the toll operator. Your driver pays it at the plaza.';
+  }
+  if (kind == 'venue') {
+    return 'Collected on behalf of the venue. Your driver pays it at the gate.';
+  }
+  return 'Collected on behalf of the airport. Your driver pays it at the gate.';
+}
+
 /// True only when [raw] parses to a number strictly greater than zero.
 bool _isPositive(dynamic raw) {
   if (raw == null) return false;
@@ -206,11 +237,17 @@ class FareBreakdown extends StatelessWidget {
       // The server decides what these are and what they are called; this widget
       // renders them and does no arithmetic of its own.
       final adjustments = fareData?['fare_adjustments'];
+      // 27 Nov (trip charges): tolls and airport fees, grouped below.
+      final onBehalf = <Map>[];
       if (adjustments is List) {
         for (final raw in adjustments) {
           if (raw is! Map) continue;
           final amount = _money(raw['amount'], currencyCode: currencyCode);
           if (amount == null) continue;
+          if (raw['code'] == 'trip_extra') {
+            onBehalf.add(raw);
+            continue;
+          }
           final label = (raw['label'] ?? raw['code'] ?? 'Adjustment')
               .toString();
           final code = (raw['code'] ?? '').toString();
@@ -224,6 +261,30 @@ class FareBreakdown extends StatelessWidget {
                         ? 'Short trips are charged a minimum'
                         : null),
               color: code == 'surge' ? SgColors.goldText : SgColors.ink,
+            ),
+          );
+        }
+      }
+
+      if (onBehalf.isNotEmpty) {
+        final sum = onBehalf.fold<double>(
+          0,
+          (t, x) => t + (double.tryParse(x['amount'].toString()) ?? 0),
+        );
+        lines.add(
+          FareLine(
+            'Collected on behalf of others',
+            _money(sum.toStringAsFixed(2), currencyCode: currencyCode) ?? '',
+            note: 'Locked when you book: it does not change on the way',
+            key: const Key('fare_on_behalf'),
+          ),
+        );
+        for (final raw in onBehalf) {
+          lines.add(
+            FareLine(
+              (raw['label'] ?? 'Trip charge').toString(),
+              _money(raw['amount'], currencyCode: currencyCode) ?? '',
+              note: _onBehalfNote(raw, fareData),
             ),
           );
         }
@@ -285,6 +346,19 @@ class FareBreakdown extends StatelessWidget {
         ...lines,
         if (lines.isNotEmpty) Divider(color: SgColors.lineStrong, height: 20),
         FareLine('Estimated total', total ?? '—', bold: true),
+        if (_waitingWords(fareData, currencyCode) case final words?)
+          Padding(
+            key: const Key('fare_waiting_terms'),
+            padding: const EdgeInsets.only(top: 6),
+            child: Text(
+              words,
+              style: TextStyle(
+                color: SgColors.ink,
+                fontSize: SgText.sizeSmall,
+                fontWeight: FontWeight.w400,
+              ),
+            ),
+          ),
         Padding(
           padding: EdgeInsets.only(top: 6),
           child: Text(
@@ -300,6 +374,21 @@ class FareBreakdown extends StatelessWidget {
       ],
     );
   }
+}
+
+/// The waiting terms locked with the quote (27 Nov), in the rider's words.
+String? _waitingWords(Map<String, dynamic>? fareData, String? currencyCode) {
+  final w = fareData?['waiting_terms'];
+  if (w is! Map) return null;
+  final per = w['per_minute_minor'];
+  final perValue = per is num ? per : num.tryParse(per?.toString() ?? '');
+  if (perValue == null || perValue <= 0) return null;
+  final rate = _money(
+    (perValue / 100).toStringAsFixed(2),
+    currencyCode: currencyCode,
+  );
+  return 'Waiting: the first ${w['free_minutes'] ?? 0} min are free, then $rate/min. '
+      'Waiting goes to your driver.';
 }
 
 /// Shows [FareBreakdown] in a bottom sheet.

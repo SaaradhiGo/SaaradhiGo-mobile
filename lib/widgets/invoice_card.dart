@@ -85,7 +85,33 @@ class InvoiceCard extends StatelessWidget {
                 i.taxAmount,
               ),
           ],
-          for (final l in i.extras) row(l.label, l.amount),
+          for (final l in i.extras.where((x) => !x.onBehalf))
+            row(l.label, l.amount),
+          // 27 Nov (trip charges): tolls and airport fees, and whom each is for.
+          if (i.extras.any((x) => x.onBehalf)) ...[
+            KeyedSubtree(
+              key: const Key('invoice_on_behalf'),
+              child: row(
+                i.onBehalfTitle,
+                i.extras
+                    .where((x) => x.onBehalf)
+                    .fold<double>(
+                      0,
+                      (t, x) => t + (double.tryParse(x.amount) ?? 0),
+                    )
+                    .toStringAsFixed(2),
+                bold: true,
+              ),
+            ),
+            for (final l in i.extras.where((x) => x.onBehalf)) ...[
+              row(l.label, l.amount),
+              if (l.note.isNotEmpty)
+                Padding(
+                  padding: const EdgeInsets.only(bottom: SgSpace.s1),
+                  child: Text(l.note, style: SgText.caption),
+                ),
+            ],
+          ],
           if (i.total != null) row('Ride total', i.total, bold: true),
           if ((double.tryParse(i.tip ?? '') ?? 0) > 0) row('Tip', i.tip),
           if (i.totalCharged != null && i.totalCharged != i.total)
